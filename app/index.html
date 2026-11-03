@@ -5,23 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
-  <meta name="description" content="Demostración local de comparación de registros de motor basada en evidencia, calidad de datos y procedencia.">
-  <title>Datalog Workbench · Análisis de registros de motor</title>
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Prototipo técnico de evaluación de comparabilidad de registros ECU/logger y dinamómetro con datos sintéticos.">
+  <title>Datalog Comparison · Demo técnica de análisis de registros</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./index.html" aria-label="Datalog Workbench, inicio">
-      <span class="brand-mark" aria-hidden="true">DW</span>
-      <span class="brand-text"><strong>Datalog Workbench</strong><small>Demo de comparación</small></span>
+    <a class="brand" href="./index.html" aria-label="Datalog Comparison, inicio">
+      <span class="brand-mark" aria-hidden="true">DC</span>
+      <span class="brand-text"><strong>Datalog Comparison</strong><small>Prototipo de Datalog Workbench</small></span>
     </a>
     <div class="topbar-meta"><span class="local-dot" aria-hidden="true"></span><span>LOCAL · SIN SERVICIOS EXTERNOS</span></div>
   </header>
 
   <main class="page-shell">
     <section class="hero" aria-labelledby="pageTitle">
-      <p class="eyebrow">DEMOSTRACIÓN TÉCNICA · NOVIEMBRE 2026</p>
+      <p class="eyebrow">DEMOSTRACIÓN TÉCNICA · DATOS SINTÉTICOS</p>
       <h1 id="pageTitle">La evidencia antes que la comparación.</h1>
       <p class="hero-lead">Una demo de ingeniería para examinar dos registros, encontrar límites en los datos y explicar por qué una comparación puede servir, necesita revisión o debe bloquearse.</p>
       <div class="hero-pills" aria-label="Alcance de la demo">
@@ -98,7 +99,7 @@
       <h2 id="limitsTitle">Un resultado automatizado no certifica un ensayo.</h2>
       <p>El prototipo no prueba sincronización física, equivalencia de carga, validez de sensores, causalidad ni seguridad de una calibración. Antes de interpretar diferencias reales hacen falta registros autorizados, contexto de medición documentado y revisión de una persona experta.</p>
     </section>
-    <footer class="page-footer"><span>Datalog Workbench · Demo experimental de análisis</span><span>Sin conexión a ECU · Sin datos reales · Sin recomendaciones de calibración</span></footer>
+    <footer class="page-footer"><span>Datalog Comparison · Prototipo de Datalog Workbench</span><span>Sin conexión a ECU · Sin datos reales · Sin recomendaciones de calibración</span></footer>
   </main>
 </body>
 </html>

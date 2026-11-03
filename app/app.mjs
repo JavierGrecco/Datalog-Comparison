@@ -7,7 +7,6 @@ import { assessComparisonReadiness } from "../src/comparison-readiness.mjs";
 
 const state = { caseId: "complete", demoCase: null, readiness: null };
 const $ = selector => document.querySelector(selector);
-const numberFormat = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
 const svgNs = "http://www.w3.org/2000/svg";
 
 function esc(value) {
@@ -60,7 +59,7 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
     const missing = !referenceAvailable && !candidateAvailable
       ? "ambos registros" : !referenceAvailable ? "la referencia" : "la candidata";
     container.innerHTML = '<div class="empty-chart">No hay suficientes muestras numéricas para dibujar ' +
-      esc(title.toLowerCase()) + ' en ' + esc(missing) + '.</div>';
+      esc(title.toLowerCase()) + " en " + esc(missing) + ".</div>";
     return;
   }
 
@@ -88,7 +87,7 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
   const heading = document.createElement("div");
   heading.className = "curve-heading";
   heading.innerHTML = '<div><h3>' + esc(title) + '</h3><span>' + esc(unit) +
-    '</span></div><span class="curve-range">' + fmt(rawMinY) + '–' + fmt(rawMaxY) + ' ' + esc(unit) + '</span>';
+    '</span></div><span class="curve-range">' + fmt(rawMinY) + "–" + fmt(rawMaxY) + " " + esc(unit) + "</span>";
   card.append(heading);
 
   const svg = document.createElementNS(svgNs, "svg");
@@ -136,7 +135,7 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
   const legend = document.createElement("div");
   legend.className = "curve-legend";
   legend.innerHTML = '<span><i class="legend-reference"></i>' + esc(reference.name) +
-    '</span><span><i class="legend-candidate"></i>' + esc(candidate.name) + '</span>';
+    '</span><span><i class="legend-candidate"></i>' + esc(candidate.name) + "</span>";
   card.append(svg, legend);
   container.append(card);
 }
@@ -186,7 +185,7 @@ function renderRunSummary() {
       '<div><dt>Cobertura boost</dt><dd>' + fmt(boostCoverage) + '%</dd></div>' +
       '<div><dt>Pico torque</dt><dd>' + (torque ? fmt(torque.value) + " Nm · " + fmt(torque.rpm, 0) + " RPM" : "—") + '</dd></div>' +
       '<div><dt>Pico potencia</dt><dd>' + (power ? fmt(power.value) + " kW · " + fmt(power.rpm, 0) + " RPM" : "—") + '</dd></div>' +
-      '</dl><p class="run-note">' + esc(run.note) + '</p></article>';
+      '</dl><p class="run-note">' + esc(run.note) + "</p></article>";
   }).join("");
 }
 
@@ -197,20 +196,20 @@ function renderReadiness() {
   $("#readinessSummary").className = "readiness-summary " + statusClass;
   $("#readinessSummary").innerHTML = '<span class="readiness-mark" aria-hidden="true">' +
     (readiness.status === "blocked" ? "×" : readiness.status === "review_required" ? "!" : "✓") +
-    '</span><div><strong>' + esc(readiness.headline) + '</strong><p>' + esc(readiness.summary) + '</p></div>';
+    '</span><div><strong>' + esc(readiness.headline) + '</strong><p>' + esc(readiness.summary) + "</p></div>";
 
   $("#gateList").innerHTML = readiness.gates.map(gate => {
     const findings = gate.findings.length
-      ? '<ul>' + gate.findings.slice(0, 3).map(item => '<li>' + esc(item) + '</li>').join("") +
-        (gate.findings.length > 3 ? '<li>+' + (gate.findings.length - 3) + ' observaciones más.</li>' : "") + '</ul>'
+      ? "<ul>" + gate.findings.slice(0, 3).map(item => "<li>" + esc(item) + "</li>").join("") +
+        (gate.findings.length > 3 ? "<li>+" + (gate.findings.length - 3) + " observaciones más.</li>" : "") + "</ul>"
       : '<p class="gate-clean">No se detectó un bloqueo en esta comprobación.</p>';
     const cls = gate.status === "blocked" ? "gate-blocked"
       : gate.status === "review_required" ? "gate-review" : "gate-supported";
     return '<article class="gate-card ' + cls + '"><div class="gate-head"><h3>' + esc(gate.label) +
-      '</h3><span>' + esc(statusLabel(gate.status)) + '</span></div><p>' + esc(gate.summary) + '</p>' + findings + '</article>';
+      "</h3><span>" + esc(statusLabel(gate.status)) + "</span></div><p>" + esc(gate.summary) + "</p>" + findings + "</article>";
   }).join("");
 
-  $("#nextActions").innerHTML = readiness.nextActions.map(action => '<li>' + esc(action) + '</li>').join("");
+  $("#nextActions").innerHTML = readiness.nextActions.map(action => "<li>" + esc(action) + "</li>").join("");
 }
 
 function renderCharts() {

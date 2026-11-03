@@ -28,7 +28,7 @@ La aplicación contiene tres escenarios generados en memoria:
 
 | Escenario | Qué permite observar |
 | --- | --- |
-| **Registros sintéticos completos** | Dos registros del mismo dominio, con canales y unidades declarados. La matriz mantiene la revisión de validación real como requisito. |
+| **Registros sintéticos completos** | Dos registros del mismo dominio, con canales y unidades declarados. La matriz mantiene la validación real como requisito. |
 | **Datos incompletos** | Valores ausentes, cobertura parcial y anomalías en la secuencia temporal. Los datos faltantes no se completan artificialmente. |
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 
@@ -39,12 +39,10 @@ En los escenarios del mismo dominio se pueden inspeccionar gráficos descriptivo
 Los controles se presentan por separado, sin reducirlos a una puntuación opaca:
 
 - **Origen:** identifica si los registros pertenecen al dominio ECU/logger o dinamómetro.
-- **Calidad:** revisa faltantes, cobertura y consistencia temporal.
+- **Calidad:** revisa faltantes, cobertura, consistencia de metadatos y secuencia temporal.
 - **Canales y unidades:** comprueba qué señales tienen una base declarada compatible.
-- **Condiciones de operación:** muestra el contexto informado para cada ensayo y sus vacíos.
-- **Procedencia:** conserva la información disponible sobre el origen de los datos.
-
-La matriz puede señalar tres tipos de resultado:
+- **Condiciones de operación:** revisa valores, estado de verificación y procedencia declarada.
+- **Procedencia:** conserva la información disponible sobre archivos, roles y contexto.
 
 | Resultado | Interpretación |
 | --- | --- |
@@ -56,7 +54,7 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 ## Ejecutar la aplicación
 
-La demo no necesita una ECU, archivos de registro, servicios externos ni dependencias de ejecución. Requiere Python 3 para levantar un servidor local sencillo.
+La demo no necesita una ECU, archivos de registro, servicios externos ni dependencias de ejecución. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
 
 ```bash
 git clone https://github.com/JavierGrecco/Datalog-Comparison.git
@@ -64,7 +62,9 @@ cd Datalog-Comparison
 python3 -m http.server 8000
 ```
 
-Abrí [http://127.0.0.1:8000/](http://127.0.0.1:8000/) en el navegador. La página de inicio redirige a la aplicación ubicada en `app/`.
+Abrí [http://127.0.0.1:8000/](http://127.0.0.1:8000/) en el navegador. La página de inicio dirige a la aplicación ubicada en `app/`.
+
+**Python no forma parte del motor ni de la arquitectura del producto:** se utiliza únicamente como servidor estático de desarrollo. Puede reemplazarse por cualquier servidor HTTP local equivalente.
 
 Para detener el servidor, presioná `Ctrl+C`.
 
@@ -81,10 +81,10 @@ npm test
 El comando `npm test` ejecuta:
 
 1. **Chequeo de sintaxis:** valida los módulos JavaScript incluidos en el proyecto.
-2. **Pruebas unitarias:** comprueba los tres escenarios, los estados de evaluación, el informe exportable y los límites de interpretación.
-3. **Prueba de navegador:** recorre la interfaz en Chromium, verifica gráficos, bloqueos, exportación JSON, vista móvil, errores de JavaScript y ausencia de solicitudes externas.
+2. **Pruebas unitarias y de contratos:** comprueba escenarios, reglas de origen, unidades, calidad temporal, condiciones operativas, manifiestos, estados de evaluación e informes.
+3. **Prueba de navegador:** recorre la entrada del sitio y la interfaz en Chromium, verifica gráficos, bloqueos, selección por teclado, exportación JSON, vista móvil, errores, recursos inexistentes y solicitudes externas.
 
-El workflow de GitHub Actions ejecuta estas mismas validaciones en cada actualización de `main` y en las solicitudes de integración. El indicador al comienzo del documento muestra el estado de la última ejecución.
+El workflow de GitHub Actions ejecuta estas validaciones en cada actualización y en las solicitudes de integración. El indicador al comienzo del documento muestra el estado de la última ejecución.
 
 Estas pruebas verifican el comportamiento del software cubierto por ellas; no validan sensores, motores, dinamómetros ni resultados físicos.
 
@@ -102,17 +102,30 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 │   ├── operating-conditions.mjs
 │   └── run-manifest.mjs
 ├── tests/
-│   ├── unit/             # Pruebas de reglas y escenarios
+│   ├── unit/             # Pruebas de dominio y contratos
 │   └── browser/          # Recorrido automatizado con Chromium
 ├── docs/
-│   ├── ARCHITECTURE.md   # Responsabilidades de los módulos
-│   ├── LIMITATIONS.md    # Límites funcionales y técnicos
-│   └── REFERENCES.md     # Herramientas consultadas
-├── index.html            # Entrada y redirección a la aplicación
+│   ├── ARCHITECTURE.md
+│   ├── QUALITY_GATES.md
+│   ├── ENGINEERING.md
+│   ├── LIMITATIONS.md
+│   └── REFERENCES.md
+├── SECURITY.md
+├── index.html            # Entrada segura y redirección estática
 └── package.json          # Herramientas de desarrollo y pruebas
 ```
 
 La interfaz está implementada con HTML, CSS y módulos JavaScript nativos. Los gráficos se dibujan en SVG. No hay framework de interfaz, proceso de compilación ni backend para esta demostración.
+
+## Arquitectura y criterios de calidad
+
+La implementación separa la presentación de las reglas de dominio. La matriz no calcula un puntaje de confianza: combina comprobaciones identificables de origen, calidad, unidades, condiciones y procedencia.
+
+- [Arquitectura](docs/ARCHITECTURE.md): responsabilidades y flujo entre módulos.
+- [Puertas de calidad](docs/QUALITY_GATES.md): significado de los estados y criterios de bloqueo/revisión.
+- [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones y definición de terminado.
+- [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
+- [Referencias consultadas](docs/REFERENCES.md): antecedentes revisados durante la investigación.
 
 ## Alcance y límites
 
@@ -126,7 +139,7 @@ Para interpretar correctamente esta publicación, tené en cuenta que:
 - Una relación declarada entre registros no demuestra que sus relojes estén sincronizados ni que correspondan al mismo evento físico.
 - No escribe, modifica ni programa una ECU; tampoco diagnostica fallas, demuestra causalidad o emite recomendaciones de calibración validadas.
 
-La documentación amplía estos puntos en [Límites de la demo](docs/LIMITATIONS.md) y [Arquitectura](docs/ARCHITECTURE.md).
+La documentación amplía estos puntos en [Límites de la demo](docs/LIMITATIONS.md) y [Puertas de calidad](docs/QUALITY_GATES.md).
 
 ## Datos y privacidad
 

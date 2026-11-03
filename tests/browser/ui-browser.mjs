@@ -73,24 +73,64 @@ async function openDemo(t, viewport) {
   t.after(() => context.close());
   const page = await context.newPage();
   const pageErrors = [];
+  const consoleErrors = [];
   const externalRequests = [];
+  const httpErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
   page.on("request", request => {
     if (!request.url().startsWith(baseUrl + "/")) externalRequests.push(request.url());
   });
+  page.on("response", response => {
+    if (response.url().startsWith(baseUrl + "/") && response.status() >= 400) {
+      httpErrors.push(response.status() + " " + response.url());
+    }
+  });
   await page.goto(baseUrl + "/app/index.html", { waitUntil: "domcontentloaded" });
   await page.locator("#casePicker [data-demo-case]").first().waitFor({ state: "visible" });
-  return { page, pageErrors, externalRequests };
+  return { page, pageErrors, consoleErrors, externalRequests, httpErrors };
 }
 
+test("la entrada raíz es una redirección estática sin JavaScript inline", async t => {
+  const rootResponse = await fetch(baseUrl + "/");
+  const rootHtml = await rootResponse.text();
+
+  assert.equal(rootResponse.status, 200);
+  assert.match(rootHtml, /Content-Security-Policy/i);
+  assert.match(rootHtml, /url=\.\/app\/index\.html/i);
+  assert.doesNotMatch(rootHtml, /<script\b/i);
+
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+  await page.waitForURL(baseUrl + "/app/index.html");
+  assert.match(await page.title(), /Datalog Comparison/);
+  assert.equal(await page.locator("#pageTitle").innerText(), "La evidencia antes que la comparación.");
+});
+
 test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación y viewport móvil", async t => {
-  const { page, pageErrors, externalRequests } = await openDemo(t, { width: 390, height: 844 });
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
 
   assert.match(await page.locator("#readinessSummary").innerText(), /revisión/i);
   assert.equal(await page.locator("#charts svg").count(), 2, "el caso base debe dibujar torque y potencia");
+  assert.equal(await page.locator("#casePicker button").count(), 3);
+  assert.equal(await page.locator("#casePicker button[aria-pressed=true]").count(), 1);
+
   const initialOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   assert.equal(initialOverflow, false, "los gráficos deben caber en móvil cuando ambos paneles están visibles");
-  assert.equal(await page.locator("#casePicker button[aria-pressed=true]").count(), 1);
+
+  const firstCase = page.locator('#casePicker [data-demo-case="complete"]');
+  await firstCase.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await firstCase.getAttribute("aria-pressed"), "true",
+    "los escenarios deben poder seleccionarse con teclado");
+
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  assert.match(csp, /connect-src 'none'/);
 
   const screenshotDirectory = process.env.PORTFOLIO_SCREENSHOT_DIR;
   if (screenshotDirectory) {
@@ -131,9 +171,18 @@ test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación
   await page.locator("#exportReport").click();
   const download = await downloadPromise;
   assert.equal(download.suggestedFilename(), "datalog-comparison-demo-mixed.json");
+  const downloadPath = await download.path();
+  assert.ok(downloadPath, "el navegador debe completar la descarga del informe");
+  const report = JSON.parse(await readFile(downloadPath, "utf8"));
+  assert.equal(report.schema, "datalog-portfolio-comparison-demo/1");
+  assert.equal(report.synthetic, true);
+  assert.equal(report.readiness.status, "blocked");
+  assert.equal(report.runs.length, 2);
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   assert.equal(overflow, false, "el diseño móvil no debe exigir desplazamiento horizontal global");
   assert.deepEqual(pageErrors, [], "la demo no debe generar errores de JavaScript");
+  assert.deepEqual(consoleErrors, [], "la demo no debe escribir errores en la consola");
+  assert.deepEqual(httpErrors, [], "la demo no debe solicitar recursos inexistentes");
   assert.deepEqual(externalRequests, [], "la demo no debe enviar solicitudes externas");
 });

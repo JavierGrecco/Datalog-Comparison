@@ -8,7 +8,10 @@
  */
 import { assessRunComparability } from "./run-comparability.mjs";
 import { assessRunDataQuality } from "./data-quality.mjs";
-import { compareOperatingConditions } from "./operating-conditions.mjs";
+import {
+  compareOperatingConditions,
+  validateOperatingConditions,
+} from "./operating-conditions.mjs";
 import { assessManifestComparability } from "./run-manifest.mjs";
 import { assessSourceSet, SOURCE_DOMAIN } from "./source-policy.mjs";
 
@@ -68,8 +71,22 @@ function conditionAssessment(reference, candidate) {
   const unknown = tracked.filter(item => item.status === "unknown");
   const unverifiedMatches = tracked.filter(item => item.status === "same_value_unverified");
   const verifiedMatches = tracked.filter(item => item.status === "same_verified");
+
+  // Comparar valores no alcanza: una entrada marcada como verificada debe
+  // conservar una fuente y respetar el contrato de operating-conditions/1.
+  const validationErrors = [
+    ...validateOperatingConditions(
+      reference?.operatingConditions,
+      "referencia.operatingConditions",
+    ),
+    ...validateOperatingConditions(
+      candidate?.operatingConditions,
+      "candidata.operatingConditions",
+    ),
+  ];
+
   return {
-    status: differences.length || unknown.length || unverifiedMatches.length
+    status: differences.length || unknown.length || unverifiedMatches.length || validationErrors.length
       ? "review_required"
       : "supported",
     tracked,
@@ -77,6 +94,7 @@ function conditionAssessment(reference, candidate) {
     unknown,
     unverifiedMatches,
     verifiedMatches,
+    validationErrors,
     relevantKeys: [...trackedKeys],
   };
 }
@@ -113,16 +131,13 @@ function getDataFindings(referenceQuality, candidateQuality) {
     ["Candidata", candidateQuality],
   ]) {
     if (quality.status === "insufficient_data") {
-      findings.push(label + ": hay menos de dos muestras o no hay canales analizables.");
+      addUnique(findings, label + ": hay menos de dos muestras o no hay canales analizables.");
     }
-    if (quality.sourceMetadata && !quality.sourceMetadata.consistent) {
-      findings.push(label + ": los metadatos de importación no coinciden con las muestras/filas.");
-    }
-    const incomplete = quality.channels.filter(channel => channel.missingCount > 0);
-    if (incomplete.length) {
-      findings.push(label + ": hay valores ausentes en " +
-        incomplete.slice(0, 4).map(channel => channel.key).join(", ") +
-        (incomplete.length > 4 ? " y otros canales." : "."));
+    // El perfil de calidad es la fuente de verdad de sus advertencias. No
+    // descartar hallazgos que no estén duplicados en la lógica de comparabilidad
+    // (por ejemplo, filas no vacías omitidas durante la importación).
+    for (const warning of Array.isArray(quality.warnings) ? quality.warnings : []) {
+      addUnique(findings, label + ": " + warning);
     }
   }
   return findings;
@@ -244,12 +259,13 @@ export function assessComparisonReadiness(
     gate(
       "conditions", "Condiciones de ensayo", conditionStatus,
       conditionStatus === "supported"
-        ? "Las condiciones clave registradas coinciden y están marcadas como verificadas por quien las cargó."
-        : "Hay condiciones críticas desconocidas, no verificadas o distintas.",
+        ? "Las condiciones clave registradas coinciden y están marcadas como verificadas por quien las carga."
+        : "Hay condiciones críticas desconocidas, no verificadas, distintas o con un contrato inválido.",
       [
         ...conditions.differences.map(item => item.label + ": valores distintos."),
         ...conditions.unknown.map(item => item.label + ": falta un valor usable en al menos un registro."),
         ...conditions.unverifiedMatches.map(item => item.label + ": coincide el valor registrado, pero no está marcado como verificado en ambos."),
+        ...conditions.validationErrors,
       ],
     ),
     gate(
@@ -300,6 +316,9 @@ export function assessComparisonReadiness(
   if (channelsWithLowCoverage.length) {
     addUnique(nextActions, "Inspeccioná la cobertura de " + channelsWithLowCoverage.slice(0, 5).map(item => item.key).join(", ") +
       " (mínimo de revisión configurado: " + minimumChannelCoveragePct + "%).");
+  }
+  if (conditions.validationErrors.length) {
+    addUnique(nextActions, "Corregí el contrato de condiciones operativas y documentá la fuente de cada valor informado, medido o marcado como verificado.");
   }
   if (conditions.differences.length) {
     addUnique(nextActions, "Revisá las condiciones registradas que difieren: " +

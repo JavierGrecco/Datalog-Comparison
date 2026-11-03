@@ -83,25 +83,30 @@ export function assessRunDataQuality(run) {
   const meta = run?.importMetadata;
   let sourceMetadata = null;
   if (meta && typeof meta === "object") {
-    const headerRows = Array.isArray(meta.headerRows) ? meta.headerRows : [];
-    const rowCount = Number.isInteger(meta.sourceRowCount) ? meta.sourceRowCount : null;
-    const skipped = Number.isInteger(meta.skippedNonEmptyRowCount)
+    const headerRows = Array.isArray(meta.headerRows) ? meta.headerRows : null;
+    const rowCount = Number.isSafeInteger(meta.sourceRowCount) && meta.sourceRowCount >= 0
+      ? meta.sourceRowCount
+      : null;
+    const skipped = Number.isSafeInteger(meta.skippedNonEmptyRowCount) && meta.skippedNonEmptyRowCount >= 0
       ? meta.skippedNonEmptyRowCount
       : null;
-    const declaredSamples = Number.isInteger(meta.parsedSampleCount)
+    const declaredSamples = Number.isSafeInteger(meta.parsedSampleCount) && meta.parsedSampleCount >= 0
       ? meta.parsedSampleCount
       : null;
-    const headersInRange = rowCount !== null
-      && headerRows.every(row => Number.isInteger(row) && row >= 1 && row <= rowCount);
+    const headersInRange = rowCount !== null && headerRows !== null &&
+      headerRows.every(row => Number.isSafeInteger(row) && row >= 1 && row <= rowCount) &&
+      new Set(headerRows).size === headerRows.length;
+    const countsValid = rowCount !== null && skipped !== null && declaredSamples !== null;
     const sampleCountMatches = declaredSamples !== null && declaredSamples === sampleCount;
     sourceMetadata = {
       parserId: typeof meta.parserId === "string" ? meta.parserId : null,
       sourceRowCount: rowCount,
       skippedNonEmptyRowCount: skipped,
       declaredSampleCount: declaredSamples,
+      countsValid,
       sampleCountMatches,
       headersInRange,
-      consistent: sampleCountMatches && headersInRange
+      consistent: countsValid && sampleCountMatches && headersInRange
     };
   }
 
