@@ -129,7 +129,16 @@ test("el adaptador Haltech rechaza timestamp mal formado, unidad incorrecta y au
     error => error.code === "HALTECH_TIMESTAMP_INVALID");
   assert.throws(() => importHaltechNspCsv(text.replace("RPM(EngineSpeed:rpm)", "RPM(EngineSpeed:km/h)")),
     error => error.code === "HALTECH_CHANNEL_UNIT_UNSUPPORTED");
-  assert.throws(() => importHaltechNspCsv(text.replace("RPM(EngineSpeed:rpm),", "")),
+  const withoutRpm = text.split(/\\r?\\n/).map((line, index) => {
+    if (index === 2) return line.replace("RPM(EngineSpeed:rpm),", "");
+    if (index > 2 && line.trim()) {
+      const columns = line.split(",");
+      columns.splice(1, 1);
+      return columns.join(",");
+    }
+    return line;
+  }).join("\\n");
+  assert.throws(() => importHaltechNspCsv(withoutRpm),
     error => error.code === "HALTECH_RPM_CHANNEL_REQUIRED");
 });
 

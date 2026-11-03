@@ -353,7 +353,7 @@ export function mapCsvToRun(parsed, {
   if (sourceDomain === "dyno" && hasDynoOutput) {
     if (!measurementBasis || !Object.hasOwn(DYNO_MEASUREMENT_BASES, measurementBasis)) {
       fail("CSV_DYNO_MEASUREMENT_BASIS_REQUIRED",
-        "Para importar torque o potencia de un dinamómetro, declar á si el valor corresponde a rueda, rodillo, cubo, motor o base desconocida.");
+        "Para importar torque o potencia de un dinamómetro, declarar si el valor corresponde a rueda, rodillo, cubo, motor o base desconocida.");
     }
   } else if (measurementBasis && !Object.hasOwn(DYNO_MEASUREMENT_BASES, measurementBasis)) {
     fail("CSV_DYNO_MEASUREMENT_BASIS_INVALID", "La base de medición del dinamómetro no es válida.");

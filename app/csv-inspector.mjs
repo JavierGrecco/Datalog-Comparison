@@ -217,7 +217,7 @@ function showGenericMapping(parsed, profile) {
   setProfileControls({ dynojet: profile === "dynojet" });
   const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
   const profileText = profile === "dynojet"
-    ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declar á la base de medición."
+    ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarar la base de medición."
     : "Asigná tiempo y RPM antes de inspeccionarlo.";
   setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas y " +
     parsed.rows.length + " filas de datos. " + profileText + warningText,
