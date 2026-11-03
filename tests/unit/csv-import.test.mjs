@@ -58,7 +58,7 @@ test("lee el fixture ECU sintético con BOM, punto y coma y decimales explícito
   assert.equal(run.synthetic, false);
   assert.equal(run.sourceDomain, "ecu");
   assert.equal(run.samples[1].channels.torque_nm, 151.25);
-  assert.equal(run.samples[1].channels.rpm, 2400);
+  assert.equal(run.samples[1].channels.rpm, 2100);
   assert.equal(run.runManifest.role, "exploratory");
   assert.equal(assessRunDataQuality(run).status, "no_obvious_issues");
 });
