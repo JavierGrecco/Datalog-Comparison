@@ -172,7 +172,7 @@ test("los errores de tipeo y rangos numéricos no asignan canales automáticamen
     "0,0,1000",
     "0.1,30,1800",
     "0.2,60,2500",
-  ].join("\\n");
+  ].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "unknown-columns.csv",
     mimeType: "text/csv",
