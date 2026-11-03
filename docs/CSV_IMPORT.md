@@ -7,7 +7,7 @@ La demo permite inspeccionar CSV localmente. Los archivos permanecen en memoria 
 Hay tres rutas de importación:
 
 1. CSV genérico: parser neutral con asignación manual de columnas y unidades.
-2. Haltech NSP CSV: perfil experimental para la variante cuyo primer registro no vacío es %DataLog%, con encabezados tipados Canal(Tipo:Unidad).
+2. Haltech NSP CSV: perfil experimental para dos layouts identificados por %DataLog%: encabezados tipados Canal(Tipo:Unidad) y bloques Channel / ID / Type / DisplayMaxMin.
 3. Dynojet PowerCore / WinPEP CSV: perfil guiado para una exportación configurable. No se presupone un esquema fijo de columnas.
 
 ## Flujo
@@ -38,7 +38,7 @@ Tiempo relativo en segundos y RPM son obligatorios en la ruta genérica. Las uni
 
 ### Identificación y alcance
 
-El adaptador reconoce únicamente la variante de una sola fila de encabezados tipados descrita por la especificación comunitaria UltraLog 1.0:
+El adaptador reconoce dos layouts observados en exportaciones públicas y documentación comunitaria. Ambos siguen siendo experimentales y no constituyen una certificación de Haltech.
 
 - Primer registro no vacío: %DataLog%.
 - Encabezado con estructura Canal(Tipo:Unidad).
@@ -47,7 +47,9 @@ El adaptador reconoce únicamente la variante de una sola fila de encabezados ti
 - Delimitador: coma.
 - Decimal: punto.
 
-Las estructuras con metadatos y definiciones separadas de canales (por ejemplo, registros `Channel : ...` o tablas `Channel,ID,Type,DisplayMaxMin`) se identifican y rechazan con un error específico. OpenECU Alliance 2.0.0 describe una variante de esta familia, pero todavía no tenemos un archivo real ni un contrato de columnas completo validado para implementarla. No se afirma compatibilidad con todas las versiones, modelos o archivos NSP.
+El layout de bloques procesa metadatos de archivo y definiciones `Channel : nombre`, `ID : ...`, `Type : ...`, `DisplayMaxMin : ...`, seguidos por una fila por marca temporal. Antes de interpretar las muestras, valida que cada fila tenga exactamente una columna de tiempo más una columna por bloque Channel. Preserva IDs, tipos, límites de display y metadatos de origen. La variante de tabla `Channel,ID,Type,DisplayMaxMin` se sigue rechazando: no se fuerza al parser de bloques. OpenECU Alliance describe ese layout tabular distinto.
+
+Se inspeccionó manualmente una exportación NSP pública incluida en UltraLog (log 1118, 18/07/2025): 114 definiciones de canal y 879 muestras. El archivo original no se copia al repositorio ni se usa como fixture de CI; los tests mantienen datos sintéticos y reproducibles. Esta inspección confirma la forma del layout, no la compatibilidad universal ni la precisión de cada canal.
 
 ### Conversiones implementadas
 
@@ -63,10 +65,10 @@ Las conversiones tipadas siguen la tabla publicada por la especificación comuni
 | Temperature | raw / 10 − 273,15 | IAT y refrigerante. |
 | BatteryVoltage | raw / 1000 | Tensión de batería. |
 | Speed | raw / 10 | Velocidad del vehículo. |
-| AFR | No se normaliza | Se excluye hasta verificar con un archivo real si representa AFR o lambda. |
+| AFR | Depende del nombre exacto | En el layout de bloques, solo `Wideband O2 Overall` se normaliza a lambda (raw / 1000); consignas y otros canales AFR se excluyen. En el layout tipado se mantiene excluido. |
 | Raw | Directa | Solo torque Nm y potencia kW si nombre y unidad coinciden. |
 
-Los canales sin semántica implementada quedan enumerados como no soportados y no se agregan al registro normalizado. El tipo AFR se deja deliberadamente fuera debido a discrepancias entre referencias comunitarias sobre su semántica. Se exige un canal RPM válido. No se infieren canales por similitud de nombres ni se interpretan automáticamente tipos no incluidos en la tabla. Los canales Pressure usan una referencia fija de 101,3 kPa para pasar a presión relativa; no se sustituye por el canal barométrico observado.
+Los canales sin semántica implementada quedan enumerados como no soportados y no se agregan al registro normalizado. En el layout de bloques se reconoce únicamente el nombre exacto `Wideband O2 Overall` de tipo AFR como lambda medida; `Target Lambda` y los demás canales AFR quedan fuera. Esta regla estrecha se basa en la exportación pública examinada y en referencias secundarias, no en una regla universal para todas las versiones. Se exige RPM válido. No se infieren canales por similitud parcial de nombres: por ejemplo, `Manifold Pressure Derivative` no se interpreta como MAP. Los canales Pressure usan una referencia fija de 101,3 kPa para pasar a presión relativa; no se sustituye por el canal barométrico observado. Los valores numéricos iguales o menores a -2.000.000.000 se preservan como faltantes por la familia de sentinels observada en la exportación pública.
 
 La especificación consultada declara que parte de su detalle procede de análisis e ingeniería inversa de archivos exportados. Es una referencia comunitaria de interoperabilidad, no documentación oficial ni garantía de compatibilidad. Antes de interpretar un archivo, contrastar sus valores con la exportación original y el software NSP.
 
@@ -125,4 +127,4 @@ Fuera de alcance:
 
 ## Fixtures y pruebas
 
-Todos los fixtures del repositorio son sintéticos. No representan exportaciones reales de un vehículo ni archivos descargados de software comercial. Las pruebas cubren contratos, conversiones implementadas y casos negativos; no certifican mediciones físicas.
+Todos los fixtures del repositorio son sintéticos. No representan exportaciones reales de un vehículo ni archivos descargados de software comercial. Una exportación Haltech pública fue examinada manualmente para confirmar la estructura Channel/ID/Type, pero no se distribuye ni se incorpora a CI. No se encontró una exportación CSV cruda pública de Dynojet para validar de extremo a extremo el perfil guiado; el fabricante documenta que la exportación permite configurar por separado paso de RPM e intervalo temporal. Las pruebas automatizadas cubren contratos, conversiones implementadas y casos negativos; no certifican mediciones físicas.

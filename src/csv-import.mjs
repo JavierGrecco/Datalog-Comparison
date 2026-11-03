@@ -404,7 +404,7 @@ function safeDisplayName(value, fallback) {
 export function mapCsvToRun(parsed, {
   id, name, sourceDomain, channelMapping, units, decimalSeparator = ".",
   importedAt = new Date().toISOString(), parserId = "datalog-csv/1",
-  importFormat = "generic-csv", sourceHeaderRow = 1,
+  importFormat = "generic-csv", sourceHeaderRow = 1, sourceHeaderRows = null,
   adapterMetadata = null, measurementBasis = null,
 } = {}) {
   if (!parsed || parsed.schema !== CSV_IMPORT_SCHEMA || !Array.isArray(parsed.headers) ||
@@ -496,7 +496,7 @@ export function mapCsvToRun(parsed, {
 
   const basisLabel = measurementBasis ? DYNO_MEASUREMENT_BASES[measurementBasis] : null;
   const sourceLabels = {
-    ecu: importFormat === "haltech-nsp-csv/1" ? "Haltech NSP CSV · ECU/logger" : "ECU/logger · origen declarado",
+    ecu: String(importFormat).startsWith("haltech-nsp-") ? "Haltech NSP CSV · ECU/logger" : "ECU/logger · origen declarado",
     dyno: importFormat === "dynojet-powercore-guided-csv/1"
       ? "Dynojet PowerCore/WinPEP · CSV con mapeo guiado"
       : "Dinamómetro · origen declarado",
@@ -529,7 +529,7 @@ export function mapCsvToRun(parsed, {
           formula: "canonical = source × factor + offset",
         }])),
       sourceRowCount: parsed.sourceRowCount,
-      headerRows: [sourceHeaderRow],
+      headerRows: Array.isArray(sourceHeaderRows) ? sourceHeaderRows : [sourceHeaderRow],
       skippedNonEmptyRowCount: 0,
       skippedEmptyRowCount: Number.isSafeInteger(parsed.skippedEmptyRows) ? parsed.skippedEmptyRows : 0,
       parsedSampleCount: sampleRows.length,

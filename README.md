@@ -33,7 +33,7 @@ La aplicación contiene cuatro escenarios sintéticos generados en memoria:
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 | **Bases de banco distintas** | Dos resultados de dinamómetro con la misma unidad, uno de rueda y otro referido a motor. Torque y potencia quedan excluidos aunque el origen sea el mismo. |
 
-Además, se puede **inspeccionar un CSV local** mediante tres rutas: CSV genérico, una variante experimental Haltech NSP identificada por %DataLog%, y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Los archivos permanecen aislados de la comparación.
+Además, se puede **inspeccionar un CSV local** mediante tres rutas: CSV genérico, dos layouts experimentales Haltech NSP identificados por %DataLog% (encabezado tipado y bloques Channel/ID/Type), y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Los archivos permanecen aislados de la comparación. Se examinó una exportación pública Haltech para validar la estructura de metadatos; el archivo no se incluye ni se redistribuye.
 
 En los escenarios sintéticos compatibles de un mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. El caso de bases de banco distintas muestra cómo se excluyen esos canales cuando la magnitud física no coincide. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
@@ -57,9 +57,9 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 ## Importación CSV y perfiles experimentales
 
-**Haltech NSP:** se reconoce una variante con marcador %DataLog% y encabezados tipados. El adaptador normaliza únicamente un conjunto limitado de tipos/canales y aplica reglas de conversión tomadas de una especificación comunitaria de interoperabilidad, no certificada por el fabricante.
+**Haltech NSP:** se reconocen dos layouts con marcador %DataLog%: encabezados tipados y bloques de metadatos Channel/ID/Type. El segundo se contrastó con una exportación pública de 114 canales; se aplican nombres exactos y reglas de escala acotadas. Las reglas son comunitarias y no están certificadas por el fabricante.
 
-**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un esquema de columnas fijo publicado. Exige mapeo manual y declaración de la base de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
+**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un CSV crudo público ni un esquema de columnas fijo publicado. Exige mapeo manual y declaración de la base de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
 
 **CSV genérico:** conserva su flujo de mapeo explícito. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se registra la unidad original. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
 

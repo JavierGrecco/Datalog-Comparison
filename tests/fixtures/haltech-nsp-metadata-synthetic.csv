@@ -1,0 +1,55 @@
+%DataLog%
+DataLogVersion : 1.1
+Software : Haltech NSP
+SoftwareVersion : fixture
+DownloadDateTime : 20260718 04:09:48
+Channel : Manifold Pressure Derivative
+ID : 1592
+Type : AbsPressure
+DisplayMaxMin : 32000,-32000
+Channel : RPM
+ID : 384
+Type : EngineSpeed
+DisplayMaxMin : 20000,0
+Channel : Boost Control Actual Pressure
+ID : 1463
+Type : Pressure
+DisplayMaxMin : 15013,13
+Channel : Boost Control Target Pressure (Corrected)
+ID : 1461
+Type : Pressure
+DisplayMaxMin : 15013,1013
+Channel : Wideband O2 Overall
+ID : 8018
+Type : AFR
+DisplayMaxMin : 1361,-110
+Channel : Target Lambda
+ID : 132
+Type : AFR
+DisplayMaxMin : 1361,476
+Channel : Throttle Position
+ID : 225
+Type : Percentage
+DisplayMaxMin : 1000,0
+Channel : Intake Air Temperature
+ID : 228
+Type : Temperature
+DisplayMaxMin : 6231,2331
+Channel : Coolant Temperature
+ID : 229
+Type : Temperature
+DisplayMaxMin : 4731,2331
+Channel : Fuel Pressure
+ID : 234
+Type : Pressure
+DisplayMaxMin : 31013,1013
+Channel : Vehicle Speed
+ID : 397
+Type : Speed
+DisplayMaxMin : 4000,0
+Log Source : 20
+Log Number : 1118
+Log : 20260718 02:15:46
+14:15:46.000,3696,1225,760,1013,976,937,301,3166,3434,4412,0
+14:15:46.020,3116,1312,771,1013,-2147483617,937,368,3167,3435,4420,0
+14:15:46.040,4344,1394,935,1013,980,925,415,3166,3435,4430,0
