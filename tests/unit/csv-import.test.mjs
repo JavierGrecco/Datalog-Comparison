@@ -88,6 +88,14 @@ test("admite BOM, CRLF, comillas escapadas y saltos de línea dentro de celdas",
   assert.equal(parsed.rows[0][2], "1.5");
 });
 
+
+test("ignora filas completamente vacías y conserva su recuento de origen", () => {
+  const parsed = parseCsvText("time_s,rpm\\n0,1000\\n\\n1,2000\\n");
+  assert.equal(parsed.rows.length, 2);
+  assert.equal(parsed.skippedEmptyRows, 1);
+  assert.equal(parsed.sourceRowCount, 4);
+});
+
 test("normaliza encabezados para detectar duplicados ambiguos", () => {
   assert.throws(
     () => parseCsvText("RPM,rpm ,Torque\n1000,1000,100\n"),
