@@ -292,9 +292,9 @@ test("no modifica el orden ni los datos originales del CSV parseado", async () =
 
 test("normaliza unidades explícitas a las unidades canónicas y conserva la procedencia", () => {
   const parsed = parseCsvText(
-    "Time (s),RPM,Speed (mph),IAT (F),MAP (psi)\\n" +
-    "0,1000,60,68,14.503773773\\n" +
-    "0.1,1100,62,86,15\\n",
+    "Time (s),RPM,Speed (mph),IAT (F),MAP (psi)\n" +
+    "0,1000,60,68,14.503773773\n" +
+    "0.1,1100,62,86,15\n",
   );
   const run = mapCsvToRun(parsed, importOptions(parsed, {
     channelMapping: {
@@ -318,7 +318,7 @@ test("normaliza unidades explícitas a las unidades canónicas y conserva la pro
 });
 
 test("rechaza unidades incompatibles con el canal en vez de etiquetar mal los datos", () => {
-  const parsed = parseCsvText("Time,RPM,Torque\\n0,1000,14\\n0.1,1100,15\\n");
+  const parsed = parseCsvText("Time,RPM,Torque\n0,1000,14\n0.1,1100,15\n");
   assert.throws(
     () => mapCsvToRun(parsed, importOptions(parsed, {
       channelMapping: { time_s: "Time", rpm: "RPM", torque_nm: "Torque" },
@@ -336,7 +336,7 @@ test("el adaptador Haltech rechaza la variante de metadatos Channel/ID/Type sin 
     "Channel : Manifold Pressure",
     "00:00:01.000,1800,1000",
     "00:00:01.100,1900,1020",
-  ].join("\\n");
+  ].join("\n");
   assert.throws(
     () => importHaltechNspCsv(channelListVariant),
     error => error.code === "HALTECH_LAYOUT_UNSUPPORTED" &&
@@ -349,7 +349,7 @@ test("el adaptador Haltech rechaza la variante de metadatos Channel/ID/Type sin 
     "Channel,ID,Type,DisplayMaxMin",
     "Time,0,Time_ms,0-10",
     "00:00:01.000,1800",
-  ].join("\\n");
+  ].join("\n");
   assert.throws(
     () => importHaltechNspCsv(channelTableVariant),
     error => error.code === "HALTECH_LAYOUT_UNSUPPORTED" &&
@@ -365,7 +365,7 @@ test("el tipo Haltech AFR se conserva como no soportado hasta verificar si repre
     "00:00:01.000,1800,10000",
     "00:00:01.100,1900,10200",
     "00:00:01.200,2000,10400",
-  ].join("\\n");
+  ].join("\n");
   const run = importHaltechNspCsv(text);
   assert.equal(Object.hasOwn(run.units, "afr"), false);
   assert.deepEqual(run.importMetadata.adapterMetadata.unsupportedChannels, [

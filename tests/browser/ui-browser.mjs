@@ -170,7 +170,7 @@ test("una exportación Haltech con bloque Channel/ID/Type se identifica pero no 
     "Channel : Manifold Pressure",
     "00:00:01.000,1800,1000",
     "00:00:01.100,1900,1020",
-  ].join("\\n");
+  ].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "haltech-metadata-variant.csv",
     mimeType: "text/csv",
