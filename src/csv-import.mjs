@@ -242,8 +242,9 @@ export function parseCsvText(input, options = {}) {
   if (!text.trim()) fail("CSV_EMPTY_FILE", "El archivo CSV está vacío.");
 
   const selectedDelimiter = delimiter === "auto" ? detectDelimiter(text) : delimiter;
-  const records = parseRecords(text, selectedDelimiter, { maxRows, maxColumns, maxFieldLength })
-    .filter(record => !isBlankRecord(record));
+  const allRecords = parseRecords(text, selectedDelimiter, { maxRows, maxColumns, maxFieldLength });
+  const skippedEmptyRows = allRecords.filter(isBlankRecord).length;
+  const records = allRecords.filter(record => !isBlankRecord(record));
 
   if (records.length < 2) {
     fail("CSV_HEADER_OR_DATA_MISSING", "El CSV debe incluir una fila de encabezados y al menos una fila de datos.");
@@ -290,8 +291,8 @@ export function parseCsvText(input, options = {}) {
       selectedDelimiter === ";" ? "punto y coma" : "coma",
     headers,
     rows,
-    sourceRowCount: records.length,
-    skippedEmptyRows: 0,
+    sourceRowCount: allRecords.length,
+    skippedEmptyRows,
     warnings,
   };
 }
