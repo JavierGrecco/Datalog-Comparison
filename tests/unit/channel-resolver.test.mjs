@@ -185,7 +185,7 @@ test("admite un log ECU con tiempo y sin RPM sin inventar el canal faltante", ()
     name: "ECU sin canal RPM",
     sourceDomain: "ecu",
     channelMapping: { time_s: "Elapsed Time (ms)", throttle_pct: "Throttle Position (%)" },
-    units: { throttle_pct: "%" },
+    units: { time_s: "ms", throttle_pct: "%" },
     importedAt: "2026-11-03T00:00:00.000Z",
   });
   const quality = assessRunDataQuality(run);
@@ -397,7 +397,7 @@ test("el jitter se informa con MAD de intervalos por canal", () => {
   });
   const quality = assessRunDataQuality(run);
   const rpm = quality.channels.find(channel => channel.key === "rpm");
-  assert.equal(rpm.sampling.medianIntervalSeconds, 0.2);
-  assert.equal(rpm.sampling.medianAbsoluteDeviationSeconds, 0.1);
-  assert.equal(rpm.sampling.relativeJitterPct, 50);
+  assert.ok(Math.abs(rpm.sampling.medianIntervalSeconds - 0.2) < 1e-12);
+  assert.ok(Math.abs(rpm.sampling.medianAbsoluteDeviationSeconds - 0.1) < 1e-12);
+  assert.ok(Math.abs(rpm.sampling.relativeJitterPct - 50) < 1e-10);
 });
