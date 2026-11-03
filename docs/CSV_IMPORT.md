@@ -76,7 +76,7 @@ La documentación del fabricante confirma que WinPEP 8 Data Center puede trabaja
 
 No se encontró un contrato público de columnas fijo que justifique un parser automático universal. Por eso esta ruta utiliza el parser genérico, exige mapeo manual y registra un identificador de perfil propio. No lee archivos nativos de WinPEP ni Power Vision.
 
-Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/1`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. La opción desconocida permanece como advertencia.
+Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/1`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. El comparador excluye torque y potencia cuando uno de los ensayos es ECU/logger y el otro dinamómetro, cuando la base difiere (rueda, rodillo, cubo o motor) o cuando una base sigue desconocida. La opción desconocida permanece como advertencia.
 
 ## Canales canónicos disponibles
 

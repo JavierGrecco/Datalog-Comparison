@@ -9,6 +9,39 @@
 // A comparación de máximos no equivale a una comparación bajo condiciones controladas.
 // Esta función informa límites observables y evita declarar equivalencia física.
 const UNKNOWN_UNIT = /^(?:unidad original|unidad del archivo|unidad desconocida|unknown|n\/a|—)$/i;
+const DYNO_OUTPUT_CHANNELS = new Set(["torque_nm", "power_kw"]);
+const KNOWN_DYNO_BASES = new Set(["wheel", "roller", "hub", "engine"]);
+
+function measurementBasisMismatch(referenceRun, candidateRun, key) {
+  if (!DYNO_OUTPUT_CHANNELS.has(key)) return null;
+  const referenceDomain = String(referenceRun?.sourceDomain ?? "").trim().toLowerCase();
+  const candidateDomain = String(candidateRun?.sourceDomain ?? "").trim().toLowerCase();
+  if (referenceDomain !== "dyno" && candidateDomain !== "dyno") return null;
+  if (referenceDomain !== "dyno" || candidateDomain !== "dyno") {
+    return {
+      referenceMeasurementBasis: referenceRun?.measurementBasis ?? null,
+      candidateMeasurementBasis: candidateRun?.measurementBasis ?? null,
+      reason: "La señal de torque/potencia de una ECU/logger no es intercambiable con una medición de dinamómetro.",
+    };
+  }
+  const referenceBasis = referenceRun?.measurementBasis;
+  const candidateBasis = candidateRun?.measurementBasis;
+  if (!KNOWN_DYNO_BASES.has(referenceBasis) || !KNOWN_DYNO_BASES.has(candidateBasis)) {
+    return {
+      referenceMeasurementBasis: referenceBasis ?? "no declarada",
+      candidateMeasurementBasis: candidateBasis ?? "no declarada",
+      reason: "La base física de torque/potencia de uno de los dinamómetros no está identificada de forma fiable.",
+    };
+  }
+  if (referenceBasis !== candidateBasis) {
+    return {
+      referenceMeasurementBasis: referenceBasis,
+      candidateMeasurementBasis: candidateBasis,
+      reason: "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
+    };
+  }
+  return null;
+}
 
 function comparableUnit(run, key) {
   const unitText = String(run?.units?.[key] ?? "").trim();
@@ -114,6 +147,17 @@ export function assessRunComparability(referenceRun, candidateRun) {
       continue;
     }
 
+    const basisMismatch = measurementBasisMismatch(referenceRun, candidateRun, key);
+    if (basisMismatch) {
+      blockedChannels.push({
+        key,
+        referenceUnit: referenceUnitText,
+        candidateUnit: candidateUnitText,
+        ...basisMismatch,
+      });
+      continue;
+    }
+
     commonChannels.push({
       key,
       unit: referenceUnitText,
@@ -128,7 +172,7 @@ export function assessRunComparability(referenceRun, candidateRun) {
     warnings.push("No hay señales compartidas con unidades declaradas y coincidentes suficientes para una comparación descriptiva.");
   }
   if (blockedChannels.length) {
-    warnings.push(blockedChannels.length + " canal(es) con datos quedaron excluidos por unidades ausentes o incompatibles.");
+    warnings.push(blockedChannels.length + " canal(es) con datos quedaron excluidos por unidades o bases de medición ausentes o incompatibles.");
   }
 
   // El prototipo aún no registra ni verifica todas las condiciones operativas del ensayo.

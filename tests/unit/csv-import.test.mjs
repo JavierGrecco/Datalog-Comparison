@@ -406,4 +406,65 @@ test("dos unidades de origen distintas convergen a Nm antes de comparar canales"
   assert.equal(runFromMetric.units.torque_nm, "Nm");
   assert.equal(runFromImperial.importMetadata.sourceUnits.torque_nm, "ft-lb");
   assert.equal(runFromMetric.importMetadata.sourceUnits.torque_nm, "Nm");
+  assert.ok(Math.abs(
+    runFromImperial.samples[0].channels.torque_nm - runFromMetric.samples[0].channels.torque_nm
+  ) < 1e-9);
+  assert.ok(Math.abs(
+    runFromImperial.samples[1].channels.torque_nm - runFromMetric.samples[1].channels.torque_nm
+  ) < 1e-4);
+});
+
+test("el comparador excluye torque y potencia cuando difiere la base física del dinamómetro", async () => {
+  const parsed = parseCsvText(
+    "Time (s),RPM,Torque (Nm),Power (kW)\\n" +
+    "0,2000,100,20\\n" +
+    "0.1,2100,110,24\\n",
+  );
+  const common = {
+    channelMapping: {
+      time_s: "Time (s)", rpm: "RPM", torque_nm: "Torque (Nm)", power_kw: "Power (kW)",
+    },
+    units: { torque_nm: "Nm", power_kw: "kW" },
+    sourceDomain: "dyno",
+  };
+  const wheel = mapCsvToRun(parsed, importOptions(parsed, {
+    ...common, measurementBasis: "wheel",
+  }));
+  const engine = mapCsvToRun(parsed, importOptions(parsed, {
+    ...common, measurementBasis: "engine",
+  }));
+  const result = assessRunComparability(wheel, engine);
+
+  assert.ok(result.commonChannels.some(channel => channel.key === "rpm"));
+  assert.equal(result.commonChannels.some(channel => channel.key === "torque_nm"), false);
+  assert.equal(result.commonChannels.some(channel => channel.key === "power_kw"), false);
+  assert.deepEqual(
+    result.blockedChannels.filter(channel => ["torque_nm", "power_kw"].includes(channel.key))
+      .map(channel => channel.reason),
+    [
+      "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
+      "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
+    ],
+  );
+});
+
+test("el comparador no trata una base de dinamómetro desconocida como equivalente", async () => {
+  const parsed = parseCsvText(
+    "Time (s),RPM,Torque (Nm)\\n0,2000,100\\n0.1,2100,110\\n",
+  );
+  const mapping = {
+    time_s: "Time (s)", rpm: "RPM", torque_nm: "Torque (Nm)",
+  };
+  const reference = mapCsvToRun(parsed, importOptions(parsed, {
+    sourceDomain: "dyno", measurementBasis: "wheel",
+    channelMapping: mapping, units: { torque_nm: "Nm" },
+  }));
+  const candidate = mapCsvToRun(parsed, importOptions(parsed, {
+    sourceDomain: "dyno", measurementBasis: "unknown",
+    channelMapping: mapping, units: { torque_nm: "Nm" },
+  }));
+  const result = assessRunComparability(reference, candidate);
+  assert.equal(result.commonChannels.some(channel => channel.key === "torque_nm"), false);
+  assert.match(result.blockedChannels.find(channel => channel.key === "torque_nm").reason,
+    /no está identificada de forma fiable/i);
 });
