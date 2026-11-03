@@ -19,11 +19,9 @@ En los escenarios compatibles se muestran curvas ilustrativas de torque y potenc
 
 **Todos los valores son inventados y se generan en memoria.** No provienen de un auto, una ECU, un logger ni un banco de rodillos. Las curvas sirven para probar el comportamiento de la aplicación; no son una simulación física validada de un motor.
 
-## Vista previa
+## Recorrido de la demo
 
-Captura de la aplicación ejecutada en escritorio. Para explorar los demás casos, abrí la demo y elegí el escenario que quieras revisar.
-
-![Vista general de Datalog Comparison](assets/screenshots/demo-escritorio.jpg)
+La aplicación permite alternar entre tres escenarios: registros sintéticos completos, datos incompletos y fuentes incompatibles (ECU frente a banco). En cada caso se puede revisar la matriz de evidencia y observar cómo cambian los gráficos y las advertencias.
 
 ## ¿Qué problema intenta resolver?
 
