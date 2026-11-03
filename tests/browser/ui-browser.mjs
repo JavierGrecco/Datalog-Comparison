@@ -141,6 +141,11 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
   assert.match(await page.locator("#csvQualityTable").innerText(), /Torque/);
   assert.match(await page.locator("#csvImportStatus").innerText(), /no se agregó a la matriz de comparación/i);
+  assert.equal(
+    await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+    false,
+    "la vista previa CSV debe mantenerse dentro del viewport móvil",
+  );
   assert.equal(await page.locator("#charts svg").count(), 2,
     "la importación aislada no debe sustituir ni mezclar los escenarios sintéticos");
   assert.equal(await page.locator("#casePicker button").count(), 3);
