@@ -401,7 +401,7 @@ test("la inspección ECU puede generar señales temporales derivadas sin alterar
     const speed = 40 + 0.02 * index;
     return time + "," + rpm + "," + speed.toFixed(2);
   });
-  const csv = ["Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h)", ...rows].join("\\n");
+  const csv = ["Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h)", ...rows].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "ecu-derived-synthetic.csv",
     mimeType: "text/csv",
@@ -448,7 +448,7 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
     const power = 30 + rpm * 0.045 - Math.pow((rpm - 5500) / 2500, 2) * 30;
     return rpm + "," + torque.toFixed(2) + "," + power.toFixed(2);
   });
-  const csv = ["Engine RPM,Wheel Torque (Nm),Wheel Power (kW)", ...rows].join("\\n");
+  const csv = ["Engine RPM,Wheel Torque (Nm),Wheel Power (kW)", ...rows].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "dyno-derived-synthetic.csv",
     mimeType: "text/csv",
@@ -477,7 +477,7 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   assert.match(derived, /Barrido 2/);
   assert.match(derived, /Torque/);
   assert.match(derived, /Potencia/);
-  assert.match(derived, /2000–2200|2000-2200|2600–2800|2600-2800/);
+  assert.match(derived, /2400–2600/);
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
   assert.equal(await page.locator("#charts svg").count(), 2);
