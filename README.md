@@ -8,7 +8,7 @@ Una demostración técnica para evaluar si dos registros de motor ofrecen una ba
 
 [![Validación de la demo](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml)
 
-**Demo experimental · JavaScript · Datos sintéticos · Adaptadores CSV experimentales**
+**Demo experimental · JavaScript · Datos sintéticos reproducibles · Fuentes públicas documentadas · Adaptadores CSV experimentales**
 
 </div>
 
@@ -101,6 +101,24 @@ El workflow de GitHub Actions ejecuta estas validaciones en cada actualización 
 
 Estas pruebas verifican el comportamiento del software cubierto por ellas; no validan sensores, motores, dinamómetros ni resultados físicos.
 
+## Datos públicos y simulación
+
+La demo ahora incluye un catálogo versionado de fuentes y herramientas para crear registros de prueba reproducibles. No se copian datasets grandes ni logs comunitarios sin licencia al repositorio.
+
+- [Catálogo de datasets y política de licencias](docs/PUBLIC_DATASETS.md): fuentes CC BY 4.0, atribución, procedencia, restricciones y clasificación entre datos medidos, simulados y derivados.
+- [Simulación y ECU virtual](docs/SIMULATOR.md): generador local con semilla fija y guía para conectar el simulador externo Speeduino a TunerStudio.
+- [Catálogo estructurado](data/sources.json): registro legible por máquina de URLs, licencias y estado de reutilización.
+
+Generá un CSV ECU uniforme para inspeccionar localmente:
+
+```bash
+npm run simulate:telemetry -- --profile ecu --scenario road-test --duration 120 --rate 20 --seed 42
+```
+
+También hay un perfil OBD asíncrono y un escenario con pérdidas de sensores. Los resultados se escriben en carpetas locales excluidas de Git. Para descargar una porción de hasta 100 filas del dataset Opel CC BY 4.0, utilizá `npm run data:obd-sample -- --offset 0 --length 100`; el comando conserva un sidecar de atribución y SHA-256.
+
+La licencia de un dataset externo no concede una licencia sobre el código de este repositorio. Los logs generados por Speeduino tampoco se publican con licencia asumida: el simulador upstream tiene MIT para su código, pero el estado de licencia de sus outputs debe revisarse por separado.
+
 ## Organización del repositorio
 
 ```text
@@ -109,7 +127,13 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 │   ├── app.mjs
 │   ├── csv-inspector.mjs
 │   └── styles.css
+├── data/
+│   └── sources.json       # Catálogo de fuentes, licencias y procedencia
+├── scripts/
+│   ├── fetch-obd-sample.mjs
+│   └── generate-simulated-telemetry.mjs
 ├── src/
+│   ├── simulated-telemetry.mjs
 │   ├── csv-import.mjs
 │   ├── channel-resolver.mjs
 │   ├── unit-registry.mjs
@@ -124,8 +148,11 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 ├── tests/
 │   ├── fixtures/         # CSV sintéticos
 │   ├── unit/             # Pruebas de dominio y parser
+│   │   └── simulated-telemetry.test.mjs
 │   └── browser/          # Recorrido automatizado con Chromium
 ├── docs/
+│   ├── PUBLIC_DATASETS.md
+│   ├── SIMULATOR.md
 │   ├── ARCHITECTURE.md
 │   ├── CSV_IMPORT.md
 │   ├── CHANNEL_RECOGNITION.md
@@ -149,6 +176,8 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - [Reconocimiento de canales](docs/CHANNEL_RECOGNITION.md): alias, errores de tipeo, dimensiones, límites de inferencia y perfiles de valores.
 - [Puertas de calidad](docs/QUALITY_GATES.md): significado de los estados y criterios de bloqueo/revisión.
 - [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones, política de rama única y definición de terminado.
+- [Datos públicos](docs/PUBLIC_DATASETS.md): datasets reutilizables, atribución y restricciones.
+- [Simulador](docs/SIMULATOR.md): generación reproducible e integración opcional con Speeduino.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
 - [Referencias consultadas](docs/REFERENCES.md): antecedentes revisados durante la investigación.
 
@@ -165,9 +194,9 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 ## Datos y privacidad
 
-La aplicación procesa los ejemplos localmente en el navegador. La inspección CSV también es local y no utiliza cuentas, telemetría, servicios de análisis ni solicitudes a APIs externas. La política de seguridad del contenido restringe conexiones salientes.
+La aplicación web procesa ejemplos y CSV importados localmente en el navegador; no utiliza cuentas, telemetría, servicios de análisis ni solicita datos a APIs externas. La política de seguridad del contenido restringe las conexiones salientes desde la aplicación.
 
-Los CSV se mantienen en memoria de la sesión y se descartan al limpiar la vista o recargar. No se exportan sus muestras ni se agregan a los informes sintéticos.
+Los comandos de datasets son acciones locales separadas y explícitas: `data:obd-sample` consulta Hugging Face para descargar únicamente el slice solicitado. Los archivos se guardan en `data/external/`, fuera de Git, junto a su atribución y SHA-256. El generador escribe en `data/generated/`, también excluida de Git. Ninguno de esos comandos se ejecuta al abrir la web.
 
 ## Referencias y procedencia
 

@@ -50,3 +50,14 @@ Esta demo tiene una implementación acotada propia. Las referencias siguientes s
 ## Criterio de uso
 
 Las referencias documentan antecedentes y límites de evidencia. Se adopta la estrategia de IDs canónicos y listas de nombres de origen de los perfiles OpenECU como guía para futuros adaptadores específicos, manteniendo el resolver genérico independiente de fabricantes. Para la capa de procesamiento ya implementada se usan las referencias de filtrado antialias, muestreo equidistante y sincronización de ASAM como criterios de diseño; no se importó código de SciPy, MATLAB/Simulink ni documentación comercial. La curva por bandas RPM es descriptiva y no equivale a una medición certificada bajo SAE J1349. La muestra Haltech se utilizó para inspección estructural manual, no como fixture ni como validación completa del parser. No se encontró una exportación CSV cruda pública de Dynojet para validar la ruta guiada; por eso permanece basada en asignación manual y no en detección automática de columnas.
+
+
+## Datos públicos y simulación
+
+- [OBD-II Telemetry – Opel Corsa 1.2 (2012)](https://huggingface.co/datasets/PedroCuisinier2025/OBD2_panel_opel_2012): dataset publicado por PedroCuisinier2025 bajo CC BY 4.0. La ficha declara telemetría OBD-II real y contiene también columnas derivadas/estimadas; consultar [PUBLIC_DATASETS.md](PUBLIC_DATASETS.md) antes de utilizar muestras.
+- [Performance characteristics of a hydrogen-CNG fuelled spark-ignition engine](https://data.mendeley.com/datasets/cb2wjcd2st/1), DOI 10.17632/cb2wjcd2st.1: datos de dinamómetro de motor descritos por sus autores y publicados bajo CC BY 4.0. Los archivos necesitan inspección de estructura, unidades y eje antes de crear fixtures.
+- [Speeduino Serial Simulator](https://github.com/askrejans/speeduino-serial-sim): emulador externo de protocolo ECU con código MIT. La licencia del código no implica por sí sola una licencia para sus logs generados; el README upstream identifica además datos de circuito bajo ODbL-1.0.
+- [rusEFI Online](https://rusefi.com/online/) y [MiniECUMaps](https://github.com/ClassicMiniDIY/MiniECUMaps): ejemplos públicos de logs; no se confirmó una licencia que autorice redistribuir los archivos.
+- [EngineDyno](https://github.com/moffa13/EngineDyno): referencia de logs de ruta y cálculo de potencia/torque estimados. No debe confundirse con una medición directa de dinamómetro.
+
+La publicación de una página o archivo en Internet no equivale a conceder derechos de reutilización. El catálogo de [data/sources.json](../data/sources.json) mantiene el estado de cada fuente.

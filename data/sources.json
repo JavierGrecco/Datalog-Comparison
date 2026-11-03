@@ -1,0 +1,80 @@
+{
+  "schema": "datalog-public-data-sources/1",
+  "policy": {
+    "publicAvailabilityIsNotAReuseLicense": true,
+    "rawExternalFilesAreNotCommittedByDefault": true,
+    "evidenceClasses": ["measured", "simulated", "derived", "unverified"],
+    "rule": "Retain source, licence, attribution, retrieval details and transformations. Never label simulated or estimated values as measured."
+  },
+  "sources": [
+    {
+      "id": "obd2-opel-corsa-2012",
+      "title": "OBD-II Telemetry – Opel Corsa 1.2 (2012)",
+      "url": "https://huggingface.co/datasets/PedroCuisinier2025/OBD2_panel_opel_2012",
+      "creator": "PedroCuisinier2025",
+      "evidenceClass": "measured-with-derived-columns",
+      "license": {"spdx": "CC-BY-4.0", "url": "https://creativecommons.org/licenses/by/4.0/", "scope": "dataset"},
+      "size": {"rows": 394406, "columns": 28, "approximateMegabytes": 91.6},
+      "capture": "2012 Opel Corsa 1.2 A12XER; ELM327 and python-OBD; city, suburban and highway driving.",
+      "sampling": {"reported": "approximately 3–12 Hz by PID latency", "fast": "1 s", "medium": "15 s", "slow": "30 s", "timebase": "asynchronous per-PID polling"},
+      "measuredPidChannels": ["timestamp", "RPM", "SPEED", "THROTTLE_POS", "ENGINE_LOAD", "INTAKE_PRESSURE", "INTAKE_TEMP", "MAF", "SHORT_FUEL_TRIM_1", "LONG_FUEL_TRIM_1", "O2_B1S1", "COOLANT_TEMP", "ELM_VOLTAGE"],
+      "derivedChannels": ["TORQUE", "POWER", "GEAR", "FUEL_USAGE_*", "PREDICTED_FUEL_USAGE"],
+      "cautions": ["TORQUE, POWER and GEAR are author-derived/estimated, not direct OBD sensor readings.", "Low-rate road OBD data, not a high-frequency motorsport ECU log.", "Do not interpolate asynchronous PID values or pass the irregular stream directly to the uniform-time FIR resampler."],
+      "download": {"method": "Hugging Face dataset viewer rows endpoint", "maximumRowsPerRequest": 100, "command": "npm run data:obd-sample -- --offset 0 --length 100", "repositoryPolicy": "save small slices only under ignored data/external/"}
+    },
+    {
+      "id": "engine-dyno-h2-cng",
+      "title": "Performance characteristics of a hydrogen-CNG fuelled spark-ignition engine",
+      "url": "https://data.mendeley.com/datasets/cb2wjcd2st/1",
+      "doi": "10.17632/cb2wjcd2st.1",
+      "creators": ["Nishit Parmar", "Jasmin Jamariya", "Reuben Manjaly", "Krish Desai"],
+      "published": "2024-07-07",
+      "evidenceClass": "measured-and-theoretical-values",
+      "license": {"spdx": "CC-BY-4.0", "url": "https://creativecommons.org/licenses/by/4.0/", "scope": "dataset"},
+      "capture": "Single-cylinder SI engine on hydrogen-enriched CNG; four loads: 10, 12, 14 and 16 kg.",
+      "fileSchemaStatus": "not-yet-inspected",
+      "cautions": ["The public description does not prove the files contain continuous time series or RPM sweeps.", "Inspect raw files, columns, units and acquisition axes before using the RPM-sweep builder.", "Keep measured and theoretical values separate."]
+    },
+    {
+      "id": "speeduino-serial-sim",
+      "title": "Speeduino Serial Simulator",
+      "url": "https://github.com/askrejans/speeduino-serial-sim",
+      "creator": "askrejans",
+      "evidenceClass": "simulated",
+      "license": {"spdx": "MIT", "url": "https://github.com/askrejans/speeduino-serial-sim/blob/main/LICENSE", "scope": "upstream source code only"},
+      "generatedDataLicense": "not separately stated by upstream",
+      "trackDataLicense": {"spdx": "ODbL-1.0", "url": "https://opendatacommons.org/licenses/odbl/"},
+      "capabilities": ["macOS/Linux native desktop target", "Speeduino 202501 serial protocol", "generic 1.8 L 16-valve engine, driver and gearbox model", "TCP/serial telemetry for TunerStudio-compatible loggers"],
+      "cautions": ["Model-generated signals, not a recording of a particular vehicle.", "Not a calibrated dynamometer or tuning target.", "MIT applies to source code; do not assume it licenses generated logs or embedded OSM-derived track data."],
+      "repositoryPolicy": "Use externally; do not vendor source/track data or redistribute generated logs until rights are confirmed."
+    },
+    {
+      "id": "rusefi-online",
+      "title": "rusEFI Online public logs",
+      "url": "https://rusefi.com/online/",
+      "documentationUrl": "https://github.com/rusefi/rusefi/wiki/Online",
+      "evidenceClass": "unverified-redistribution-rights",
+      "license": null,
+      "redistribution": "not-cleared",
+      "repositoryPolicy": "local private QA only until owner permission or data licence is confirmed"
+    },
+    {
+      "id": "haltech-miniecumaps-logs",
+      "title": "ClassicMiniDIY MiniECUMaps – Haltech NSP example logs",
+      "url": "https://github.com/ClassicMiniDIY/MiniECUMaps",
+      "evidenceClass": "unverified-redistribution-rights",
+      "license": null,
+      "redistribution": "not-cleared",
+      "repositoryPolicy": "local private QA only until data licence or permission is confirmed"
+    },
+    {
+      "id": "engine-dyno-road-estimates",
+      "title": "EngineDyno example road logs and derived power estimates",
+      "url": "https://github.com/moffa13/EngineDyno",
+      "evidenceClass": "derived-and-unverified-redistribution-rights",
+      "license": null,
+      "redistribution": "not-cleared",
+      "cautions": ["Torque/power are estimated from road speed/RPM and vehicle assumptions, not measured on a chassis dynamometer.", "No explicit licence for the example logs was confirmed."]
+    }
+  ]
+}

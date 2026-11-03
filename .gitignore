@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 *.log
 datalog-comparison-demo-*.json
+
+# External and generated datasets stay local unless explicitly reviewed.
+data/external/
+data/generated/
