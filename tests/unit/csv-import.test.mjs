@@ -13,6 +13,7 @@ import {
 import { importHaltechNspCsv, detectHaltechNspCsv } from "../../src/adapters/haltech-nsp.mjs";
 import { importDynojetPowerCoreCsv } from "../../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../../src/data-quality.mjs";
+import { assessRunComparability } from "../../src/run-comparability.mjs";
 
 const fixtureDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures");
 async function fixture(name) { return readFile(resolve(fixtureDirectory, name), "utf8"); }
@@ -372,4 +373,37 @@ test("el tipo Haltech AFR se conserva como no soportado hasta verificar si repre
     { name: "Wideband", type: "AFR", unit: "AFR" },
   ]);
   assert.ok(run.warnings.some(warning => /AFR o lambda/i.test(warning)));
+});
+
+
+test("dos unidades de origen distintas convergen a Nm antes de comparar canales", async () => {
+  const runFromImperial = mapCsvToRun(parseCsvText(
+    "Time (s),RPM,Wheel torque (ft-lb)\\n0,2000,100\\n0.1,2100,110\\n",
+  ), importOptions(null, {
+    sourceDomain: "dyno",
+    channelMapping: {
+      time_s: "Time (s)", rpm: "RPM", torque_nm: "Wheel torque (ft-lb)",
+    },
+    units: { torque_nm: "ft-lb" },
+    measurementBasis: "wheel",
+  }));
+  const runFromMetric = mapCsvToRun(parseCsvText(
+    "Time (s),RPM,Wheel torque (Nm)\\n0,2000,135.58179483314\\n0.1,2100,149.1400\\n",
+  ), importOptions(null, {
+    sourceDomain: "dyno",
+    channelMapping: {
+      time_s: "Time (s)", rpm: "RPM", torque_nm: "Wheel torque (Nm)",
+    },
+    units: { torque_nm: "Nm" },
+    measurementBasis: "wheel",
+  }));
+
+  const result = assessRunComparability(runFromImperial, runFromMetric);
+  const torque = result.commonChannels.find(channel => channel.key === "torque_nm");
+  assert.ok(torque);
+  assert.equal(torque.unit, "Nm");
+  assert.equal(runFromImperial.units.torque_nm, "Nm");
+  assert.equal(runFromMetric.units.torque_nm, "Nm");
+  assert.equal(runFromImperial.importMetadata.sourceUnits.torque_nm, "ft-lb");
+  assert.equal(runFromMetric.importMetadata.sourceUnits.torque_nm, "Nm");
 });

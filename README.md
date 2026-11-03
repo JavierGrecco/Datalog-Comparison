@@ -60,7 +60,7 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 **Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un esquema de columnas fijo publicado. Exige mapeo manual y declaración de la base de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
 
-**CSV genérico:** conserva su flujo de mapeo explícito. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
+**CSV genérico:** conserva su flujo de mapeo explícito. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se registra la unidad original. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 

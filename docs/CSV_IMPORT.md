@@ -94,7 +94,20 @@ Una clave canónica no certifica que sensores, ubicación de medición o método
 
 ## Normalización de unidades
 
-El contrato `datalog-units/1` admite conversiones explícitas para torque (Nm/ft-lb), potencia (kW/W/hp/PS), velocidad (km/h/mph/m/s), presión (kPa/bar/psi/mbar/Pa), temperatura (°C/°F/K), tensión (V/mV) y ángulo (grados/radianes). Las unidades no listadas se rechazan para el canal elegido. La normalización de unidades no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
+El contrato `datalog-units/1` admite conversiones explícitas a unidades canónicas:
+
+| Canal | Unidades de origen admitidas | Unidad canónica |
+| --- | --- | --- |
+| Torque | Nm, ft-lb / lb-ft | Nm |
+| Potencia | kW, W, hp / bhp, PS / CV | kW |
+| Velocidad | km/h / kph, mph, m/s | km/h |
+| Presión | kPa, bar, psi, mbar, Pa | kPa |
+| Temperatura | °C, °F, K | °C |
+| Tensión de batería | V, mV | V |
+| Acelerador | %, percent | % |
+| Avance de encendido | grados, radianes | grados |
+
+Las unidades no listadas se rechazan para el canal elegido. La unidad original y la regla/factor de conversión quedan en `importMetadata.sourceUnits` y `importMetadata.unitConversions`, bajo la versión `datalog-units/1`. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
 
 Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y las marcas temporales, y muestra el intervalo mediano observado. No presupone una frecuencia uniforme ni afirma que coincida con la configuración original.
 

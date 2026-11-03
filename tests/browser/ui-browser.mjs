@@ -245,6 +245,8 @@ test("el perfil Dynojet exige base de medición antes de inspeccionar torque/pot
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /Rueda/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /Torque · ft-lb → Nm/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /Potencia · hp → kW/);
   assert.match(await page.locator("#csvWarnings").innerText(), /mapeó manualmente/i);
   assert.equal(await page.locator("#charts svg").count(), 2);
   assert.deepEqual(pageErrors, []);
