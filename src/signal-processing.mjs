@@ -61,7 +61,7 @@ function resolveSelectedChannels(run, requested, signalKinds = {}) {
   if (!run?.samples || !Array.isArray(run.samples) || !run.units || typeof run.units !== "object") {
     fail("SIGNAL_PROCESSING_RUN_INVALID", "Se necesita un registro con muestras y unidades normalizadas.");
   }
-  const selected = requested ?? Object.keys(run.units).filter(key => key !== "time_s");
+  const selected = requested ?? Object.keys(DEFAULT_CONTINUOUS_CHANNELS).filter(key => Object.hasOwn(run.units, key));
   if (!Array.isArray(selected) || !selected.length || selected.some(key => typeof key !== "string" || !key)) {
     fail("SIGNAL_PROCESSING_CHANNELS_REQUIRED", "Seleccioná al menos un canal para procesar.");
   }

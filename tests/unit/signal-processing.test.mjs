@@ -51,7 +51,7 @@ test("la decimación temporal aplica FIR antialias y conserva la escala de baja 
   assert.equal(result.schema, SIGNAL_PROCESSING_SCHEMA);
   assert.equal(result.algorithm, SIGNAL_PROCESSING_VERSION);
   assert.equal(result.operation, "time-series-decimation");
-  assert.equal(result.axis.estimatedSourceRateHz, 100);
+  assert.ok(Math.abs(result.axis.estimatedSourceRateHz - 100) < 1e-8);
   assert.equal(result.axis.targetRateHz, 20);
   assert.equal(result.parameters.decimationFactor, 5);
   assert.equal(result.parameters.filter.type, "FIR low-pass");
