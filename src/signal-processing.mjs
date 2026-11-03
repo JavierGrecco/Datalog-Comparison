@@ -500,14 +500,14 @@ export function buildRpmSweepCurves(run, {
     fail("SIGNAL_PROCESSING_DYNO_CHANNELS_INVALID",
       "Seleccioná canales de torque o potencia normalizados y sin duplicados.");
   }
-  const wrongUnits = selectedChannels.filter(key => run.units[key] !== (key === "torque_nm" ? "Nm" : "kW"));
-  if (wrongUnits.length) {
-    fail("SIGNAL_PROCESSING_DYNO_UNIT_UNSUPPORTED", "Torque y potencia deben estar normalizados a Nm y kW.", { channels: wrongUnits });
-  }
   const nonDynoChannels = selectedChannels.filter(key => !["torque_nm", "power_kw"].includes(key));
   if (nonDynoChannels.length) {
     fail("SIGNAL_PROCESSING_DYNO_CHANNEL_UNSUPPORTED",
       "La curva por RPM solo admite torque y potencia en esta versión.", { channels: nonDynoChannels });
+  }
+  const wrongUnits = selectedChannels.filter(key => run.units[key] !== (key === "torque_nm" ? "Nm" : "kW"));
+  if (wrongUnits.length) {
+    fail("SIGNAL_PROCESSING_DYNO_UNIT_UNSUPPORTED", "Torque y potencia deben estar normalizados a Nm y kW.", { channels: wrongUnits });
   }
 
   const timeGaps = inferTimeGaps(run.samples, maxGapFactor);
