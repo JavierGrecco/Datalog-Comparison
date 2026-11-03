@@ -111,7 +111,21 @@ La aplicación separará tres capas:
 2. **Semántica canónica:** nombres, dimensiones, unidades y roles confirmados.
 3. **Señales derivadas:** sincronización, filtrado, interpolación, remuestreo, segmentación por barrido y curvas por RPM.
 
-La capa de señales derivadas aún no realiza sincronización ni remuestreo. Cuando se incorpore, deberá declarar método, frecuencia objetivo y límites; mantener intacta la fuente; interpolar solo señales continuas; usar retención de último valor para estados discretos; preservar eventos; no extrapolar ni cruzar huecos relevantes; y aplicar filtrado antialias antes de reducir la frecuencia. Las curvas de dinamómetro requieren tratamiento por régimen y segmentación de barridos, no remuestreo temporal indiscriminado.
+La tercera capa ya cuenta con una primera implementación determinista en `src/signal-processing.mjs`. Cada operación crea un artefacto derivado versionado; no reemplaza ni muta el registro fuente.
+
+### ECU / señales con eje temporal
+
+`resampleTimeBasedSignals` admite por ahora una base temporal estrictamente creciente y casi uniforme, y una reducción por factor entero de 2 a 32. Estima la tasa de origen a partir del intervalo mediano; rechaza jitter superior al umbral declarado y separa huecos mayores a `maxGapFactor` del intervalo típico. Para señales continuas aplica un FIR pasa-bajos simétrico Blackman antes de decimar; usa fase cero offline y recorta los bordes donde no hay soporte completo del filtro. Ningún filtro atraviesa celdas faltantes ni gaps temporales. Para canales discretos utiliza retención sobre instantes observados de la grilla objetivo y reinicia el segmento ante faltantes. Los índices de la muestra original y los parámetros completos del filtro quedan en el artefacto.
+
+La V1 no hace interpolación de señales continuas a una base irregular, no aumenta frecuencia, no inventa marcas de tiempo, no extrapola y no sincroniza relojes distintos. Una serie demasiado corta para el filtro queda sin salida y genera una advertencia; no se sustituye por una curva sin filtrar.
+
+### Dinamómetro / barridos por RPM
+
+`buildRpmSweepCurves` trabaja solo con registros declarados como dinamómetro y con base física presente en metadatos. Identifica barridos ascendentes y separa una tirada cuando detecta una inversión sostenida de RPM o un hueco temporal grande (si el tiempo está disponible). Construye bandas RPM de ancho configurable y resume las muestras observadas con mediana, mínimo, máximo, cantidad e índices fuente. Las bandas sin muestras se omiten; las tiradas repetidas no se mezclan.
+
+Esta V1 no suaviza la curva, no extrapola puntos, no convierte bases físicas y no aplica corrección atmosférica ni certifica potencia. Una base `unknown` mantiene la curva en revisión. El procedimiento de corrección de potencia de SAE J1349 es un proceso de ensayo y condiciones ambientales independiente; estas curvas por bandas no lo implementan.
+
+La capa de visualización `src/series-display.mjs` sigue siendo diferente: su decimación min/max solo limita los puntos enviados al SVG. No alimenta los algoritmos anteriores.
 
 La decimación disponible en `src/series-display.mjs` es distinta: reduce únicamente los puntos enviados al SVG, con selección min/max por bloques. Conserva primera/última muestra de cada segmento y un separador por hueco para que el trazo no conecte datos ausentes. El límite de puntos es flexible si preservar todos los huecos requiere más marcadores. Las métricas, el archivo importado y cualquier cálculo siguen usando las muestras originales.
 

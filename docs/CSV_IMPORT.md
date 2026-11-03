@@ -122,7 +122,8 @@ Fuera de alcance:
 
 - Comparación entre dos archivos importados.
 - Importación de archivos nativos o binarios propietarios.
-- Corrección atmosférica, interpolación, sincronización y conversión de unidades/base.
+- Sincronización de distintos relojes o grupos de adquisición, reconstrucción de una base temporal irregular e interpolación de señales continuas en V1.
+- Corrección atmosférica SAE, conversión de base física de torque/potencia o certificación del ensayo.
 - Adaptadores FuelTech, ECUMaster, MoTeC, Link, AiM o AEM sin contrato y fixtures autorizados.
 - Persistencia, backend, telemetría o envío de archivos.
 

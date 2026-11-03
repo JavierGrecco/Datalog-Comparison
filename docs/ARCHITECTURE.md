@@ -30,6 +30,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 | src/data-quality.mjs | Perfil de muestras, cobertura, secuencia temporal y metadatos. |
 | src/sample-selection.mjs | Selección determinista de muestras originales para vistas de inspección, sin interpolación ni mutación. |
 | src/series-display.mjs | Decimación min/max solo para SVG; conserva extremos y cortes de datos faltantes sin modificar los registros. |
+| src/signal-processing.mjs | Señales derivadas: decimación temporal FIR para señales continuas, retención para discretas y curvas de dinamómetro por barridos y bandas RPM. |
 | src/run-comparability.mjs | Detección de canales compartidos y compatibilidad declarada de unidades. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
@@ -49,6 +50,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 - El inspector crea un registro exploratorio y muestra calidad; no lo agrega a la matriz ni permite compararlo con fixtures.
 - La matriz no calcula una puntuación opaca de confianza.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
+- El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
 - El informe sintético no exporta muestras completas ni rutas locales.
 
 ## Ejecución y dependencias
