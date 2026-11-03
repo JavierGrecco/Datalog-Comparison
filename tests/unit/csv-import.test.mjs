@@ -378,7 +378,7 @@ test("el tipo Haltech AFR se conserva como no soportado hasta verificar si repre
 
 test("dos unidades de origen distintas convergen a Nm antes de comparar canales", async () => {
   const runFromImperial = mapCsvToRun(parseCsvText(
-    "Time (s),RPM,Wheel torque (ft-lb)\\n0,2000,100\\n0.1,2100,110\\n",
+    "Time (s),RPM,Wheel torque (ft-lb)\n0,2000,100\n0.1,2100,110\n",
   ), importOptions(null, {
     sourceDomain: "dyno",
     channelMapping: {
@@ -388,7 +388,7 @@ test("dos unidades de origen distintas convergen a Nm antes de comparar canales"
     measurementBasis: "wheel",
   }));
   const runFromMetric = mapCsvToRun(parseCsvText(
-    "Time (s),RPM,Wheel torque (Nm)\\n0,2000,135.58179483314\\n0.1,2100,149.1400\\n",
+    "Time (s),RPM,Wheel torque (Nm)\n0,2000,135.58179483314\n0.1,2100,149.1400\n",
   ), importOptions(null, {
     sourceDomain: "dyno",
     channelMapping: {
