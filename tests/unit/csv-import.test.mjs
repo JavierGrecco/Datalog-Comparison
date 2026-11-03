@@ -73,8 +73,15 @@ test("el perfil Dynojet PowerCore exige base de medición y conserva unidades de
   assert.equal(run.measurementBasis, "wheel");
   assert.equal(run.measurementBasisLabel, "Rueda");
   assert.equal(run.importMetadata.parserId, "dynojet-powercore-guided-csv/1");
-  assert.equal(run.samples[0].channels.torque_nm, 101.8);
-  assert.equal(run.units.power_kw, "hp");
+  assert.ok(Math.abs(run.samples[0].channels.torque_nm - 101.8 * 1.3558179483314004) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.power_kw - 42.7 * 0.7456998715822702) < 1e-9);
+  assert.equal(run.units.torque_nm, "Nm");
+  assert.equal(run.units.power_kw, "kW");
+  assert.deepEqual(run.importMetadata.sourceUnits, {
+    time_s: "s", rpm: "RPM", torque_nm: "ft-lb", power_kw: "hp",
+  });
+  assert.equal(run.importMetadata.unitConversions.torque_nm.from, "ft-lb");
+  assert.equal(run.importMetadata.unitConversions.power_kw.to, "kW");
   assert.ok(run.warnings.some(warning => /canales y la exportación son configurables/i.test(warning)));
 });
 
@@ -280,4 +287,89 @@ test("no modifica el orden ni los datos originales del CSV parseado", async () =
   const snapshot = structuredClone(parsed);
   mapCsvToRun(parsed, importOptions(parsed, { decimalSeparator: "," }));
   assert.deepEqual(parsed, snapshot);
+});
+
+
+test("normaliza unidades explícitas a las unidades canónicas y conserva la procedencia", () => {
+  const parsed = parseCsvText(
+    "Time (s),RPM,Speed (mph),IAT (F),MAP (psi)\\n" +
+    "0,1000,60,68,14.503773773\\n" +
+    "0.1,1100,62,86,15\\n",
+  );
+  const run = mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: {
+      time_s: "Time (s)",
+      rpm: "RPM",
+      speed_kmh: "Speed (mph)",
+      iat_c: "IAT (F)",
+      map_abs_kpa: "MAP (psi)",
+    },
+    units: { speed_kmh: "mph", iat_c: "°F", map_abs_kpa: "psi" },
+  }));
+  assert.equal(run.units.speed_kmh, "km/h");
+  assert.equal(run.units.iat_c, "°C");
+  assert.equal(run.units.map_abs_kpa, "kPa");
+  assert.ok(Math.abs(run.samples[0].channels.speed_kmh - 96.56064) < 1e-8);
+  assert.ok(Math.abs(run.samples[0].channels.iat_c - 20) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.map_abs_kpa - 100) < 0.001);
+  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/1");
+  assert.equal(run.importMetadata.sourceUnits.iat_c, "°F");
+  assert.equal(run.importMetadata.unitConversions.iat_c.from, "°F");
+});
+
+test("rechaza unidades incompatibles con el canal en vez de etiquetar mal los datos", () => {
+  const parsed = parseCsvText("Time,RPM,Torque\\n0,1000,14\\n0.1,1100,15\\n");
+  assert.throws(
+    () => mapCsvToRun(parsed, importOptions(parsed, {
+      channelMapping: { time_s: "Time", rpm: "RPM", torque_nm: "Torque" },
+      units: { torque_nm: "psi" },
+    })),
+    error => error.code === "CSV_CHANNEL_UNIT_UNSUPPORTED",
+  );
+});
+
+test("el adaptador Haltech rechaza la variante de metadatos Channel/ID/Type sin reinterpretarla", async () => {
+  const channelListVariant = [
+    "%DataLog%",
+    "Version : 2",
+    "Channel : Engine Speed",
+    "Channel : Manifold Pressure",
+    "00:00:01.000,1800,1000",
+    "00:00:01.100,1900,1020",
+  ].join("\\n");
+  assert.throws(
+    () => importHaltechNspCsv(channelListVariant),
+    error => error.code === "HALTECH_LAYOUT_UNSUPPORTED" &&
+      error.details.detectedLayout === "channel-list",
+  );
+
+  const channelTableVariant = [
+    "%DataLog%",
+    "FileVersion,2",
+    "Channel,ID,Type,DisplayMaxMin",
+    "Time,0,Time_ms,0-10",
+    "00:00:01.000,1800",
+  ].join("\\n");
+  assert.throws(
+    () => importHaltechNspCsv(channelTableVariant),
+    error => error.code === "HALTECH_LAYOUT_UNSUPPORTED" &&
+      error.details.detectedLayout === "channel-table",
+  );
+});
+
+test("el tipo Haltech AFR se conserva como no soportado hasta verificar si representa AFR o lambda", () => {
+  const text = [
+    "%DataLog%",
+    "",
+    "Time(Time_ms:ms),RPM(EngineSpeed:rpm),Wideband(AFR:AFR)",
+    "00:00:01.000,1800,10000",
+    "00:00:01.100,1900,10200",
+    "00:00:01.200,2000,10400",
+  ].join("\\n");
+  const run = importHaltechNspCsv(text);
+  assert.equal(Object.hasOwn(run.units, "afr"), false);
+  assert.deepEqual(run.importMetadata.adapterMetadata.unsupportedChannels, [
+    { name: "Wideband", type: "AFR", unit: "AFR" },
+  ]);
+  assert.ok(run.warnings.some(warning => /AFR o lambda/i.test(warning)));
 });
