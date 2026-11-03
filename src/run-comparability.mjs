@@ -1,3 +1,5 @@
+import { classifyRunSource, SOURCE_DOMAIN } from "./source-policy.mjs";
+
 /**
  * Evaluación descriptiva de comparabilidad entre dos registros.
  *
@@ -12,12 +14,21 @@ const UNKNOWN_UNIT = /^(?:unidad original|unidad del archivo|unidad desconocida|
 const DYNO_OUTPUT_CHANNELS = new Set(["torque_nm", "power_kw"]);
 const KNOWN_DYNO_BASES = new Set(["wheel", "roller", "hub", "engine"]);
 
+function measurementBasisLabel(basis) {
+  return ({
+    wheel: "rueda",
+    roller: "rodillo",
+    hub: "cubo",
+    engine: "motor",
+  })[basis] ?? "no declarada";
+}
+
 function measurementBasisMismatch(referenceRun, candidateRun, key) {
   if (!DYNO_OUTPUT_CHANNELS.has(key)) return null;
-  const referenceDomain = String(referenceRun?.sourceDomain ?? "").trim().toLowerCase();
-  const candidateDomain = String(candidateRun?.sourceDomain ?? "").trim().toLowerCase();
-  if (referenceDomain !== "dyno" && candidateDomain !== "dyno") return null;
-  if (referenceDomain !== "dyno" || candidateDomain !== "dyno") {
+  const referenceDomain = classifyRunSource(referenceRun);
+  const candidateDomain = classifyRunSource(candidateRun);
+  if (referenceDomain !== SOURCE_DOMAIN.DYNO && candidateDomain !== SOURCE_DOMAIN.DYNO) return null;
+  if (referenceDomain !== SOURCE_DOMAIN.DYNO || candidateDomain !== SOURCE_DOMAIN.DYNO) {
     return {
       referenceMeasurementBasis: referenceRun?.measurementBasis ?? null,
       candidateMeasurementBasis: candidateRun?.measurementBasis ?? null,
@@ -30,14 +41,17 @@ function measurementBasisMismatch(referenceRun, candidateRun, key) {
     return {
       referenceMeasurementBasis: referenceBasis ?? "no declarada",
       candidateMeasurementBasis: candidateBasis ?? "no declarada",
-      reason: "La base física de torque/potencia de uno de los dinamómetros no está identificada de forma fiable.",
+      reason: "La base física de torque/potencia no está identificada de forma fiable (referencia: " +
+        measurementBasisLabel(referenceBasis) + "; candidata: " + measurementBasisLabel(candidateBasis) + ").",
     };
   }
   if (referenceBasis !== candidateBasis) {
     return {
       referenceMeasurementBasis: referenceBasis,
       candidateMeasurementBasis: candidateBasis,
-      reason: "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
+      reason: "La base física de torque/potencia no coincide (referencia: " +
+        measurementBasisLabel(referenceBasis) + "; candidata: " + measurementBasisLabel(candidateBasis) +
+        "). No se convierte entre bases físicas.",
     };
   }
   return null;

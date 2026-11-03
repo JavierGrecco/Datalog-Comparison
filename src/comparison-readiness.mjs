@@ -198,7 +198,10 @@ export function assessComparisonReadiness(
   const channelFindings = [];
   if (comparison.blockedChannels.length) {
     channelFindings.push(comparison.blockedChannels.length +
-      " canal(es) se excluyeron por unidades ausentes o incompatibles.");
+      " canal(es) se excluyeron por unidades o bases de medición ausentes o incompatibles.");
+    for (const channel of comparison.blockedChannels) {
+      addUnique(channelFindings, channel.key + ": " + channel.reason);
+    }
   }
   if (channelsWithLowCoverage.length) {
     channelFindings.push(channelsWithLowCoverage.length + " canal(es) compartidos tienen cobertura inferior al " +
@@ -312,7 +315,8 @@ export function assessComparisonReadiness(
   if (!comparison.commonChannels.length) {
     addUnique(nextActions, "Verificá el mapeo de canales y las unidades de origen; no conviertas unidades automáticamente.");
   }
-  if (comparison.blockedChannels.length) addUnique(nextActions, "Documentá o corregí los canales con unidades desconocidas/incompatibles antes de habilitarlos.");
+  if (comparison.blockedChannels.length) addUnique(nextActions,
+    "Revisá las unidades y bases físicas de los canales excluidos; documentá la equivalencia antes de habilitarlos.");
   if (channelsWithLowCoverage.length) {
     addUnique(nextActions, "Inspeccioná la cobertura de " + channelsWithLowCoverage.slice(0, 5).map(item => item.key).join(", ") +
       " (mínimo de revisión configurado: " + minimumChannelCoveragePct + "%).");

@@ -122,6 +122,35 @@ test("la comparabilidad excluye canales cuyas unidades no coinciden", () => {
   assert.equal(result.causalInferenceAllowed, false);
 });
 
+test("la base física se verifica también cuando el origen dyno se infiere por tipo o metadatos", () => {
+  const reference = makeRun("reference");
+  delete reference.sourceDomain;
+  reference.sourceType = "Exportación de dinamómetro";
+  reference.measurementBasis = "wheel";
+
+  const candidate = makeRun("candidate");
+  delete candidate.sourceDomain;
+  delete candidate.sourceType;
+  candidate.dynoMetadata = {};
+  candidate.measurementBasis = "engine";
+
+  const comparison = assessRunComparability(reference, candidate);
+  assert.equal(comparison.commonChannels.some(channel => channel.key === "rpm"), true);
+  assert.equal(comparison.commonChannels.some(channel => channel.key === "torque_nm"), false);
+  assert.match(
+    comparison.blockedChannels.find(channel => channel.key === "torque_nm").reason,
+    /referencia: rueda; candidata: motor/i,
+  );
+
+  const readiness = assessComparisonReadiness(reference, candidate);
+  assert.equal(readiness.assessments.source.status, "same-domain");
+  const channelsGate = readiness.gates.find(item => item.id === "channels");
+  assert.equal(channelsGate.status, "review_required");
+  assert.ok(channelsGate.findings.some(item =>
+    /torque_nm:.*referencia: rueda; candidata: motor/i.test(item)
+  ));
+});
+
 test("el contrato de condiciones operativas exige fuente para valores declarados o verificados", () => {
   const conditions = createEmptyOperatingConditions();
   assert.deepEqual(validateOperatingConditions(conditions), []);

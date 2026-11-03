@@ -213,6 +213,14 @@ function renderReadiness() {
   $("#nextActions").innerHTML = readiness.nextActions.map(action => "<li>" + esc(action) + "</li>").join("");
 }
 
+function blockedChannelMessage(comparison, key, label) {
+  const blocked = comparison.blockedChannels.find(channel => channel.key === key);
+  if (!blocked) {
+    return label + " no graficado: las unidades no coinciden o no se declararon de forma fiable.";
+  }
+  return label + " no graficado: " + blocked.reason;
+}
+
 function renderCharts() {
   const charts = $("#charts");
   charts.replaceChildren();
@@ -232,7 +240,7 @@ function renderCharts() {
   } else {
     const warning = document.createElement("div");
     warning.className = "empty-chart";
-    warning.textContent = "Torque no graficado: las unidades no coinciden o no se declararon de forma fiable.";
+    warning.textContent = blockedChannelMessage(comparison, "torque_nm", "Torque");
     charts.append(warning);
   }
   if (powerAllowed) {
@@ -240,7 +248,7 @@ function renderCharts() {
   } else {
     const warning = document.createElement("div");
     warning.className = "empty-chart";
-    warning.textContent = "Potencia no graficada: las unidades no coinciden o no se declararon de forma fiable.";
+    warning.textContent = blockedChannelMessage(comparison, "power_kw", "Potencia");
     charts.append(warning);
   }
 }
