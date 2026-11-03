@@ -8,7 +8,7 @@ import {
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 
 const $ = selector => document.querySelector(selector);
-const state = { file: null, parsed: null, run: null, quality: null };
+const state = { file: null, text: null, parsed: null, run: null, quality: null };
 
 function makeElement(tag, className, text) {
   const node = document.createElement(tag);
@@ -179,9 +179,39 @@ function renderPreview() {
   renderSamplePreview(run);
 }
 
+function selectedDelimiter() {
+  const selected = $("#csvColumnDelimiter").value;
+  return selected === "tab" ? "\\t" : selected;
+}
+
+function parseLoadedText() {
+  if (!state.text) return;
+  clearPreview();
+  state.parsed = null;
+  $("#csvMappingSection").hidden = true;
+  $("#csvInspectButton").disabled = true;
+
+  try {
+    const parsed = parseCsvText(state.text, { delimiter: selectedDelimiter() });
+    state.parsed = parsed;
+    renderMappingFields(parsed.headers);
+    $("#csvMappingSection").hidden = false;
+    $("#csvInspectButton").disabled = false;
+    const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
+    setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas, " +
+      parsed.rows.length + " filas de datos y separador " + parsed.delimiterLabel +
+      ". Asigná tiempo y RPM antes de inspeccionarlo." + warningText,
+    parsed.warnings.length ? "warning" : "success");
+  } catch (error) {
+    const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
+    setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
+  }
+}
+
 async function handleFileSelection() {
   clearPreview();
   state.file = null;
+  state.text = null;
   state.parsed = null;
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
@@ -203,16 +233,9 @@ async function handleFileSelection() {
   try {
     const text = await file.text();
     if ($("#csvFile").files?.[0] !== file) return;
-    const parsed = parseCsvText(text);
     state.file = file;
-    state.parsed = parsed;
-    renderMappingFields(parsed.headers);
-    $("#csvMappingSection").hidden = false;
-    $("#csvInspectButton").disabled = false;
-    const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
-    setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas y " +
-      parsed.rows.length + " filas de datos. Asigná tiempo y RPM antes de inspeccionarlo." + warningText,
-    parsed.warnings.length ? "warning" : "success");
+    state.text = text;
+    parseLoadedText();
   } catch (error) {
     const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
@@ -260,11 +283,13 @@ function handleImport(event) {
 
 function reset() {
   state.file = null;
+  state.text = null;
   state.parsed = null;
   clearPreview();
   $("#csvFile").value = "";
   $("#csvSourceDomain").value = "";
   $("#csvDecimalSeparator").value = ".";
+  $("#csvColumnDelimiter").value = "auto";
   $("#csvMappingFields").replaceChildren();
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
@@ -275,6 +300,7 @@ export function initializeCsvInspector() {
   const form = $("#csvImportForm");
   if (!form) return;
   $("#csvFile").addEventListener("change", handleFileSelection);
+  $("#csvColumnDelimiter").addEventListener("change", parseLoadedText);
   $("#csvDecimalSeparator").addEventListener("change", () => {
     if (state.parsed) setStatus("Separador decimal actualizado. Se aplicará al validar los valores numéricos.");
   });

@@ -77,12 +77,22 @@
             <small>Declaración manual; no se infiere desde el nombre del archivo</small>
           </label>
           <label class="csv-control">
+            <span>Separador de columnas</span>
+            <select id="csvColumnDelimiter">
+              <option value="auto">Detección automática</option>
+              <option value=",">Coma (,)</option>
+              <option value=";">Punto y coma (;)</option>
+              <option value="tab">Tabulación</option>
+            </select>
+            <small>Podés elegirlo manualmente si la detección no es concluyente</small>
+          </label>
+          <label class="csv-control">
             <span>Separador decimal</span>
             <select id="csvDecimalSeparator">
               <option value=".">Punto (1.25)</option>
               <option value=",">Coma (1,25)</option>
             </select>
-            <small>El delimitador de columnas se detecta por separado</small>
+            <small>Debe coincidir con la notación numérica del archivo</small>
           </label>
         </div>
 

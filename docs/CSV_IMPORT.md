@@ -10,16 +10,17 @@ Los archivos permanecen en memoria del navegador durante la sesión. No se enví
 
 1. Seleccionar un archivo con extensión `.csv` de hasta 10 MB.
 2. Declarar explícitamente el origen: ECU/logger, dinamómetro o sin clasificar.
-3. Indicar el separador decimal (punto o coma).
-4. Asignar las columnas del archivo a los canales del contrato.
-5. Confirmar unidades para cada canal opcional.
-6. Inspeccionar la cobertura, las alertas y una muestra de las primeras filas.
+3. Confirmar el separador de columnas (detección automática, coma, punto y coma o tabulación).
+4. Indicar el separador decimal (punto o coma).
+5. Asignar las columnas del archivo a los canales del contrato.
+6. Confirmar unidades para cada canal opcional.
+7. Inspeccionar la cobertura, las alertas y una muestra de las primeras filas.
 
 Tiempo relativo en segundos y RPM son obligatorios. No hay conversión de milisegundos a segundos, de unidades imperiales a métricas ni de valores de presión absoluta/relativa. Si el archivo utiliza otra convención, debe documentarse y normalizarse fuera de esta etapa hasta que exista una transformación explícita, versionada y probada.
 
 ## Contrato de lectura
 
-- Separadores soportados: coma, punto y coma y tabulación. El modo automático se limita a detectar el separador de la primera fila lógica.
+- Separadores soportados: coma, punto y coma y tabulación. La interfaz permite detección automática o selección explícita cuando el archivo es ambiguo.
 - Comillas dobles, comillas escapadas, campos multilínea, BOM y finales de línea CRLF/LF.
 - Encabezados obligatorios, no vacíos y únicos después de normalizar espacios, Unicode y mayúsculas.
 - Filas completamente vacías se ignoran y se contabilizan en `skippedEmptyRows`.

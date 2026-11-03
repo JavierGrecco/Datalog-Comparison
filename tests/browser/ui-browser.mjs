@@ -130,6 +130,7 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   });
   await page.locator("#csvMappingSection").waitFor({ state: "visible" });
   await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvColumnDelimiter").selectOption(";");
   await page.locator("#csvDecimalSeparator").selectOption(",");
   await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
   await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
