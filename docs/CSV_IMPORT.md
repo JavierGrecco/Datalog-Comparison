@@ -22,6 +22,7 @@ Tiempo relativo en segundos y RPM son obligatorios. No hay conversión de milise
 - Separadores soportados: coma, punto y coma y tabulación. El modo automático se limita a detectar el separador de la primera fila lógica.
 - Comillas dobles, comillas escapadas, campos multilínea, BOM y finales de línea CRLF/LF.
 - Encabezados obligatorios, no vacíos y únicos después de normalizar espacios, Unicode y mayúsculas.
+- Filas completamente vacías se ignoran y se contabilizan en `skippedEmptyRows`.
 - Filas con menos celdas se completan con faltantes y generan una advertencia.
 - Filas con más celdas que encabezados se rechazan; no se desplazan señales en silencio.
 - Límites actuales: 10 MB de texto, 100.000 filas, 128 columnas y 16.384 caracteres por celda.
