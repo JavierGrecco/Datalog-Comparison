@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="description" content="Demostración local de comparación de registros de motor basada en evidencia, calidad de datos y procedencia.">
+  <title>Datalog Workbench · Análisis de registros de motor</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./index.html" aria-label="Datalog Workbench, inicio">
+      <span class="brand-mark" aria-hidden="true">DW</span>
+      <span class="brand-text"><strong>Datalog Workbench</strong><small>Demo de comparación</small></span>
+    </a>
+    <div class="topbar-meta"><span class="local-dot" aria-hidden="true"></span><span>LOCAL · SIN SERVICIOS EXTERNOS</span></div>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero" aria-labelledby="pageTitle">
+      <p class="eyebrow">DEMOSTRACIÓN TÉCNICA · NOVIEMBRE 2026</p>
+      <h1 id="pageTitle">La evidencia antes que la comparación.</h1>
+      <p class="hero-lead">Una demo de ingeniería para examinar dos registros, encontrar límites en los datos y explicar por qué una comparación puede servir, necesita revisión o debe bloquearse.</p>
+      <div class="hero-pills" aria-label="Alcance de la demo">
+        <span>Procesamiento local</span>
+        <span>Ejemplos sintéticos</span>
+        <span>Sin escritura en ECU</span>
+      </div>
+    </section>
+
+    <section class="notice" aria-label="Limitación principal">
+      <span class="notice-icon" aria-hidden="true">i</span>
+      <p><strong>Importante:</strong> todas las curvas de esta demo son sintéticas y se generan en el navegador. Sirven para probar las reglas del software, no representan mediciones de un vehículo real ni permiten calibrar o diagnosticar un motor.</p>
+    </section>
+
+    <section class="case-section" aria-labelledby="caseTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 · CASOS DE PRUEBA</p>
+          <h2 id="caseTitle">Elegí qué límite querés inspeccionar</h2>
+        </div>
+        <span id="caseCounter" class="section-meta">Caso 1 de 3</span>
+      </div>
+      <div id="casePicker" class="case-picker" role="group" aria-label="Escenarios de demostración"></div>
+      <p id="caseDescription" class="case-description" aria-live="polite"></p>
+    </section>
+
+    <section class="results-grid">
+      <section class="panel run-panel" aria-labelledby="runsTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">02 · REGISTROS</p><h2 id="runsTitle">Referencia y candidata</h2></div>
+          <span class="synthetic-chip">SINTÉTICO</span>
+        </div>
+        <div id="runSummary" class="run-summary"></div>
+        <div class="run-limit"><strong>Qué significa:</strong> los valores se generaron para demostrar cómo responde el software a datos completos, faltantes y fuentes incompatibles. No son un modelo físico de motor.</div>
+      </section>
+
+      <section class="panel readiness-panel" aria-labelledby="readinessTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">03 · MATRIZ DE EVIDENCIA</p><h2 id="readinessTitle">¿Está preparada la comparación?</h2></div>
+        </div>
+        <div id="readinessSummary" class="readiness-summary" role="status" aria-live="polite"></div>
+        <div id="gateList" class="gate-list"></div>
+        <section class="next-steps" aria-labelledby="nextStepsTitle">
+          <h3 id="nextStepsTitle">Qué revisar a continuación</h3>
+          <ol id="nextActions"></ol>
+        </section>
+      </section>
+    </section>
+
+    <section class="panel chart-panel" aria-labelledby="chartsTitle">
+      <div class="panel-heading chart-heading">
+        <div><p class="eyebrow">04 · LECTURA DESCRIPTIVA</p><h2 id="chartsTitle">Torque y potencia frente a RPM</h2><p class="section-intro">Los dos paneles comparten el eje RPM. Cada métrica tiene su propia escala vertical. Las curvas no se presentan si la política de origen bloquea la comparación.</p></div>
+        <div class="chart-units"><span>Torque · Nm sintéticos</span><span>Potencia · kW sintéticos</span></div>
+      </div>
+      <div id="chartStatus" class="chart-status" role="status" aria-live="polite"></div>
+      <div id="charts" class="charts-stack"></div>
+      <div class="chart-footnote">En este ejemplo didáctico, la potencia se deriva del torque y RPM sintéticos con P(kW) = torque(Nm) × RPM / 9549,3. La relación matemática no convierte estos datos en una medición real.</div>
+    </section>
+
+    <section class="panel report-panel" aria-labelledby="reportTitle">
+      <div class="report-copy">
+        <p class="eyebrow">05 · INFORME PORTABLE</p>
+        <h2 id="reportTitle">Conservá el resultado de esta prueba</h2>
+        <p>Exportá un resumen JSON con los dos escenarios, el estado de cada comprobación, los máximos observados y los límites de interpretación. El archivo no incluye el historial privado del navegador ni rutas locales.</p>
+      </div>
+      <div class="report-actions">
+        <button type="button" class="primary-button" id="exportReport">Exportar informe JSON</button>
+        <p id="exportStatus" class="button-status" role="status" aria-live="polite">El informe se genera localmente.</p>
+      </div>
+    </section>
+
+    <section class="footer-limits" aria-labelledby="limitsTitle">
+      <p class="eyebrow">ALCANCE Y VALIDACIÓN</p>
+      <h2 id="limitsTitle">Un resultado automatizado no certifica un ensayo.</h2>
+      <p>El prototipo no prueba sincronización física, equivalencia de carga, validez de sensores, causalidad ni seguridad de una calibración. Antes de interpretar diferencias reales hacen falta registros autorizados, contexto de medición documentado y revisión de una persona experta.</p>
+    </section>
+    <footer class="page-footer"><span>Datalog Workbench · Demo experimental de análisis</span><span>Sin conexión a ECU · Sin datos reales · Sin recomendaciones de calibración</span></footer>
+  </main>
+</body>
+</html>

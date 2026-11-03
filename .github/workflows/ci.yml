@@ -1,0 +1,29 @@
+name: Validación de la demo
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Instalar dependencias fijadas
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium para la prueba de navegador
+        run: npx playwright install --with-deps chromium
+      - name: Comprobar sintaxis de JavaScript
+        run: npm run check:javascript
+      - name: Ejecutar pruebas unitarias y de escenarios
+        run: npm run test:unit
+      - name: Recorrer la aplicación en Chromium
+        run: npm run test:ui

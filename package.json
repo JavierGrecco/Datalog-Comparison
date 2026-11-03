@@ -1,0 +1,19 @@
+{
+  "name": "datalog-comparison-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo local de comparación trazable de registros de motor con datos sintéticos.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check:javascript": "node --check app/app.mjs && node --check src/demo-model.mjs && node --check src/comparison-readiness.mjs && node --check src/run-comparability.mjs && node --check src/data-quality.mjs && node --check src/source-policy.mjs && node --check src/operating-conditions.mjs && node --check src/run-manifest.mjs && node --check tests/unit/portfolio-demo.test.mjs && node --check tests/browser/ui-browser.mjs",
+    "test:unit": "node --test tests/unit/portfolio-demo.test.mjs",
+    "test:ui": "node --test tests/browser/ui-browser.mjs",
+    "test": "npm run check:javascript && npm run test:unit && npm run test:ui"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}
