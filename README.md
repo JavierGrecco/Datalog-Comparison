@@ -21,13 +21,9 @@ En los escenarios compatibles se muestran curvas ilustrativas de torque y potenc
 
 ## Vista previa
 
-Estas capturas se generan durante la prueba de navegador que forma parte del workflow de exportación. Son imágenes de la misma aplicación que se entrega en el paquete.
+Captura de la aplicación ejecutada en escritorio. Para explorar los demás casos, abrí la demo y elegí el escenario que quieras revisar.
 
-![Vista general de la demo en escritorio](assets/screenshots/demo-base-escritorio.jpg)
-
-![Caso donde se bloquea la comparación entre ECU y dinamómetro](assets/screenshots/caso-bloqueo-ecu-banco.jpg)
-
-![Vista de la demo en un teléfono](assets/screenshots/demo-base-movil.jpg)
+![Vista general de Datalog Comparison](assets/screenshots/demo-escritorio.jpg)
 
 ## ¿Qué problema intenta resolver?
 
