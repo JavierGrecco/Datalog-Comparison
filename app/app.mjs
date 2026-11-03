@@ -230,11 +230,16 @@ function renderCharts() {
     $("#chartStatus").textContent = "Gráficos comparativos ocultos: ECU/logger y dinamómetro son fuentes distintas. Revisá el origen y documentá su relación antes de hacer una comparación conjunta.";
     return;
   }
-  $("#chartStatus").className = "chart-status chart-available";
-  $("#chartStatus").textContent = "Mostrando muestras sintéticas observadas. El gráfico no rellena valores ni valida equivalencia física.";
   const comparison = state.readiness.assessments.comparison;
   const torqueAllowed = comparison.commonChannels.some(channel => channel.key === "torque_nm");
   const powerAllowed = comparison.commonChannels.some(channel => channel.key === "power_kw");
+  if (torqueAllowed || powerAllowed) {
+    $("#chartStatus").className = "chart-status chart-available";
+    $("#chartStatus").textContent = "Mostrando muestras sintéticas observadas. El gráfico no rellena valores ni valida equivalencia física.";
+  } else {
+    $("#chartStatus").className = "chart-status chart-blocked";
+    $("#chartStatus").textContent = "No se muestran curvas de torque ni potencia: ningún canal superó los controles de compatibilidad.";
+  }
   if (torqueAllowed) {
     drawChart(charts, { metric: "torque_nm", title: "Torque frente a RPM", unit: "Nm sintéticos", reference: state.demoCase.reference, candidate: state.demoCase.candidate });
   } else {

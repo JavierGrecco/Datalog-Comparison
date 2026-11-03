@@ -149,7 +149,7 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   );
   assert.equal(await page.locator("#charts svg").count(), 2,
     "la importación aislada no debe sustituir ni mezclar los escenarios sintéticos");
-  assert.equal(await page.locator("#casePicker button").count(), 3);
+  assert.equal(await page.locator("#casePicker button").count(), 4);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
@@ -261,7 +261,7 @@ test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación
 
   assert.match(await page.locator("#readinessSummary").innerText(), /revisión/i);
   assert.equal(await page.locator("#charts svg").count(), 2, "el caso base debe dibujar torque y potencia");
-  assert.equal(await page.locator("#casePicker button").count(), 3);
+  assert.equal(await page.locator("#casePicker button").count(), 4);
   assert.equal(await page.locator("#casePicker button[aria-pressed=true]").count(), 1);
 
   const initialOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -302,6 +302,15 @@ test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación
   assert.equal(await page.locator("#charts svg").count(), 0,
     "no dibujar una superposición que la política de origen bloquea");
 
+  await page.locator('#casePicker [data-demo-case="bases"]').click();
+  assert.match(await page.locator("#readinessSummary").innerText(), /Revisión de evidencia necesaria/i);
+  assert.match(await page.locator("#gateList").innerText(), /referencia: rueda; candidata: motor/i);
+  assert.match(await page.locator("#chartStatus").innerText(), /ningún canal superó los controles de compatibilidad/i);
+  assert.match(await page.locator("#charts").innerText(), /Torque no graficado:.*referencia: rueda; candidata: motor/i);
+  assert.equal(await page.locator("#charts svg").count(), 0,
+    "no mostrar torque ni potencia cuando la base física de banco difiere");
+
+  await page.locator('#casePicker [data-demo-case="mixed"]').click();
   if (screenshotDirectory) {
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.screenshot({

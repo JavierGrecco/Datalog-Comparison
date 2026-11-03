@@ -24,17 +24,18 @@ Es una muestra acotada de ingeniería de software aplicada al análisis de regis
 
 ## Qué incluye la demostración
 
-La aplicación contiene tres escenarios sintéticos generados en memoria:
+La aplicación contiene cuatro escenarios sintéticos generados en memoria:
 
 | Escenario | Qué permite observar |
 | --- | --- |
 | **Registros completos** | Dos registros del mismo dominio, con canales y unidades declarados. La matriz mantiene la validación real como requisito. |
 | **Datos incompletos** | Valores ausentes, cobertura parcial y anomalías en la secuencia temporal. Los datos faltantes no se completan artificialmente. |
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
+| **Bases de banco distintas** | Dos resultados de dinamómetro con la misma unidad, uno de rueda y otro referido a motor. Torque y potencia quedan excluidos aunque el origen sea el mismo. |
 
 Además, se puede **inspeccionar un CSV local** mediante tres rutas: CSV genérico, una variante experimental Haltech NSP identificada por %DataLog%, y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Los archivos permanecen aislados de la comparación.
 
-En los escenarios sintéticos del mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
+En los escenarios sintéticos compatibles de un mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. El caso de bases de banco distintas muestra cómo se excluyen esos canales cuando la magnitud física no coincide. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
 ### Cómo decide la matriz
 

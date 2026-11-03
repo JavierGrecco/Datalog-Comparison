@@ -8,9 +8,9 @@ import {
 } from "../../src/demo-model.mjs";
 import { assessComparisonReadiness } from "../../src/comparison-readiness.mjs";
 
-test("el demo de portfolio ofrece tres casos deterministas y todos quedan marcados como sintéticos", () => {
-  assert.deepEqual(PORTFOLIO_DEMO_CASES.map(item => item.id), ["complete", "missing", "mixed"]);
-  for (const id of ["complete", "missing", "mixed"]) {
+test("el demo de portfolio ofrece cuatro casos deterministas y todos quedan marcados como sintéticos", () => {
+  assert.deepEqual(PORTFOLIO_DEMO_CASES.map(item => item.id), ["complete", "missing", "mixed", "bases"]);
+  for (const id of ["complete", "missing", "mixed", "bases"]) {
     const demo = createPortfolioDemoCase(id);
     assert.equal(demo.reference.synthetic, true);
     assert.equal(demo.candidate.synthetic, true);
@@ -39,6 +39,24 @@ test("el caso de faltantes expone problemas de cobertura y tiempo sin rellenarlo
   assert.ok(readiness.assessments.dataQuality.candidate.timestamp.missingCount > 0);
   assert.ok(readiness.assessments.dataQuality.candidate.timestamp.retrogressions > 0);
   assert.ok(readiness.nextActions.some(action => /marcas de tiempo originales/i.test(action)));
+});
+
+test("el caso de bases dyno distintas conserva RPM y excluye torque/potencia", () => {
+  const demo = createPortfolioDemoCase("bases");
+  const readiness = assessComparisonReadiness(demo.reference, demo.candidate);
+  const comparison = readiness.assessments.comparison;
+
+  assert.equal(readiness.status, "review_required");
+  assert.equal(readiness.gates.find(gate => gate.id === "source").status, "supported");
+  assert.ok(comparison.commonChannels.some(channel => channel.key === "rpm"));
+  assert.equal(comparison.commonChannels.some(channel => channel.key === "torque_nm"), false);
+  assert.equal(comparison.commonChannels.some(channel => channel.key === "power_kw"), false);
+  assert.ok(comparison.blockedChannels.every(channel =>
+    /referencia: rueda; candidata: motor/i.test(channel.reason)
+  ));
+  assert.ok(readiness.gates.find(gate => gate.id === "channels").findings.some(item =>
+    /referencia: rueda; candidata: motor/i.test(item)
+  ));
 });
 
 test("el caso ECU frente a dinamómetro bloquea la comparación numérica conjunta", () => {

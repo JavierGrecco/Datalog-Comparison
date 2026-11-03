@@ -18,6 +18,7 @@ export const PORTFOLIO_DEMO_CASES = Object.freeze([
   { id: "complete", label: "Dos registros sintéticos", description: "Canales y unidades disponibles; la matriz recuerda que aún falta validación real." },
   { id: "missing", label: "Datos incompletos", description: "Muestra faltantes y una secuencia temporal con problemas." },
   { id: "mixed", label: "ECU frente a banco", description: "Demuestra por qué dos fuentes distintas no se deben comparar como la misma medición." },
+  { id: "bases", label: "Bases de banco distintas", description: "Dos curvas de dinamómetro usan las mismas unidades, pero una corresponde a rueda y otra a motor." },
 ]);
 
 const fixedTimestamp = "2026-10-28T00:00:00.000Z";
@@ -165,6 +166,42 @@ function cloneRun(run) {
   };
 }
 
+function makeDynoBasisRun(run, { id, name, basis }) {
+  const next = cloneRun(run);
+  const basisLabel = { wheel: "Rueda", engine: "Motor" }[basis];
+  next.id = id;
+  next.name = name;
+  next.filename = id + ".synthetic.csv";
+  next.sourceDomain = "dyno";
+  next.sourceType = "Dinamómetro sintético";
+  next.measurementBasis = basis;
+  next.measurementBasisLabel = basisLabel;
+  next.units = {
+    time_s: "s",
+    rpm: "RPM",
+    torque_nm: "Nm de banco sintéticos",
+    power_kw: "kW de banco sintéticos",
+  };
+  next.samples = next.samples.map(sample => ({
+    time_s: sample.time_s,
+    channels: {
+      time_s: sample.time_s,
+      rpm: sample.channels.rpm,
+      torque_nm: sample.channels.torque_nm,
+      power_kw: sample.channels.power_kw,
+    },
+  }));
+  next.note = "Ejemplo sintético de dinamómetro con base física declarada: " + basisLabel.toLowerCase() +
+    ". La curva no representa una medición real.";
+  next.runManifest.id = id;
+  next.runManifest.notes = next.note;
+  for (const sourceFile of next.runManifest.sourceFiles ?? []) {
+    sourceFile.displayName = next.filename;
+  }
+  next.warnings.push("Base física sintética declarada para demostrar el bloqueo de comparabilidad.");
+  return next;
+}
+
 function createBasePair() {
   return {
     reference: makeRun({
@@ -203,6 +240,17 @@ export function createPortfolioDemoCase(caseId = "complete") {
     candidateRun.importMetadata.parsedSampleCount = candidateRun.samples.length;
     candidateRun.importMetadata.sourceRowCount = candidateRun.samples.length + 1;
     candidateRun.warnings.push("Este escenario contiene faltantes y un retroceso temporal añadido deliberadamente.");
+  } else if (caseId === "bases") {
+    referenceRun = makeDynoBasisRun(reference, {
+      id: "synthetic-dyno-wheel",
+      name: "A · Banco con medición en rueda",
+      basis: "wheel",
+    });
+    candidateRun = makeDynoBasisRun(candidate, {
+      id: "synthetic-dyno-engine",
+      name: "B · Banco con resultado referido a motor",
+      basis: "engine",
+    });
   } else if (caseId === "mixed") {
     candidateRun = cloneRun(candidate);
     candidateRun.name = "Banco · Curva sintética";
