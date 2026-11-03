@@ -43,7 +43,7 @@ Los controles se presentan por separado, sin reducirlos a una puntuación opaca:
 
 - **Origen:** identifica si los registros pertenecen al dominio ECU/logger o dinamómetro.
 - **Calidad:** revisa faltantes, cobertura, consistencia de metadatos y secuencia temporal.
-- **Canales y unidades:** comprueba qué señales tienen una base declarada compatible.
+- **Canales, unidades y base física:** comprueba qué señales tienen una unidad, cobertura y base de torque/potencia compatibles.
 - **Condiciones de operación:** revisa valores, estado de verificación y procedencia declarada.
 - **Procedencia:** conserva la información disponible sobre archivos, roles y contexto.
 
@@ -144,7 +144,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - [Arquitectura](docs/ARCHITECTURE.md): responsabilidades y flujo entre módulos.
 - [Contrato CSV](docs/CSV_IMPORT.md): entrada, límites, mapeo y significado de la vista de inspección.
 - [Puertas de calidad](docs/QUALITY_GATES.md): significado de los estados y criterios de bloqueo/revisión.
-- [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones y definición de terminado.
+- [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones, política de rama única y definición de terminado.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
 - [Referencias consultadas](docs/REFERENCES.md): antecedentes revisados durante la investigación.
 
@@ -152,8 +152,8 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 - Todos los escenarios de comparación y sus curvas son **sintéticos**.
 - Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
-- Haltech NSP se limita a una variante experimental de CSV con marcador %DataLog%; no representa compatibilidad universal.
-- Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo.
+- Haltech NSP reconoce dos layouts experimentales de CSV con marcador %DataLog% (encabezado tipado y bloques Channel/ID/Type); no representa compatibilidad universal.
+- Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo. No se encontró una exportación CSV cruda pública para validarlo de extremo a extremo.
 - La importación no habilita comparación entre dos archivos.
 - No demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud. La normalización de unidades admitidas queda registrada.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.

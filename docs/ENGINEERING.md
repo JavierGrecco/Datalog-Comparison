@@ -23,6 +23,18 @@ python3 -m http.server 8000
 
 Visitar http://127.0.0.1:8000/.
 
+## Consistencia del repositorio
+
+La rama canónica de este proyecto es `main`.
+
+- Mantener una sola rama activa; no dejar ramas de trabajo, pruebas o integración abiertas cuando el cambio ya esté resuelto.
+- Para este repositorio de portfolio, integrar los cambios pequeños y revisados directamente en `main`, en commits atómicos y descriptivos.
+- Antes de publicar un commit, actualizar la referencia de `main` y comprobar que el SHA esperado sigue siendo el mismo. Si la referencia cambió, inspeccionar el nuevo estado antes de intentar otra actualización.
+- No mantener avances importantes solo en ramas locales, worktrees, PRs o archivos sin commit.
+- Después de cada cambio, verificar que el árbol de `main` corresponde al último commit, que no quedan PRs abiertos ni ramas residuales y que CI terminó correctamente para ese mismo SHA.
+- Un commit cuyo CI falla no se considera terminado. Corregirlo en `main` y volver a ejecutar todas las validaciones.
+- La protección de rama de GitHub es una configuración independiente de este flujo operativo; revisar su estado en la configuración del repositorio.
+
 ## Convenciones de dominio
 
 1. Preservar el orden y los valores de las muestras recibidas.
@@ -34,6 +46,7 @@ Visitar http://127.0.0.1:8000/.
 7. Un CSV genérico requiere mapeo explícito de columnas y unidades; no se deduce semántica desde el encabezado.
 8. Todo error de lectura debe identificar el código y, cuando corresponda, la fila y columna afectadas.
 9. La inspección CSV local no habilita comparaciones entre archivos hasta validar sincronización, canal, método y base física.
+10. Los archivos de vehículos reales solo se incorporan a pruebas con autorización, procedencia y permisos de redistribución claros.
 
 ## Definición de terminado
 
