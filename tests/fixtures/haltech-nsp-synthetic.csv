@@ -1,0 +1,7 @@
+%DataLog%
+
+Time(Time_ms:ms),RPM(EngineSpeed:rpm),MAP(AbsPressure:kPa),Boost(Pressure:kPa),Throttle(Percentage:%),IAT(Temperature:C),Coolant(Temperature:C),Ignition(Angle:deg),Battery(BatteryVoltage:V),Custom(ExperimentalType:raw)
+00:00:01.000,1800,1000,1800,250,2981.5,2986.5,300,12800,42
+00:00:01.100,2100,1020,1850,350,2982.5,2987.5,320,12700,43
+00:00:01.200,2400,1040,1900,450,2983.5,2988.5,340,12600,44
+00:00:01.300,2700,1060,1950,550,2984.5,2989.5,360,12500,45

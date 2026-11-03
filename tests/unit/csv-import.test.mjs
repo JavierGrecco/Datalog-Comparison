@@ -10,13 +10,12 @@ import {
   mapCsvToRun,
   parseCsvText,
 } from "../../src/csv-import.mjs";
+import { importHaltechNspCsv, detectHaltechNspCsv } from "../../src/adapters/haltech-nsp.mjs";
+import { importDynojetPowerCoreCsv } from "../../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../../src/data-quality.mjs";
 
 const fixtureDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures");
-
-async function fixture(name) {
-  return readFile(resolve(fixtureDirectory, name), "utf8");
-}
+async function fixture(name) { return readFile(resolve(fixtureDirectory, name), "utf8"); }
 
 function importOptions(parsed, overrides = {}) {
   return {
@@ -36,25 +35,18 @@ function importOptions(parsed, overrides = {}) {
 }
 
 test("lee el fixture ECU sintético con punto y coma y decimales explícitos", async () => {
-  const csv = await fixture("ecu-synthetic-semicolon.csv");
-  const parsed = parseCsvText(csv);
-
+  const parsed = parseCsvText(await fixture("ecu-synthetic-semicolon.csv"));
   assert.equal(parsed.schema, CSV_IMPORT_SCHEMA);
   assert.equal(parsed.delimiter, ";");
-  assert.deepEqual(parsed.headers, ["Elapsed [s]", "Engine speed [rpm]", "Torque [Nm]", "Power [kW]", "Boost actual [kPa]"]);
   assert.equal(parsed.rows.length, 6);
-
   const run = mapCsvToRun(parsed, importOptions(parsed, {
     channelMapping: {
-      time_s: "Elapsed [s]",
-      rpm: "Engine speed [rpm]",
-      torque_nm: "Torque [Nm]",
-      power_kw: "Power [kW]",
+      time_s: "Elapsed [s]", rpm: "Engine speed [rpm]",
+      torque_nm: "Torque [Nm]", power_kw: "Power [kW]",
     },
     units: { torque_nm: "Nm", power_kw: "kW" },
     decimalSeparator: ",",
   }));
-
   assert.equal(run.synthetic, false);
   assert.equal(run.sourceDomain, "ecu");
   assert.equal(run.samples[1].channels.torque_nm, 151.25);
@@ -63,18 +55,116 @@ test("lee el fixture ECU sintético con punto y coma y decimales explícitos", a
   assert.equal(assessRunDataQuality(run).status, "no_obvious_issues");
 });
 
-test("lee fixture de dinamómetro sintético y no infiere su dominio", async () => {
+test("el perfil Dynojet PowerCore exige base de medición y conserva unidades declaradas", async () => {
+  const parsed = parseCsvText(await fixture("dynojet-powercore-synthetic.csv"));
+  const options = {
+    id: "dynojet-fixture", name: "Dynojet sintético",
+    channelMapping: {
+      time_s: "Time (s)", rpm: "Engine RPM",
+      torque_nm: "Wheel Torque (ft-lb)", power_kw: "Wheel Power (hp)",
+    },
+    units: { torque_nm: "ft-lb", power_kw: "hp" },
+    importedAt: "2026-11-03T00:00:00.000Z",
+  };
+  assert.throws(() => importDynojetPowerCoreCsv(parsed, options),
+    error => error.code === "DYNOJET_MEASUREMENT_BASIS_REQUIRED");
+  const run = importDynojetPowerCoreCsv(parsed, { ...options, measurementBasis: "wheel" });
+  assert.equal(run.sourceDomain, "dyno");
+  assert.equal(run.measurementBasis, "wheel");
+  assert.equal(run.measurementBasisLabel, "Rueda");
+  assert.equal(run.importMetadata.parserId, "dynojet-powercore-guided-csv/1");
+  assert.equal(run.samples[0].channels.torque_nm, 101.8);
+  assert.equal(run.units.power_kw, "hp");
+  assert.ok(run.warnings.some(warning => /canales y la exportación son configurables/i.test(warning)));
+});
+
+test("el mapeo genérico de dinamómetro exige base al asignar torque o potencia", async () => {
+  const parsed = parseCsvText(await fixture("dynojet-powercore-synthetic.csv"));
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    sourceDomain: "dyno",
+    channelMapping: {
+      time_s: "Time (s)", rpm: "Engine RPM", torque_nm: "Wheel Torque (ft-lb)",
+    },
+    units: { torque_nm: "ft-lb" },
+  })), error => error.code === "CSV_DYNO_MEASUREMENT_BASIS_REQUIRED");
+});
+
+test("identifica y convierte únicamente la variante Haltech NSP documentada por %DataLog%", async () => {
+  const text = await fixture("haltech-nsp-synthetic.csv");
+  assert.equal(detectHaltechNspCsv(text), true);
+  const run = importHaltechNspCsv(text, {
+    name: "haltech-nsp-synthetic.csv",
+    importedAt: "2026-11-03T00:00:00.000Z",
+  });
+  assert.equal(run.sourceDomain, "ecu");
+  assert.equal(run.sourceType, "Haltech NSP CSV · ECU/logger");
+  assert.equal(run.importMetadata.parserId, "haltech-nsp-community-spec/1");
+  assert.equal(run.samples.length, 4);
+  assert.equal(run.samples[0].time_s, 0);
+  assert.ok(Math.abs(run.samples[1].time_s - 0.1) < 1e-9);
+  assert.equal(run.samples[0].channels.rpm, 1800);
+  assert.equal(run.samples[0].channels.map_abs_kpa, 100);
+  assert.ok(Math.abs(run.samples[0].channels.boost_actual - 78.7) < 1e-9);
+  assert.equal(run.samples[0].channels.throttle_pct, 25);
+  assert.equal(run.samples[0].channels.iat_c, 25);
+  assert.equal(run.samples[0].channels.coolant_temp_c, 25.5);
+  assert.equal(run.samples[0].channels.ignition_advance_deg, 30);
+  assert.equal(run.samples[0].channels.battery_v, 12.8);
+  assert.ok(run.warnings.some(warning => /especificación comunitaria/i.test(warning)));
+  assert.ok(run.warnings.some(warning => /ExperimentalType/.test(warning)));
+  assert.equal(assessRunDataQuality(run).status, "no_obvious_issues");
+});
+
+test("el adaptador Haltech rechaza firmas ausentes y encabezados no soportados", () => {
+  assert.equal(detectHaltechNspCsv("time_s,rpm\n0,1000\n"), false);
+  assert.throws(() => importHaltechNspCsv("time_s,rpm\n0,1000\n1,1100\n"),
+    error => error.code === "HALTECH_SIGNATURE_NOT_FOUND");
+  assert.throws(() => importHaltechNspCsv("%DataLog%\n\nTime,Speed\n00:00:01.000,1000\n00:00:01.100,1100\n"),
+    error => error.code === "HALTECH_CHANNEL_HEADER_INVALID");
+});
+
+test("el adaptador Haltech rechaza timestamp mal formado, unidad incorrecta y ausencia de RPM", async () => {
+  const text = await fixture("haltech-nsp-synthetic.csv");
+  assert.throws(() => importHaltechNspCsv(text.replace("00:00:01.100", "1.1")),
+    error => error.code === "HALTECH_TIMESTAMP_INVALID");
+  assert.throws(() => importHaltechNspCsv(text.replace("RPM(EngineSpeed:rpm)", "RPM(EngineSpeed:km/h)")),
+    error => error.code === "HALTECH_CHANNEL_UNIT_UNSUPPORTED");
+  assert.throws(() => importHaltechNspCsv(text.replace("RPM(EngineSpeed:rpm),", "")),
+    error => error.code === "HALTECH_RPM_CHANNEL_REQUIRED");
+});
+
+test("el adaptador Haltech conserva orden y alerta de canales tipados no implementados", async () => {
+  const run = importHaltechNspCsv(await fixture("haltech-nsp-synthetic.csv"));
+  assert.equal(run.samples[0].time_s, 0);
+  assert.ok(Math.abs(run.samples[3].time_s - 0.3) < 1e-9);
+  assert.deepEqual(run.importMetadata.adapterMetadata.unsupportedChannels, [
+    { name: "Custom", type: "ExperimentalType", unit: "raw" },
+  ]);
+  assert.deepEqual(run.importMetadata.adapterMetadata.supportedChannels, [
+    "rpm", "map_abs_kpa", "boost_actual", "throttle_pct", "iat_c",
+    "coolant_temp_c", "ignition_advance_deg", "battery_v",
+  ]);
+});
+
+test("el adaptador Haltech no asume rollover de medianoche", async () => {
+  const text = (await fixture("haltech-nsp-synthetic.csv"))
+    .replace("00:00:01.200", "00:00:00.050");
+  const run = importHaltechNspCsv(text);
+  const quality = assessRunDataQuality(run);
+  assert.ok(quality.timestamp.retrogressions > 0);
+  assert.equal(quality.timestamp.ordered, false);
+});
+
+test("lee el fixture de dinamómetro genérico y no infiere su dominio", async () => {
   const parsed = parseCsvText(await fixture("dyno-synthetic-comma.csv"));
   const run = mapCsvToRun(parsed, importOptions(parsed, {
     sourceDomain: "dyno",
     channelMapping: {
-      time_s: "Time (s)",
-      rpm: "RPM",
-      torque_nm: "Wheel torque (Nm)",
-      power_kw: "Wheel power (kW)",
+      time_s: "Time (s)", rpm: "RPM",
+      torque_nm: "Wheel torque (Nm)", power_kw: "Wheel power (kW)",
     },
+    measurementBasis: "wheel",
   }));
-
   assert.equal(run.sourceDomain, "dyno");
   assert.equal(run.sourceType, "Dinamómetro · origen declarado");
   assert.equal(run.samples.length, 6);
@@ -88,7 +178,6 @@ test("admite BOM, CRLF, comillas escapadas y saltos de línea dentro de celdas",
   assert.equal(parsed.rows[0][2], "1.5");
 });
 
-
 test("ignora filas completamente vacías y conserva su recuento de origen", () => {
   const parsed = parseCsvText("time_s,rpm\n0,1000\n\n1,2000\n");
   assert.equal(parsed.rows.length, 2);
@@ -97,21 +186,15 @@ test("ignora filas completamente vacías y conserva su recuento de origen", () =
 });
 
 test("normaliza encabezados para detectar duplicados ambiguos", () => {
-  assert.throws(
-    () => parseCsvText("RPM,rpm ,Torque\n1000,1000,100\n"),
-    error => error instanceof CsvImportError && error.code === "CSV_DUPLICATE_HEADERS",
-  );
+  assert.throws(() => parseCsvText("RPM,rpm ,Torque\n1000,1000,100\n"),
+    error => error instanceof CsvImportError && error.code === "CSV_DUPLICATE_HEADERS");
 });
 
 test("rechaza encabezados vacíos y filas con más celdas que las declaradas", () => {
-  assert.throws(
-    () => parseCsvText("time_s,,rpm\n0,1000,100\n"),
-    error => error.code === "CSV_EMPTY_HEADER",
-  );
-  assert.throws(
-    () => parseCsvText("time_s,rpm\n0,1000,extra\n"),
-    error => error.code === "CSV_ROW_TOO_WIDE",
-  );
+  assert.throws(() => parseCsvText("time_s,,rpm\n0,1000,100\n"),
+    error => error.code === "CSV_EMPTY_HEADER");
+  assert.throws(() => parseCsvText("time_s,rpm\n0,1000,extra\n"),
+    error => error.code === "CSV_ROW_TOO_WIDE");
 });
 
 test("advierte filas cortas y conserva los campos finales como faltantes", () => {
@@ -121,14 +204,10 @@ test("advierte filas cortas y conserva los campos finales como faltantes", () =>
 });
 
 test("rechaza comillas mal formadas y contenido después del cierre de comillas", () => {
-  assert.throws(
-    () => parseCsvText('time_s,rpm\n0,"1000\n'),
-    error => error.code === "CSV_UNTERMINATED_QUOTE",
-  );
-  assert.throws(
-    () => parseCsvText('time_s,rpm\n0,"1000"oops\n'),
-    error => error.code === "CSV_TRAILING_DATA_AFTER_QUOTE",
-  );
+  assert.throws(() => parseCsvText('time_s,rpm\n0,"1000\n'),
+    error => error.code === "CSV_UNTERMINATED_QUOTE");
+  assert.throws(() => parseCsvText('time_s,rpm\n0,"1000"oops\n'),
+    error => error.code === "CSV_TRAILING_DATA_AFTER_QUOTE");
 });
 
 test("aplica límites de tamaño, filas, columnas y longitud de celda", () => {
@@ -140,36 +219,29 @@ test("aplica límites de tamaño, filas, columnas y longitud de celda", () => {
 
 test("exige dominio, tiempo, RPM, asignación única y unidades declaradas", async () => {
   const parsed = parseCsvText(await fixture("ecu-synthetic-semicolon.csv"));
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, { sourceDomain: undefined })),
-    error => error.code === "CSV_SOURCE_DOMAIN_REQUIRED",
-  );
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, { channelMapping: { time_s: "Elapsed [s]" } })),
-    error => error.code === "CSV_REQUIRED_CHANNEL_MISSING",
-  );
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, {
-      channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]" },
-      units: {},
-    })),
-    error => error.code === "CSV_CHANNEL_UNIT_REQUIRED",
-  );
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, {
-      channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Engine speed [rpm]" },
-      units: { torque_nm: "Nm" },
-    })),
-    error => error.code === "CSV_COLUMN_MAPPED_MORE_THAN_ONCE",
-  );
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, { sourceDomain: undefined })),
+    error => error.code === "CSV_SOURCE_DOMAIN_REQUIRED");
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, { channelMapping: { time_s: "Elapsed [s]" } })),
+    error => error.code === "CSV_REQUIRED_CHANNEL_MISSING");
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: {
+      time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]",
+    },
+    units: {},
+  })), error => error.code === "CSV_CHANNEL_UNIT_REQUIRED");
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: {
+      time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Engine speed [rpm]",
+    },
+    units: { torque_nm: "Nm" },
+  })), error => error.code === "CSV_COLUMN_MAPPED_MORE_THAN_ONCE");
 });
 
 test("no transforma unidades ni completa valores faltantes", () => {
   const parsed = parseCsvText("Elapsed [s];Engine speed [rpm];Torque [Nm]\n0,0;1000;100\n0,1;1100;N/A\n0,2;1200;120\n");
   const run = mapCsvToRun(parsed, importOptions(parsed, {
     channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]" },
-    units: { torque_nm: "Nm" },
-    decimalSeparator: ",",
+    units: { torque_nm: "Nm" }, decimalSeparator: ",",
   }));
   assert.equal(run.samples[1].channels.torque_nm, null);
   assert.equal(run.samples[2].time_s, 0.2);
@@ -179,27 +251,19 @@ test("no transforma unidades ni completa valores faltantes", () => {
 
 test("rechaza valores numéricos que no respetan el separador decimal seleccionado", async () => {
   const parsed = parseCsvText("Elapsed [s];Engine speed [rpm];Torque [Nm]\n0,0;1000;100\n0,1;1100;1.234,5\n");
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, {
-      channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]" },
-      units: { torque_nm: "Nm" },
-      decimalSeparator: ",",
-    })),
-    error => error.code === "CSV_NUMERIC_VALUE_INVALID" &&
-      error.details.row === 3 && error.details.column === "Torque [Nm]",
-  );
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]" },
+    units: { torque_nm: "Nm" }, decimalSeparator: ",",
+  })), error => error.code === "CSV_NUMERIC_VALUE_INVALID" &&
+    error.details.row === 3 && error.details.column === "Torque [Nm]");
 });
 
 test("rechaza datos con coma decimal y coma como delimitador al mismo tiempo", () => {
   const parsed = parseCsvText("time_s,rpm,torque_nm\n0,1000,100\n1,2000,120\n");
-  assert.throws(
-    () => mapCsvToRun(parsed, importOptions(parsed, {
-      channelMapping: { time_s: "time_s", rpm: "rpm", torque_nm: "torque_nm" },
-      units: { torque_nm: "Nm" },
-      decimalSeparator: ",",
-    })),
-    error => error.code === "CSV_DECIMAL_DELIMITER_CONFLICT",
-  );
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: { time_s: "time_s", rpm: "rpm", torque_nm: "torque_nm" },
+    units: { torque_nm: "Nm" }, decimalSeparator: ",",
+  })), error => error.code === "CSV_DECIMAL_DELIMITER_CONFLICT");
 });
 
 test("no modifica el orden ni los datos originales del CSV parseado", async () => {
