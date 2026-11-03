@@ -380,7 +380,7 @@ test("rechaza unidades incompatibles con el canal en vez de etiquetar mal los da
   );
 });
 
-test("el adaptador Haltech rechaza la variante de metadatos Channel/ID/Type sin reinterpretarla", async () => {
+test("el adaptador Haltech rechaza definiciones incompletas y tablas Channel/ID/Type no soportadas", async () => {
   const channelListVariant = [
     "%DataLog%",
     "Version : 2",
@@ -391,8 +391,7 @@ test("el adaptador Haltech rechaza la variante de metadatos Channel/ID/Type sin 
   ].join("\n");
   assert.throws(
     () => importHaltechNspCsv(channelListVariant),
-    error => error.code === "HALTECH_LAYOUT_UNSUPPORTED" &&
-      error.details.detectedLayout === "channel-list",
+    error => error.code === "HALTECH_CHANNEL_METADATA_INCOMPLETE",
   );
 
   const channelTableVariant = [

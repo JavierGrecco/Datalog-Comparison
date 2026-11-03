@@ -115,7 +115,7 @@ function resolveTypedChannel(descriptor) {
   else if (type === "Percentage" && exact("throttle", "throttle position", "tps")) key = "throttle_pct";
   else if (type === "Temperature" && exact("intake air", "intake air temperature", "iat")) key = "iat_c";
   else if (type === "Temperature" && exact("coolant", "coolant temperature", "coolant temp")) key = "coolant_temp_c";
-  else if (type === "Angle" && exact("ignition advance", "ignition timing", "spark advance")) key = "ignition_advance_deg";
+  else if (type === "Angle" && exact("ignition", "ignition advance", "ignition timing", "spark advance")) key = "ignition_advance_deg";
   else if (type === "BatteryVoltage" && exact("battery", "battery voltage")) key = "battery_v";
   else if (type === "Speed" && exact("vehicle speed", "road speed")) key = "speed_kmh";
   else if (type === "Raw" && exact("torque", "engine torque") && unitIs(unit, "Nm", "N.m")) key = "torque_nm";
@@ -145,7 +145,7 @@ function resolveMetadataChannel(descriptor) {
     if (exact("boost control actual pressure", "boost pressure")) {
       return rule("boost_actual", "kPa", value => value / 10 - 101.3);
     }
-    if (exact("boost control target pressure corrected", "boost target", "target boost")) {
+    if (exact("boost control target pressure (corrected)", "boost control target pressure corrected", "boost target", "target boost")) {
       return rule("boost_target", "kPa", value => value / 10 - 101.3);
     }
     if (exact("fuel pressure")) {
@@ -271,7 +271,6 @@ function parseMetadataLayout(lines, markerLine) {
   pushCurrent();
 
   if (firstDataIndex < 0) fail("HALTECH_DATA_ROWS_MISSING", "No se encontraron filas de datos con marca de tiempo después de los metadatos.");
-  if (descriptors.length < 2) fail("HALTECH_TOO_FEW_CHANNELS", "El registro Haltech necesita al menos dos definiciones de canal.");
   for (const descriptor of descriptors) {
     if (!descriptor.id || !descriptor.type) {
       fail("HALTECH_CHANNEL_METADATA_INCOMPLETE",
@@ -280,6 +279,7 @@ function parseMetadataLayout(lines, markerLine) {
       );
     }
   }
+  if (descriptors.length < 2) fail("HALTECH_TOO_FEW_CHANNELS", "El registro Haltech necesita al menos dos definiciones de canal.");
 
   const dataRows = [];
   for (let index = firstDataIndex; index < lines.length; index += 1) {
@@ -483,7 +483,7 @@ function importTypedLayout(payload, { id, name, importedAt }) {
     fail("HALTECH_RPM_CHANNEL_REQUIRED", "No se reconoció un canal RPM de tipo EngineSpeed con unidad RPM.");
   }
 
-  const rawTimes = parsed.rows.map((row, index) => parseTimestamp(row[0], index + payload.sourceHeaderRow));
+  const rawTimes = parsed.rows.map((row, index) => parseTimestamp(row[0], index + payload.sourceHeaderRow + 1));
   const firstTime = rawTimes[0];
   const normalizedHeaders = ["Elapsed time [s]", ...supported.map(item => item.key)];
   const normalizedRows = parsed.rows.map((row, rowIndex) => {
@@ -515,7 +515,7 @@ function importTypedLayout(payload, { id, name, importedAt }) {
       unsupportedSummary(unsupported) + ".");
   }
   if (descriptors.some(item => item.type === "AFR")) {
-    warnings.push("El tipo AFR del encabezado tipado se dejó fuera del registro canónico; no se asume que represente AFR medido o lambda.");
+    warnings.push("El tipo AFR del encabezado tipado se dejó fuera del registro canónico; no se infiere si representa AFR o lambda.");
   }
   if (supported.some(item => item.descriptor.type === "Pressure")) {
     warnings.push("Los canales de tipo Pressure se convierten a presión relativa restando una referencia fija de 101,3 kPa; no se sustituye por una medición barométrica registrada en el archivo.");
