@@ -442,8 +442,8 @@ test("el comparador excluye torque y potencia cuando difiere la base física del
     result.blockedChannels.filter(channel => ["torque_nm", "power_kw"].includes(channel.key))
       .map(channel => channel.reason),
     [
-      "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
-      "La base de medición de torque/potencia no coincide (rueda, rodillo, cubo o motor). No se convierte entre bases físicas.",
+      "La base física de torque/potencia no coincide (referencia: rueda; candidata: motor). No se convierte entre bases físicas.",
+      "La base física de torque/potencia no coincide (referencia: rueda; candidata: motor). No se convierte entre bases físicas.",
     ],
   );
 });
