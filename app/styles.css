@@ -11,8 +11,8 @@
 html{min-width:320px;scroll-behavior:smooth}
 body{margin:0;background:radial-gradient(ellipse at 85% -10%,rgba(53,100,122,.22),transparent 38%),var(--bg);color:var(--text);font-size:14px;line-height:1.55}
 a{color:var(--blue)}
-button{font:inherit}
-button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+button,input,select{font:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .topbar{height:72px;border-bottom:1px solid var(--border);padding:0 max(20px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:20px;background:rgba(10,16,23,.94)}
 .brand{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none;min-width:0}
 .brand-mark{width:38px;height:38px;border:1px solid #286252;border-radius:11px;display:grid;place-items:center;background:#112b27;color:var(--mint);font-weight:850;letter-spacing:-.05em}
@@ -29,11 +29,11 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
 .hero-lead{max-width:760px;color:#b6c4d0;font-size:16px;line-height:1.75;margin:0}
 .hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .hero-pills span,.synthetic-chip{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;padding:5px 10px;color:#c4d0da;background:rgba(148,163,184,.04);font-size:10px;font-weight:700;letter-spacing:.04em}
-.notice{display:flex;align-items:flex-start;gap:13px;padding:15px 17px;border:1px solid rgba(244,196,119,.28);border-radius:12px;background:var(--amber-bg);margin:0 0 36px}
+.notice{display:flex;align-items:flex-start;gap:13px;padding:15px 17px;border:1px solid rgba(244,196,119,.28);border-radius:12px;background:var(--amber-bg);margin:0 0 26px}
 .notice-icon{flex:none;width:22px;height:22px;border:1px solid rgba(244,196,119,.55);border-radius:50%;display:grid;place-items:center;color:var(--amber);font-weight:800;font-size:12px}
 .notice p{margin:0;color:#d5c9b6;font-size:12px;line-height:1.65}
 .notice strong{color:#ffdaa0}
-.case-section{margin-bottom:28px}
+.case-section{margin-bottom:22px}
 .section-heading,.panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
 .section-heading{margin-bottom:14px}
 .section-heading h2,.panel h2,.footer-limits h2{font-size:21px;letter-spacing:-.025em;line-height:1.25;margin:0}
@@ -53,6 +53,55 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
 .panel-heading h2{font-size:18px}
 .panel-heading .eyebrow{margin-bottom:7px}
 .synthetic-chip{border-color:rgba(244,196,119,.3);color:var(--amber);background:var(--amber-bg);white-space:nowrap}
+.section-intro{max-width:710px;margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.65}
+.csv-import-panel{margin-bottom:18px}
+.csv-import-form{display:grid;gap:14px}
+.csv-file-grid{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:12px}
+.csv-control{display:grid;gap:7px;min-width:0;color:#dbe5ed;font-size:11px;font-weight:750}
+.csv-control input,.csv-control select,.csv-map-select,.csv-unit-input{width:100%;min-width:0;border:1px solid #354959;border-radius:8px;background:#0c151e;color:var(--text);padding:10px;font-size:11px}
+.csv-control input[type=file]{padding:8px}
+.csv-control small{color:var(--muted);font-size:10px;font-weight:400;line-height:1.45}
+.csv-mapping-section{border-top:1px solid var(--border);padding-top:14px}
+.csv-subheading h3,.csv-preview-block h3{font-size:13px;margin:0 0 5px}
+.csv-subheading p{font-size:11px;color:var(--muted);margin:0 0 12px}
+.csv-mapping-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.csv-map-field{min-width:0;padding:10px;border:1px solid #2b3b49;border-radius:9px;background:rgba(5,10,15,.22)}
+.csv-map-label,.csv-unit-label{display:grid;gap:6px;margin-bottom:8px;color:#bdcbd7;font-size:10px;font-weight:700}
+.csv-map-select,.csv-unit-input{padding:8px;font-size:10px}
+.csv-unit-label{margin:8px 0 0}
+.csv-unit-label input::placeholder{color:#647887}
+.csv-unit-fixed{margin-top:8px;color:var(--mint);font-size:10px}
+.csv-import-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.primary-button,.secondary-button{border-radius:9px;padding:11px 14px;font-weight:850;font-size:12px;cursor:pointer;transition:filter .15s,transform .15s}
+.primary-button{border:1px solid #52bda0;background:var(--mint);color:#082018}
+.primary-button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.secondary-button{border:1px solid var(--border);background:#17232f;color:var(--text)}
+.primary-button:not(:disabled):hover,.secondary-button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.csv-status{margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;line-height:1.55}
+.csv-status-success{border-color:rgba(105,218,187,.35);color:#a8d9c8;background:var(--green-bg)}
+.csv-status-warning{border-color:rgba(244,196,119,.35);color:#e9cb95;background:var(--amber-bg)}
+.csv-status-error{border-color:rgba(242,155,149,.4);color:#f1b1ac;background:var(--red-bg)}
+.csv-preview{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.csv-preview h3{font-size:13px;margin:0 0 10px}
+.csv-preview-meta{font-size:11px;color:var(--muted);margin:7px 0 12px}
+.csv-preview-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+.csv-metric{min-width:0;border:1px solid #304252;border-radius:9px;padding:10px;background:rgba(7,13,19,.3)}
+.csv-metric-label{display:block;color:var(--muted);font-size:9px;margin-bottom:5px}
+.csv-metric-value{display:block;color:#e0eaf1;font-size:11px;overflow-wrap:anywhere}
+.csv-preview-block{margin-top:15px}
+.csv-table-wrap{max-width:100%;overflow-x:auto;border:1px solid #2c3d4b;border-radius:8px}
+.csv-data-table{width:100%;border-collapse:collapse;font-size:10px;white-space:nowrap}
+.csv-data-table th,.csv-data-table td{padding:8px 10px;border-bottom:1px solid #263745;text-align:left}
+.csv-data-table th{background:#172431;color:#bcd0df;font-weight:750}
+.csv-data-table td{color:#c3ced8;font-variant-numeric:tabular-nums}
+.csv-data-table tr:last-child td{border-bottom:0}
+.csv-warning-list{margin-top:14px;padding:12px;border:1px solid rgba(244,196,119,.25);border-radius:8px;background:rgba(244,196,119,.05)}
+.csv-warning-list h4{font-size:11px;margin:0 0 6px;color:#e9c98e}
+.csv-warning-list ul{margin:0;padding-left:17px;color:#c9b995;font-size:10px}
+.csv-warning-list li+li{margin-top:4px}
+.csv-no-warnings{font-size:10px;color:var(--muted);margin:12px 0}
+.csv-isolation-note{margin:14px 0 0;padding:11px;border:1px dashed #3a4a57;border-radius:8px;color:#aab9c6;font-size:10px;line-height:1.6}
+.csv-isolation-note strong{color:#dce7ef}
 .run-summary{display:grid;gap:12px}
 .run-card{border:1px solid #2c3c4b;border-radius:11px;padding:14px;background:rgba(8,14,21,.36);min-width:0}
 .run-card-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:7px;margin-bottom:8px}
@@ -98,7 +147,6 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
 .chart-panel{margin-top:16px}
 .chart-heading{align-items:flex-end}
 .chart-heading h2{font-size:21px}
-.section-intro{max-width:710px;margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.65}
 .chart-units{display:grid;gap:6px;justify-items:end;white-space:nowrap;color:var(--muted);font-size:10px}
 .chart-units span{padding:4px 8px;border:1px solid var(--border);border-radius:6px}
 .chart-status{border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:11px;line-height:1.6}
@@ -131,8 +179,6 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
 .report-copy h2{margin-bottom:8px}
 .report-copy p:last-child{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
 .report-actions{min-width:200px;text-align:right}
-.primary-button{border:1px solid #52bda0;border-radius:9px;padding:11px 14px;background:var(--mint);color:#082018;font-weight:850;font-size:12px;cursor:pointer;transition:filter .15s,transform .15s}
-.primary-button:hover{filter:brightness(1.07);transform:translateY(-1px)}
 .button-status{font-size:10px;color:var(--muted);margin:8px 0 0}
 .footer-limits{padding:34px 0 16px;max-width:850px}
 .footer-limits h2{font-size:19px;margin-bottom:9px}
@@ -142,6 +188,8 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
   .results-grid{grid-template-columns:1fr}
   .charts-stack{grid-template-columns:1fr}
   .curve-svg{max-height:300px}
+  .csv-file-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .csv-mapping-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:640px){
   .topbar{height:62px;padding:0 16px}
@@ -168,6 +216,9 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
   .report-actions{width:100%;min-width:0;text-align:left}
   .primary-button{width:100%}
   .page-footer{flex-direction:column;gap:6px}
+  .csv-file-grid,.csv-mapping-grid,.csv-preview-metrics{grid-template-columns:1fr}
+  .csv-import-actions{display:grid;grid-template-columns:1fr}
+  .secondary-button{width:100%}
 }
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}

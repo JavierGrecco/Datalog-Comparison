@@ -4,6 +4,7 @@ import {
   PORTFOLIO_DEMO_CASES,
 } from "../src/demo-model.mjs";
 import { assessComparisonReadiness } from "../src/comparison-readiness.mjs";
+import { initializeCsvInspector } from "./csv-inspector.mjs";
 
 const state = { caseId: "complete", demoCase: null, readiness: null };
 const $ = selector => document.querySelector(selector);
@@ -268,3 +269,4 @@ $("#exportReport").addEventListener("click", () => {
 });
 
 render();
+initializeCsvInspector();

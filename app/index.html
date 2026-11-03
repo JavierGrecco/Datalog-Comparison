@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark light">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Prototipo técnico de evaluación de comparabilidad de registros ECU/logger y dinamómetro con datos sintéticos.">
+  <meta name="description" content="Prototipo técnico de evaluación de comparabilidad de registros ECU/logger y dinamómetro con datos sintéticos e inspección CSV local.">
   <title>Datalog Comparison · Demo técnica de análisis de registros</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.mjs"></script>
@@ -22,7 +22,7 @@
 
   <main class="page-shell">
     <section class="hero" aria-labelledby="pageTitle">
-      <p class="eyebrow">DEMOSTRACIÓN TÉCNICA · DATOS SINTÉTICOS</p>
+      <p class="eyebrow">DEMOSTRACIÓN TÉCNICA · DATOS SINTÉTICOS + INSPECCIÓN LOCAL</p>
       <h1 id="pageTitle">La evidencia antes que la comparación.</h1>
       <p class="hero-lead">Una demo de ingeniería para examinar dos registros, encontrar límites en los datos y explicar por qué una comparación puede servir, necesita revisión o debe bloquearse.</p>
       <div class="hero-pills" aria-label="Alcance de la demo">
@@ -34,7 +34,7 @@
 
     <section class="notice" aria-label="Limitación principal">
       <span class="notice-icon" aria-hidden="true">i</span>
-      <p><strong>Importante:</strong> todas las curvas de esta demo son sintéticas y se generan en el navegador. Sirven para probar las reglas del software, no representan mediciones de un vehículo real ni permiten calibrar o diagnosticar un motor.</p>
+      <p><strong>Importante:</strong> las curvas de los escenarios de demostración son sintéticas. La inspección CSV admite archivos genéricos con mapeo explícito, pero no reconoce formatos propietarios ni valida mediciones reales. No calibra ni diagnostica motores.</p>
     </section>
 
     <section class="case-section" aria-labelledby="caseTitle">
@@ -49,10 +49,77 @@
       <p id="caseDescription" class="case-description" aria-live="polite"></p>
     </section>
 
+    <section class="panel csv-import-panel" aria-labelledby="csvImportTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">02 · INGESTA CONTROLADA</p>
+          <h2 id="csvImportTitle">Inspeccionar un CSV local</h2>
+          <p class="section-intro">Seleccioná un archivo, declarará su origen y asigná manualmente las columnas y unidades. No se envía a ningún servicio ni se incorpora a la comparación.</p>
+        </div>
+        <span class="synthetic-chip">LECTURA LOCAL</span>
+      </div>
+
+      <form id="csvImportForm" class="csv-import-form">
+        <div class="csv-file-grid">
+          <label class="csv-control">
+            <span>Archivo CSV</span>
+            <input id="csvFile" type="file" accept=".csv,text/csv" required>
+            <small>Máximo 10 MB · sin persistencia · el archivo no sale del navegador</small>
+          </label>
+          <label class="csv-control">
+            <span>Origen del registro</span>
+            <select id="csvSourceDomain" required>
+              <option value="">Seleccionar origen</option>
+              <option value="ecu">ECU / logger</option>
+              <option value="dyno">Dinamómetro</option>
+              <option value="unknown">Todavía no identificado</option>
+            </select>
+            <small>Declaración manual; no se infiere desde el nombre del archivo</small>
+          </label>
+          <label class="csv-control">
+            <span>Separador decimal</span>
+            <select id="csvDecimalSeparator">
+              <option value=".">Punto (1.25)</option>
+              <option value=",">Coma (1,25)</option>
+            </select>
+            <small>El delimitador de columnas se detecta por separado</small>
+          </label>
+        </div>
+
+        <div id="csvMappingSection" class="csv-mapping-section" hidden>
+          <div class="csv-subheading">
+            <h3>Asignación explícita de columnas</h3>
+            <p>Se requieren tiempo relativo en segundos y RPM. Cada señal opcional necesita una unidad declarada. No se convierten unidades.</p>
+          </div>
+          <div id="csvMappingFields" class="csv-mapping-grid"></div>
+        </div>
+
+        <div class="csv-import-actions">
+          <button type="submit" class="primary-button" id="csvInspectButton" disabled>Inspeccionar CSV</button>
+          <button type="button" class="secondary-button" id="csvClearButton">Limpiar</button>
+        </div>
+        <p id="csvImportStatus" class="csv-status" role="status" aria-live="polite">Seleccioná un archivo CSV para comenzar.</p>
+      </form>
+
+      <section id="csvPreview" class="csv-preview" aria-labelledby="csvPreviewTitle" hidden>
+        <div id="csvPreviewSummary"></div>
+        <div class="csv-preview-block">
+          <h3 id="csvPreviewTitle">Cobertura por canal</h3>
+          <div id="csvQualityTable" class="csv-table-wrap"></div>
+        </div>
+        <div id="csvWarnings" class="csv-warning-list"></div>
+        <div class="csv-preview-block">
+          <h3>Muestra de las primeras filas</h3>
+          <div id="csvSampleTable" class="csv-table-wrap"></div>
+        </div>
+        <p class="csv-isolation-note"><strong>Modo de inspección:</strong> este registro no se compara con los escenarios sintéticos ni con otro archivo. La integración al flujo de comparación requiere una revisión posterior de sincronización, unidades, condiciones y procedencia.</p>
+      </section>
+    </section>
+
     <section class="results-grid">
       <section class="panel run-panel" aria-labelledby="runsTitle">
         <div class="panel-heading">
-          <div><p class="eyebrow">02 · REGISTROS</p><h2 id="runsTitle">Referencia y candidata</h2></div>
+          <div><p class="eyebrow">03 · REGISTROS SINTÉTICOS</p><h2 id="runsTitle">Referencia y candidata</h2></div>
           <span class="synthetic-chip">SINTÉTICO</span>
         </div>
         <div id="runSummary" class="run-summary"></div>
@@ -61,7 +128,7 @@
 
       <section class="panel readiness-panel" aria-labelledby="readinessTitle">
         <div class="panel-heading">
-          <div><p class="eyebrow">03 · MATRIZ DE EVIDENCIA</p><h2 id="readinessTitle">¿Está preparada la comparación?</h2></div>
+          <div><p class="eyebrow">04 · MATRIZ DE EVIDENCIA</p><h2 id="readinessTitle">¿Está preparada la comparación?</h2></div>
         </div>
         <div id="readinessSummary" class="readiness-summary" role="status" aria-live="polite"></div>
         <div id="gateList" class="gate-list"></div>
@@ -74,7 +141,7 @@
 
     <section class="panel chart-panel" aria-labelledby="chartsTitle">
       <div class="panel-heading chart-heading">
-        <div><p class="eyebrow">04 · LECTURA DESCRIPTIVA</p><h2 id="chartsTitle">Torque y potencia frente a RPM</h2><p class="section-intro">Los dos paneles comparten el eje RPM. Cada métrica tiene su propia escala vertical. Las curvas no se presentan si la política de origen bloquea la comparación.</p></div>
+        <div><p class="eyebrow">05 · LECTURA DESCRIPTIVA</p><h2 id="chartsTitle">Torque y potencia frente a RPM</h2><p class="section-intro">Los dos paneles comparten el eje RPM. Cada métrica tiene su propia escala vertical. Las curvas no se presentan si la política de origen bloquea la comparación.</p></div>
         <div class="chart-units"><span>Torque · Nm sintéticos</span><span>Potencia · kW sintéticos</span></div>
       </div>
       <div id="chartStatus" class="chart-status" role="status" aria-live="polite"></div>
@@ -84,7 +151,7 @@
 
     <section class="panel report-panel" aria-labelledby="reportTitle">
       <div class="report-copy">
-        <p class="eyebrow">05 · INFORME PORTABLE</p>
+        <p class="eyebrow">06 · INFORME PORTABLE</p>
         <h2 id="reportTitle">Conservá el resultado de esta prueba</h2>
         <p>Exportá un resumen JSON con los dos escenarios, el estado de cada comprobación, los máximos observados y los límites de interpretación. El archivo no incluye el historial privado del navegador ni rutas locales.</p>
       </div>

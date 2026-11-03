@@ -13,6 +13,7 @@ const CONTENT_TYPES = Object.freeze({
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".csv": "text/csv; charset=utf-8",
 });
 
 let server;
@@ -109,6 +110,48 @@ test("la entrada raíz es una redirección estática sin JavaScript inline", asy
   await page.waitForURL(baseUrl + "/app/index.html");
   assert.match(await page.title(), /Datalog Comparison/);
   assert.equal(await page.locator("#pageTitle").innerText(), "La evidencia antes que la comparación.");
+});
+
+test("la inspección CSV es local, requiere mapeo explícito y no habilita la comparación", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+
+  const csv = [
+    "Elapsed [s];Engine speed [rpm];Torque [Nm];Power [kW]",
+    "0,00;1800;142,50;26,86",
+    "0,10;2100;151,25;33,27",
+    "0,20;2400;158,00;39,72",
+  ].join("\n");
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "inspection-fixture.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvDecimalSeparator").selectOption(",");
+  await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+  await page.locator('[data-channel-key="torque_nm"]').selectOption("Torque [Nm]");
+  await page.locator('[data-unit-key="torque_nm"]').fill("Nm");
+  await page.locator("#csvInspectButton").click();
+
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
+  assert.match(await page.locator("#csvQualityTable").innerText(), /Torque/);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /no se agregó a la matriz de comparación/i);
+  assert.equal(await page.locator("#charts svg").count(), 2,
+    "la importación aislada no debe sustituir ni mezclar los escenarios sintéticos");
+  assert.equal(await page.locator("#casePicker button").count(), 3);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+
+  await page.locator("#csvClearButton").click();
+  assert.equal(await page.locator("#csvPreview").isVisible(), false);
+  assert.equal(await page.locator("#csvFile").inputValue(), "");
 });
 
 test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación y viewport móvil", async t => {

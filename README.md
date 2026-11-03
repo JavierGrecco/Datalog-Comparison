@@ -8,7 +8,7 @@ Una demostración técnica para evaluar si dos registros de motor ofrecen una ba
 
 [![Validación de la demo](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml)
 
-**Demo experimental · JavaScript · Datos sintéticos · Ejecución local**
+**Demo experimental · JavaScript · Datos sintéticos · Inspección CSV local**
 
 </div>
 
@@ -24,15 +24,17 @@ Es una muestra acotada de ingeniería de software aplicada al análisis de regis
 
 ## Qué incluye la demostración
 
-La aplicación contiene tres escenarios generados en memoria:
+La aplicación contiene tres escenarios sintéticos generados en memoria:
 
 | Escenario | Qué permite observar |
 | --- | --- |
-| **Registros sintéticos completos** | Dos registros del mismo dominio, con canales y unidades declarados. La matriz mantiene la validación real como requisito. |
+| **Registros completos** | Dos registros del mismo dominio, con canales y unidades declarados. La matriz mantiene la validación real como requisito. |
 | **Datos incompletos** | Valores ausentes, cobertura parcial y anomalías en la secuencia temporal. Los datos faltantes no se completan artificialmente. |
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 
-En los escenarios del mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación en JSON.
+Además, se puede **inspeccionar un CSV local genérico** con asignación manual de columnas y unidades. Esta función está aislada de la comparación: permite revisar estructura, faltantes, cobertura y una muestra de filas, sin enviar el archivo a ningún servicio.
+
+En los escenarios sintéticos del mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
 ### Cómo decide la matriz
 
@@ -52,9 +54,17 @@ Los controles se presentan por separado, sin reducirlos a una puntuación opaca:
 
 Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La interpretación técnica sigue dependiendo de la evidencia original y de la revisión de una persona con experiencia.
 
+## Inspección CSV local (beta)
+
+La importación requiere declarar el origen, el separador decimal, las columnas de tiempo y RPM y las unidades de cada canal opcional. Admite coma, punto y coma o tabulación, comillas dobles, BOM, CRLF y campos multilínea.
+
+La función aplica límites de tamaño y estructura, conserva faltantes y rechaza valores numéricos ambiguos o filas con columnas extra. No adivina canales ni convierte unidades. El registro importado queda en modo exploratorio y no se incorpora a la matriz.
+
+Consultá el [contrato CSV](docs/CSV_IMPORT.md) para conocer el formato de entrada, los límites y las restricciones.
+
 ## Ejecutar la aplicación
 
-La demo no necesita una ECU, archivos de registro, servicios externos ni dependencias de ejecución. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
+La demo no necesita una ECU, servicios externos ni dependencias de ejecución. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
 
 ```bash
 git clone https://github.com/JavierGrecco/Datalog-Comparison.git
@@ -81,8 +91,8 @@ npm test
 El comando `npm test` ejecuta:
 
 1. **Chequeo de sintaxis:** valida los módulos JavaScript incluidos en el proyecto.
-2. **Pruebas unitarias y de contratos:** comprueba escenarios, reglas de origen, unidades, calidad temporal, condiciones operativas, manifiestos, estados de evaluación e informes.
-3. **Prueba de navegador:** recorre la entrada del sitio y la interfaz en Chromium, verifica gráficos, bloqueos, selección por teclado, exportación JSON, vista móvil, errores, recursos inexistentes y solicitudes externas.
+2. **Pruebas unitarias y de contratos:** comprueba escenarios, reglas de origen, unidades, calidad temporal, parser CSV, condiciones operativas, manifiestos, estados de evaluación e informes.
+3. **Prueba de navegador:** recorre la entrada del sitio y la interfaz en Chromium, verifica la inspección CSV local, gráficos, bloqueos, selección por teclado, exportación JSON, vista móvil, errores y solicitudes externas.
 
 El workflow de GitHub Actions ejecuta estas validaciones en cada actualización y en las solicitudes de integración. El indicador al comienzo del documento muestra el estado de la última ejecución.
 
@@ -92,9 +102,13 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 
 ```text
 .
-├── app/                  # Interfaz, estilos y gráficos SVG
+├── app/
+│   ├── app.mjs
+│   ├── csv-inspector.mjs
+│   └── styles.css
 ├── src/
-│   ├── demo-model.mjs    # Escenarios sintéticos e informe JSON
+│   ├── csv-import.mjs
+│   ├── demo-model.mjs
 │   ├── comparison-readiness.mjs
 │   ├── run-comparability.mjs
 │   ├── data-quality.mjs
@@ -102,17 +116,19 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 │   ├── operating-conditions.mjs
 │   └── run-manifest.mjs
 ├── tests/
-│   ├── unit/             # Pruebas de dominio y contratos
+│   ├── fixtures/         # CSV sintéticos
+│   ├── unit/             # Pruebas de dominio y parser
 │   └── browser/          # Recorrido automatizado con Chromium
 ├── docs/
 │   ├── ARCHITECTURE.md
+│   ├── CSV_IMPORT.md
 │   ├── QUALITY_GATES.md
 │   ├── ENGINEERING.md
 │   ├── LIMITATIONS.md
 │   └── REFERENCES.md
 ├── SECURITY.md
-├── index.html            # Entrada segura y redirección estática
-└── package.json          # Herramientas de desarrollo y pruebas
+├── index.html
+└── package.json
 ```
 
 La interfaz está implementada con HTML, CSS y módulos JavaScript nativos. Los gráficos se dibujan en SVG. No hay framework de interfaz, proceso de compilación ni backend para esta demostración.
@@ -122,6 +138,7 @@ La interfaz está implementada con HTML, CSS y módulos JavaScript nativos. Los 
 La implementación separa la presentación de las reglas de dominio. La matriz no calcula un puntaje de confianza: combina comprobaciones identificables de origen, calidad, unidades, condiciones y procedencia.
 
 - [Arquitectura](docs/ARCHITECTURE.md): responsabilidades y flujo entre módulos.
+- [Contrato CSV](docs/CSV_IMPORT.md): entrada, límites, mapeo y significado de la vista de inspección.
 - [Puertas de calidad](docs/QUALITY_GATES.md): significado de los estados y criterios de bloqueo/revisión.
 - [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones y definición de terminado.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
@@ -129,23 +146,18 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 ## Alcance y límites
 
-Para interpretar correctamente esta publicación, tené en cuenta que:
-
-- Todos los registros y valores son **sintéticos** y se generan dentro de la aplicación. No proceden de un vehículo, una ECU, un logger ni un banco real.
-- Las curvas son ilustrativas. La potencia se deriva matemáticamente del torque y las RPM sintéticos; esto no constituye un modelo físico validado.
-- La aplicación no importa todavía archivos CSV propios.
-- No convierte unidades ni demuestra que dos canales representen la misma magnitud física bajo condiciones equivalentes.
+- Todos los escenarios de comparación y sus curvas son **sintéticos**.
+- Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
+- La importación no reconoce exportaciones propietarias ni habilita comparación entre dos archivos.
+- No convierte unidades, demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.
-- Una relación declarada entre registros no demuestra que sus relojes estén sincronizados ni que correspondan al mismo evento físico.
 - No escribe, modifica ni programa una ECU; tampoco diagnostica fallas, demuestra causalidad o emite recomendaciones de calibración validadas.
-
-La documentación amplía estos puntos en [Límites de la demo](docs/LIMITATIONS.md) y [Puertas de calidad](docs/QUALITY_GATES.md).
 
 ## Datos y privacidad
 
-La aplicación procesa sus ejemplos localmente en el navegador. No utiliza cuentas, telemetría, servicios de análisis ni solicitudes a APIs externas. La política de seguridad del contenido restringe las conexiones y la prueba de navegador comprueba que la demo no realice solicitudes fuera de su propio servidor local.
+La aplicación procesa los ejemplos localmente en el navegador. La inspección CSV también es local y no utiliza cuentas, telemetría, servicios de análisis ni solicitudes a APIs externas. La política de seguridad del contenido restringe conexiones salientes.
 
-El informe JSON se genera en el equipo y contiene un resumen de los escenarios, la matriz de evaluación, los máximos observados y sus limitaciones. No incluye las muestras completas ni rutas locales del sistema.
+Los CSV se mantienen en memoria de la sesión y se descartan al limpiar la vista o recargar. No se exportan sus muestras ni se agregan a los informes sintéticos.
 
 ## Referencias y procedencia
 
@@ -153,7 +165,7 @@ La implementación publicada es una selección acotada propia, preparada para es
 
 ## Estado y licencia
 
-Este repositorio es una **demo experimental de portfolio**, no la publicación del producto completo. El desarrollo de funcionalidades para registros reales queda fuera de este alcance hasta contar con datos cuyo uso esté autorizado y una revisión de especialistas.
+Este repositorio es una **demo experimental de portfolio**, no la publicación del producto completo. La importación CSV genérica es una etapa de inspección, no un parser certificado para equipos comerciales.
 
 Por ahora, el repositorio **no incluye una licencia de reutilización**. Que el código sea público permite inspeccionarlo, pero no concede por sí solo permiso general para copiarlo, modificarlo o distribuirlo.
 
