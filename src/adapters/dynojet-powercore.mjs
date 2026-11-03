@@ -19,7 +19,7 @@ export function importDynojetPowerCoreCsv(parsed, {
   }
   if (!measurementBasis || !["wheel", "roller", "hub", "engine", "unknown"].includes(measurementBasis)) {
     fail("DYNOJET_MEASUREMENT_BASIS_REQUIRED",
-      "Declarar si la medición corresponde a rueda, rodillo, cubo, motor o base desconocida es obligatorio.");
+      "Declarar la base de medición como rueda, rodillo, cubo, motor o desconocida es obligatorio.");
   }
 
   const run = mapCsvToRun(parsed, {
