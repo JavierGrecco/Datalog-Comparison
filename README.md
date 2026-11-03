@@ -59,9 +59,9 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 **Haltech NSP:** se reconocen dos layouts con marcador %DataLog%: encabezados tipados y bloques de metadatos Channel/ID/Type. El segundo se contrastó con una exportación pública de 114 canales; se aplican nombres exactos y reglas de escala acotadas. Las reglas son comunitarias y no están certificadas por el fabricante.
 
-**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un CSV crudo público ni un esquema de columnas fijo publicado. Exige mapeo manual y declaración de la base de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
+**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un CSV crudo público ni un esquema de columnas fijo publicado. El resolver propone coincidencias genéricas que deben confirmarse; también se declara la base física de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
 
-**CSV genérico:** conserva su flujo de mapeo explícito. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se registra la unidad original. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
+**CSV genérico:** cuenta con un resolver determinista local, sin IA externa, que propone alias, variantes de nombres, unidades y pistas numéricas. Solo las coincidencias exactas, únicas y dimensionalmente compatibles se preseleccionan para revisión; los errores de tipeo, ambigüedades y pistas por rango requieren confirmación. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se conserva la procedencia. Las columnas desconocidas y datos faltantes no se fuerzan dentro del modelo. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
@@ -111,6 +111,8 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 │   └── styles.css
 ├── src/
 │   ├── csv-import.mjs
+│   ├── channel-resolver.mjs
+│   ├── unit-registry.mjs
 │   ├── adapters/          # Perfiles experimentales ECU/dinamómetro
 │   ├── demo-model.mjs
 │   ├── comparison-readiness.mjs
@@ -126,6 +128,7 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── CSV_IMPORT.md
+│   ├── CHANNEL_RECOGNITION.md
 │   ├── QUALITY_GATES.md
 │   ├── ENGINEERING.md
 │   ├── LIMITATIONS.md
@@ -143,6 +146,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 - [Arquitectura](docs/ARCHITECTURE.md): responsabilidades y flujo entre módulos.
 - [Contrato CSV](docs/CSV_IMPORT.md): entrada, límites, mapeo y significado de la vista de inspección.
+- [Reconocimiento de canales](docs/CHANNEL_RECOGNITION.md): alias, errores de tipeo, dimensiones, límites de inferencia y perfiles de valores.
 - [Puertas de calidad](docs/QUALITY_GATES.md): significado de los estados y criterios de bloqueo/revisión.
 - [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones, política de rama única y definición de terminado.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.

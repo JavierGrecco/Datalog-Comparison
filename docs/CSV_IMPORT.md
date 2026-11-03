@@ -20,7 +20,7 @@ Hay tres rutas de importación:
 6. En dinamómetro, declarar la base de torque/potencia: rueda, rodillo, cubo, motor o desconocida.
 7. Inspeccionar cobertura, alertas y una muestra de filas.
 
-Tiempo relativo en segundos y RPM son obligatorios en la ruta genérica. Las unidades admitidas se normalizan mediante reglas explícitas y versionadas; la unidad original y la conversión aplicada quedan registradas en metadatos. No se infieren unidades por el nombre del encabezado ni se convierten bases físicas de medición.
+El importador admite al menos un eje presente: tiempo relativo o RPM. Las curvas de torque/potencia de dinamómetro requieren RPM y base de medición declarada. No se inventan ejes ausentes ni se rellenan muestras. El resolver local propone mapeos por alias exactos y contexto; los errores de tipeo, inferencias por unidad y perfiles de rango permanecen sujetos a confirmación. Las unidades se normalizan mediante reglas explícitas y versionadas; en CSV genérico y Dynojet se conserva encabezado, unidad y celda textual de origen de los canales mapeados, además de la conversión aplicada. Los adaptadores Haltech que convierten datos antes del mapeo conservan su propia procedencia en metadatos del adaptador y no etiquetan el valor normalizado como celda cruda.
 
 ## Parser CSV genérico
 
@@ -76,16 +76,17 @@ La especificación consultada declara que parte de su detalle procede de anális
 
 La documentación del fabricante confirma que WinPEP 8 Data Center puede trabajar con logs CSV y fuentes de terceros. La guía del POD-300 describe selección de canales registrados, frecuencia de muestreo configurable y exportación de logs a CSV.
 
-No se encontró un contrato público de columnas fijo que justifique un parser automático universal. Por eso esta ruta utiliza el parser genérico, exige mapeo manual y registra un identificador de perfil propio. No lee archivos nativos de WinPEP ni Power Vision.
+No se encontró un contrato público de columnas fijo que justifique un parser automático universal. Por eso esta ruta utiliza el parser genérico y el resolver común para proponer alias, unidades y posibles variantes; la asignación final sigue siendo explícita. Registra un identificador de perfil propio y no lee archivos nativos de WinPEP ni Power Vision.
 
-Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/1`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. El comparador excluye torque y potencia cuando uno de los ensayos es ECU/logger y el otro dinamómetro, cuando la base difiere (rueda, rodillo, cubo o motor) o cuando una base sigue desconocida. La opción desconocida permanece como advertencia.
+Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. La asignación por nombre se contrasta con calificadores físicos explícitos como Wheel, Roller, Hub o Engine. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/2`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. El comparador excluye torque y potencia cuando uno de los ensayos es ECU/logger y el otro dinamómetro, cuando la base difiere (rueda, rodillo, cubo o motor) o cuando una base sigue desconocida. La opción desconocida permanece como advertencia.
 
 ## Canales canónicos disponibles
 
 | Canal | Unidad / condición |
 | --- | --- |
-| time_s | s; obligatorio |
-| rpm | RPM; obligatorio |
+| time_s | s; eje temporal opcional |
+| rpm | RPM; eje de régimen opcional |
+| distance_km | km; canal opcional |
 | torque_nm, power_kw | unidad declarada; base obligatoria si origen dinamómetro |
 | speed_kmh | unidad declarada |
 | boost_target, boost_actual, map_abs_kpa, fuel_pressure_kpa | unidad declarada en CSV genérico; normalizada por tipo en Haltech admitido |
@@ -96,7 +97,7 @@ Una clave canónica no certifica que sensores, ubicación de medición o método
 
 ## Normalización de unidades
 
-El contrato `datalog-units/1` admite conversiones explícitas a unidades canónicas:
+El registro `datalog-units/2` admite conversiones explícitas por dimensión y unidad canónica. Los símbolos se comparan de forma sensible al caso cuando la norma o el prefijo lo requiere; no se aplica lowercase global:
 
 | Canal | Unidades de origen admitidas | Unidad canónica |
 | --- | --- | --- |
@@ -109,13 +110,13 @@ El contrato `datalog-units/1` admite conversiones explícitas a unidades canóni
 | Acelerador | %, percent | % |
 | Avance de encendido | grados, radianes | grados |
 
-Las unidades no listadas se rechazan para el canal elegido. La unidad original y la regla/factor de conversión quedan en `importMetadata.sourceUnits` y `importMetadata.unitConversions`, bajo la versión `datalog-units/1`. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
+Las unidades no listadas o dimensionalmente incompatibles se rechazan para el canal elegido. Pa y pA, mW y MW, Nm y nm se distinguen explícitamente. La unidad original, conversión y encabezado se conservan en importMetadata; los CSV genéricos/Dynojet mantienen también la celda textual de origen junto a cada muestra. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
 
-Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y las marcas temporales, y muestra el intervalo mediano observado. No presupone una frecuencia uniforme ni afirma que coincida con la configuración original.
+Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y muestra intervalo mediano, frecuencia observada por canal y jitter robusto cuando hay eje temporal. Son métricas calculadas sobre muestras adyacentes válidas; no prueban la frecuencia configurada ni la existencia de muestras perdidas. Sin eje temporal no se afirma frecuencia, duración ni sincronización.
 
 ## Salida y limitaciones
 
-Los adaptadores crean un registro exploratorio con muestras en orden de origen, valores numéricos, faltantes, unidades, versión del parser, metadatos y advertencias. El estado sin alertas estructurales no autentica origen, sensor, unidades, sincronización, método ni condiciones físicas.
+El mapeo genérico crea un registro exploratorio con muestras en orden de origen, valores canónicos, celdas textuales originales de los canales mapeados, faltantes, unidades, versión del parser, asignaciones, metadatos y advertencias. Los adaptadores específicos preservan su procedencia según el punto de conversión de cada perfil y no declaran valores transformados como celdas originales. Las columnas no mapeadas quedan enumeradas en importMetadata.unmappedHeaders, no se incorporan al modelo semántico. El estado sin alertas estructurales no autentica origen, sensor, unidades, sincronización, método ni condiciones físicas.
 
 Fuera de alcance:
 

@@ -25,6 +25,24 @@ Esta demo tiene una implementación acotada propia. Las referencias siguientes s
 - [Dynojet — exportación de un run](https://docs.dynojet.com/Support/SoftwareHelpFiles/PowerCoreHelp/en-US/2.1.0/DataCenter/DataCenter/DataCenter/To_Export_a_Run_File.htm): documenta que el CSV puede exportarse con paso de RPM e intervalo temporal configurables.
 - [Dynojet — guía WinPEP 7, carpeta Samples](https://www.dynojet.com/amfile/file/download/file/138/category/184/): documenta archivos de muestra instalados con WinPEP; no se encontró en esa guía una exportación CSV cruda que permita validar el esquema extremo a extremo.
 
+## Estándares de medición, unidades y señales
+
+- [ASAM MDF — Measurement Data Format](https://www.asam.net/standards/detail/mdf/): formato estandarizado para datos de medición, metadatos, conversiones y canales de adquisición. La especificación vigente consultada es MDF 4.3.0.
+- [ASAM MDF — Wiki](https://www.asam.net/standards/detail/mdf/wiki/): describe la estructura de canales y la necesidad de distinguir fuente y contexto de adquisición; el nombre de canal no es una identidad física suficiente.
+- [UCUM — Unified Code for Units of Measure](https://ucum.org/ucum): referencia para codificación de unidades, dimensiones y símbolos sensibles al caso.
+- [NIST SP 811 — Rules and Style Conventions for Printing and Using Units](https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-6-rules-and-style-conventions-printing-and-using): reglas de símbolos SI, prefijos y uso de mayúsculas/minúsculas.
+- [OpenTelemetry — Metrics Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/general/metrics/): convención interoperable para nombres y unidades de métricas.
+- [SciPy — signal.decimate](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.decimate.html) y [signal.resample_poly](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.resample_poly.html): referencias para filtrado antialias y remuestreo polifásico. Se consultan para una etapa de procesamiento futuro; este importador aún no remuestrea.
+
+## Normalización semántica y unidades
+
+- [ASAM MDF 4.3.0](https://www.asam.net/standards/detail/mdf/): estándar para almacenamiento de mediciones, metadatos, agrupación de señales y postprocesamiento; la versión 4.3.0 fue publicada el 23/09/2025.
+- [ASAM MDF Wiki — Channel naming and source/acquisition context](https://www.asam.net/standards/detail/mdf/wiki/): explica que el mismo nombre de señal puede corresponder a distintas fuentes o modos de adquisición y que el nombre aislado no alcanza para identificar un canal.
+- [UCUM — The Unified Code for Units of Measure](https://ucum.org/ucum): especificación de símbolos, prefijos y dimensiones de unidades. Distingue variantes sensibles y no sensibles al caso; la implementación adopta alias explícitos para símbolos frecuentes y evita lower-case global.
+- [OpenECU Alliance — Getting Started](https://oecua.org/docs/getting-started) y [OpenECU Specification](https://oecua.org/spec): referencias de la industria/comunidad para mapear nombres específicos de fabricantes a IDs canónicos. Documentan variantes como Engine RPM, Engine Speed, RPM y Eng RPM para un mismo ID dentro de perfiles ECU. Es una especificación comunitaria, no una certificación de fabricantes.
+- [OpenECU Alliance — Creating Adapters](https://oecua.org/docs/creating-adapters): recomienda registrar todas las variantes observadas, unidades, rangos declarados y versiones de adaptador; respalda un registro curado por fuente en lugar de heurísticas universales.
+- [MathWorks — Multirate Signal Processing](https://www.mathworks.com/help/signal/multirate-signal-processing.html): referencia de procesamiento multirrate, interpolación, decimación y filtrado antialias. Se consulta para el diseño futuro; el importador actual no remuestrea.
+
 ## Criterio de uso
 
-Las referencias documentan antecedentes y límites de evidencia. La muestra Haltech se utilizó para inspección estructural manual, no como fixture ni como validación completa del parser. No se encontró una exportación CSV cruda pública de Dynojet para validar la ruta guiada; por eso permanece basada en asignación manual y no en detección automática de columnas.
+Las referencias documentan antecedentes y límites de evidencia. Se adopta la estrategia de IDs canónicos y listas de nombres de origen de los perfiles OpenECU como guía para futuros adaptadores específicos, manteniendo el resolver genérico independiente de fabricantes. La muestra Haltech se utilizó para inspección estructural manual, no como fixture ni como validación completa del parser. No se encontró una exportación CSV cruda pública de Dynojet para validar la ruta guiada; por eso permanece basada en asignación manual y no en detección automática de columnas.

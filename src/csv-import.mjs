@@ -4,6 +4,7 @@
  */
 import { createRunManifestFromRun } from "./run-manifest.mjs";
 import { createEmptyOperatingConditions } from "./operating-conditions.mjs";
+import { UNIT_REGISTRY_VERSION, resolveUnitForChannel } from "./unit-registry.mjs";
 
 export const CSV_IMPORT_SCHEMA = "datalog-workbench.csv-import/1";
 export const CSV_RUN_SCHEMA = "datalog-workbench.csv-run/1";
@@ -13,8 +14,9 @@ export const MAX_CSV_COLUMNS = 128;
 export const MAX_CSV_FIELD_LENGTH = 16_384;
 
 export const CSV_CHANNEL_DEFINITIONS = Object.freeze([
-  { key: "time_s", label: "Tiempo relativo", required: true, fixedUnit: "s" },
-  { key: "rpm", label: "Velocidad de motor", required: true, fixedUnit: "RPM" },
+  { key: "time_s", label: "Tiempo relativo", required: false, axis: true, defaultUnit: "s" },
+  { key: "rpm", label: "Velocidad de motor", required: false, axis: true, defaultUnit: "RPM" },
+  { key: "distance_km", label: "Distancia recorrida", required: false },
   { key: "torque_nm", label: "Torque", required: false },
   { key: "power_kw", label: "Potencia", required: false },
   { key: "speed_kmh", label: "Velocidad del vehículo", required: false },
@@ -279,110 +281,32 @@ function parseNumericCell(rawValue, decimalSeparator, rowNumber, columnName) {
 }
 
 
-function compactUnit(unit) {
-  return String(unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("en-US")
-    .replace(/[°]/g, "")
-    .replace(/[\s·._-]/g, "");
-}
-
 /**
- * Normaliza unidades declaradas a las unidades canónicas que implican las
- * claves de canal. No deduce unidades de nombres de columna.
+ * Normaliza unidades con reglas explícitas y dimensionalmente compatibles.
+ * Los símbolos se comparan respetando el caso según UCUM; no se hace
+ * lower-case global ni se eliminan prefijos que cambian la magnitud.
  */
 function resolveCanonicalUnit(channelKey, sourceUnit) {
-  const unit = compactUnit(sourceUnit);
-  const aliases = {
-    torque_nm: { nm: ["nm", "newtonmeter", "newtonmeters"], "ft-lb": ["ftlb", "lbft", "lbfft"] },
-    power_kw: { kw: ["kw"], w: ["w"], hp: ["hp", "bhp"], ps: ["ps", "cv"] },
-    speed_kmh: { "km/h": ["km/h", "kph", "kmh"], mph: ["mph"], "m/s": ["m/s", "mps"] },
-    boost_target: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
-    boost_actual: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
-    map_abs_kpa: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
-    fuel_pressure_kpa: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
-    iat_c: { c: ["c", "celsius", "degc"], f: ["f", "fahrenheit", "degf"], k: ["k", "kelvin"] },
-    coolant_temp_c: { c: ["c", "celsius", "degc"], f: ["f", "fahrenheit", "degf"], k: ["k", "kelvin"] },
-    battery_v: { v: ["v", "volt", "volts"], mv: ["mv", "millivolt", "millivolts"] },
-    throttle_pct: { pct: ["%", "percent", "percentage"] },
-    ignition_advance_deg: { deg: ["deg", "degree", "degrees"], rad: ["rad", "radian", "radians"] },
-    afr: { afr: ["afr"] },
-    lambda: { lambda: ["lambda", "λ"] },
-  };
-  const channelAliases = aliases[channelKey];
-  if (!channelAliases) {
-    fail("CSV_CHANNEL_UNIT_UNSUPPORTED", "No existe una regla de unidades para el canal solicitado.", {
-      channel: channelKey, sourceUnit,
-    });
-  }
-  let matched = null;
-  for (const [kind, values] of Object.entries(channelAliases)) {
-    if (values.some(value => compactUnit(value) === unit)) {
-      matched = kind;
-      break;
-    }
-  }
-  if (!matched) {
+  const resolved = resolveUnitForChannel(channelKey, sourceUnit);
+  if (resolved.status !== "matched") {
     fail("CSV_CHANNEL_UNIT_UNSUPPORTED",
-      "La unidad '" + String(sourceUnit) + "' no está admitida para el canal " + channelKey + ". No se convirtió el valor.",
-      { channel: channelKey, sourceUnit });
+      resolved.status === "dimension_mismatch"
+        ? "La unidad '" + String(sourceUnit) + "' no corresponde a la dimensión del canal " + channelKey + "."
+        : "La unidad '" + String(sourceUnit) + "' no está reconocida de forma segura para el canal " + channelKey + ". No se convirtió el valor.",
+      {
+        channel: channelKey,
+        sourceUnit,
+        status: resolved.status,
+        expectedDimension: resolved.expectedDimension,
+        actualDimension: resolved.actualDimension ?? resolved.dimension ?? null,
+      });
   }
-
-  const rules = {
-    torque_nm: {
-      nm: ["Nm", 1, 0],
-      "ft-lb": ["Nm", 1.3558179483314004, 0],
-    },
-    power_kw: {
-      kw: ["kW", 1, 0],
-      w: ["kW", 0.001, 0],
-      hp: ["kW", 0.7456998715822702, 0],
-      ps: ["kW", 0.73549875, 0],
-    },
-    speed_kmh: {
-      "km/h": ["km/h", 1, 0],
-      mph: ["km/h", 1.609344, 0],
-      "m/s": ["km/h", 3.6, 0],
-    },
-    boost_target: {
-      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
-      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
-    },
-    boost_actual: {
-      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
-      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
-    },
-    map_abs_kpa: {
-      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
-      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
-    },
-    fuel_pressure_kpa: {
-      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
-      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
-    },
-    iat_c: {
-      c: ["°C", 1, 0], f: ["°C", 5 / 9, -32 * 5 / 9], k: ["°C", 1, -273.15],
-    },
-    coolant_temp_c: {
-      c: ["°C", 1, 0], f: ["°C", 5 / 9, -32 * 5 / 9], k: ["°C", 1, -273.15],
-    },
-    battery_v: {
-      v: ["V", 1, 0], mv: ["V", 0.001, 0],
-    },
-    throttle_pct: {
-      pct: ["%", 1, 0],
-    },
-    ignition_advance_deg: {
-      deg: ["deg", 1, 0], rad: ["deg", 180 / Math.PI, 0],
-    },
-    afr: { afr: ["AFR", 1, 0] },
-    lambda: { lambda: ["lambda", 1, 0] },
-  };
-  const [canonicalUnit, factor, offset] = rules[channelKey][matched];
   return {
     sourceUnit: String(sourceUnit).trim(),
-    canonicalUnit,
-    factor,
-    offset,
-    conversionApplied: factor !== 1 || offset !== 0,
+    canonicalUnit: resolved.canonicalUnit,
+    factor: resolved.factor,
+    offset: resolved.offset,
+    conversionApplied: resolved.conversionApplied,
   };
 }
 
@@ -435,9 +359,9 @@ export function mapCsvToRun(parsed, {
   if (unknownKeys.length) fail("CSV_CHANNEL_UNSUPPORTED", "Hay canales fuera del contrato de importación.", { channels: unknownKeys });
 
   const mapping = Object.fromEntries(mappingEntries);
-  for (const requiredKey of ["time_s", "rpm"]) {
-    if (!mapping[requiredKey]) fail("CSV_REQUIRED_CHANNEL_MISSING",
-      "Debés asignar explícitamente las columnas de tiempo en segundos y RPM.", { channel: requiredKey });
+  if (!mapping.time_s && !mapping.rpm) {
+    fail("CSV_AXIS_REQUIRED",
+      "Asigná al menos un eje disponible: tiempo relativo o RPM. No se generarán marcas de tiempo ni RPM artificiales.");
   }
   const usedHeaders = Object.values(mapping);
   const repeatedHeaders = usedHeaders.filter((header, index) => usedHeaders.indexOf(header) !== index);
@@ -453,7 +377,7 @@ export function mapCsvToRun(parsed, {
     if (!headerIndexes.has(header)) fail("CSV_MAPPING_HEADER_UNKNOWN",
       "La columna asignada ya no existe en el archivo.", { channel: key, header });
     const definition = definitions.get(key);
-    const sourceUnit = definition.fixedUnit ?? String(units[key] ?? "").trim();
+    const sourceUnit = definition.fixedUnit ?? String(units[key] ?? definition.defaultUnit ?? "").trim();
     if (!sourceUnit || sourceUnit.length > 32) fail("CSV_CHANNEL_UNIT_REQUIRED",
       "Declarar una unidad válida es obligatorio para cada canal asignado.", { channel: key });
     if (definition.fixedUnit && sourceUnit !== definition.fixedUnit) {
@@ -471,6 +395,34 @@ export function mapCsvToRun(parsed, {
   }
 
   const hasDynoOutput = Boolean(mapping.torque_nm || mapping.power_kw);
+  if (sourceDomain === "dyno" && hasDynoOutput && !mapping.rpm) {
+    fail("CSV_DYNO_RPM_REQUIRED",
+      "Para importar torque o potencia de un dinamómetro, asigná el eje RPM. Sin RPM no se puede construir una curva de torque/potencia por régimen.");
+  }
+  const measurementBasisHints = Object.entries(mapping)
+    .filter(([key]) => ["torque_nm", "power_kw"].includes(key))
+    .map(([channel, header]) => {
+      const normalized = String(header).normalize("NFKD").replace(/\p{M}/gu, "")
+        .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
+      const basis = /\bwheel\b|\bru(e|é)da\b/.test(normalized) ? "wheel"
+        : /\broller\b|\brodillo\b/.test(normalized) ? "roller"
+          : /\bhub\b|\bcubo\b/.test(normalized) ? "hub"
+            : /\bengine\b|\bmotor\b/.test(normalized) ? "engine" : null;
+      return basis ? { channel, header, basis } : null;
+    }).filter(Boolean);
+  const distinctBasisHints = [...new Set(measurementBasisHints.map(item => item.basis))];
+  const measurementBasisHeaderHint = distinctBasisHints.length === 1 ? distinctBasisHints[0] : null;
+  if (sourceDomain === "dyno" && hasDynoOutput && distinctBasisHints.length > 1) {
+    fail("CSV_DYNO_HEADER_BASIS_CONFLICT",
+      "Los encabezados de torque/potencia indican bases físicas diferentes. Revisá los canales antes de importar.",
+      { hints: measurementBasisHints });
+  }
+  if (sourceDomain === "dyno" && hasDynoOutput && measurementBasisHeaderHint &&
+      measurementBasis && measurementBasis !== "unknown" && measurementBasis !== measurementBasisHeaderHint) {
+    fail("CSV_DYNO_BASIS_HEADER_MISMATCH",
+      "La base de medición declarada contradice el calificador del encabezado de torque/potencia.",
+      { declaredBasis: measurementBasis, headerBasis: measurementBasisHeaderHint, hints: measurementBasisHints });
+  }
   if (sourceDomain === "dyno" && hasDynoOutput) {
     if (!measurementBasis || !Object.hasOwn(DYNO_MEASUREMENT_BASES, measurementBasis)) {
       fail("CSV_DYNO_MEASUREMENT_BASIS_REQUIRED",
@@ -482,12 +434,21 @@ export function mapCsvToRun(parsed, {
 
   const sampleRows = parsed.rows.map((row, index) => {
     const channels = {};
+    const sourceValues = {};
     for (const [key, header] of Object.entries(mapping)) {
-      const rawValue = parseNumericCell(row[headerIndexes.get(header)], decimalSeparator,
+      const sourceCell = row[headerIndexes.get(header)] ?? "";
+      const rawValue = parseNumericCell(sourceCell, decimalSeparator,
         index + sourceHeaderRow + 1, header);
       channels[key] = convertToCanonical(rawValue, unitRules[key]);
+      sourceValues[key] = String(sourceCell);
     }
-    return { time_s: channels.time_s, channels };
+    return {
+      time_s: channels.time_s ?? null,
+      channels,
+      // Vendor adapters may normalize raw values before this generic mapping stage.
+      // Preserve textual cells here only for generic/Dynojet CSV input.
+      ...(!String(importFormat).startsWith("haltech-nsp-") ? { sourceValues } : {}),
+    };
   });
 
   const displayName = safeDisplayName(name, "Registro CSV importado");
@@ -517,7 +478,7 @@ export function mapCsvToRun(parsed, {
     importMetadata: {
       parserId,
       importFormat,
-      unitNormalizationVersion: "datalog-units/1",
+      unitNormalizationVersion: UNIT_REGISTRY_VERSION,
       sourceUnits: Object.fromEntries(Object.entries(unitRules).map(([key, rule]) => [key, rule.sourceUnit])),
       unitConversions: Object.fromEntries(Object.entries(unitRules)
         .filter(([, rule]) => rule.conversionApplied)
@@ -533,17 +494,34 @@ export function mapCsvToRun(parsed, {
       skippedNonEmptyRowCount: 0,
       skippedEmptyRowCount: Number.isSafeInteger(parsed.skippedEmptyRows) ? parsed.skippedEmptyRows : 0,
       parsedSampleCount: sampleRows.length,
+      channelMapping: Object.entries(mapping).map(([key, header]) => ({
+        channel: key,
+        sourceHeader: header,
+        sourceUnit: unitRules[key].sourceUnit,
+        canonicalUnit: unitRules[key].canonicalUnit,
+      })),
+      ...(measurementBasisHeaderHint ? { measurementBasisHeaderHint } : {}),
+      unmappedHeaders: parsed.headers.filter(header => !usedHeaders.includes(header)),
       ...(adapterMetadata ? { adapterMetadata } : {}),
     },
     operatingConditions: createEmptyOperatingConditions(),
     warnings: [
       ...parsed.warnings,
+      ...(!mapping.time_s ? ["El archivo no incluye eje temporal. Se conserva el orden de origen; no se calcula frecuencia, duración ni sincronización temporal."] : []),
+      ...(!mapping.rpm ? ["El archivo no incluye RPM. No están disponibles los análisis o curvas que requieren eje de régimen."] : []),
+      ...(parsed.headers.some(header => !usedHeaders.includes(header))
+        ? [parsed.headers.filter(header => !usedHeaders.includes(header)).length +
+          " columna(s) permanecen sin asignar. No se dedujo su significado por rango numérico ni se incorporaron al modelo normalizado."]
+        : []),
       ...Object.entries(unitRules).filter(([, rule]) => rule.conversionApplied).map(([key, rule]) =>
         key + ": se normalizó " + rule.sourceUnit + " a " + rule.canonicalUnit + " mediante una conversión explícita y versionada."),
       "El origen y las unidades originales fueron declarados o interpretados por el perfil; no se autentican automáticamente.",
       "El archivo se inspeccionó localmente; no se habilita por sí solo una comparación con otro registro.",
       ...(sourceDomain === "dyno" && measurementBasis === "unknown"
-        ? ["La base de medición de torque/potencia del dinamómetro permanece sin identificar."]
+        ? ["La base de medición de torque/potencia del dinamómetro permanece sin identificar.",
+          ...(measurementBasisHeaderHint
+            ? ["Los encabezados sugieren base " + measurementBasisHeaderHint + ", pero no se toma como confirmación de la base física."]
+            : [])]
         : []),
     ],
     note: "Registro CSV inspeccionado localmente. La procedencia declarada requiere revisión.",

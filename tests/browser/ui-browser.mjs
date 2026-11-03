@@ -129,6 +129,10 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
     buffer: Buffer.from(csv, "utf8"),
   });
   await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed [s]",
+    "una etiqueta exacta de tiempo transcurrido puede preseleccionarse para revisión");
+  assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine speed [rpm]",
+    "una etiqueta tipada de velocidad de motor puede preseleccionarse para revisión");
   await page.locator("#csvSourceDomain").selectOption("ecu");
   await page.locator("#csvColumnDelimiter").selectOption(";");
   await page.locator("#csvDecimalSeparator").selectOption(",");
@@ -158,6 +162,34 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   await page.locator("#csvClearButton").click();
   assert.equal(await page.locator("#csvPreview").isVisible(), false);
   assert.equal(await page.locator("#csvFile").inputValue(), "");
+});
+
+test("los errores de tipeo y rangos numéricos no asignan canales automáticamente", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const csv = [
+    "Elapsed [s],Vehcile Speed (kmh),Analog Input 7",
+    "0,0,1000",
+    "0.1,30,1800",
+    "0.2,60,2500",
+  ].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "unknown-columns.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed [s]");
+  assert.equal(await page.locator('[data-channel-key="speed_kmh"]').inputValue(), "",
+    "un posible error de tipeo no debe convertirse en una asignación automática");
+  const recognition = await page.locator("#csvMappingFields").innerText();
+  assert.match(recognition, /Posible error de tipeo/i);
+  assert.match(recognition, /Rango numérico orientativo/i);
+  assert.match(recognition, /no identifica la señal ni su unidad/i);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
 });
 
 test("la variante Haltech Channel/ID/Type se importa localmente y muestra sus canales exactos", async t => {

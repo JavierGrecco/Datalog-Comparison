@@ -43,10 +43,13 @@ La rama canónica de este proyecto es `main`.
 4. Mantener separados los valores desconocidos, informados, medidos y verificados por quien los carga.
 5. Conservar la procedencia sin exportar rutas locales ni registros completos en el informe de portfolio.
 6. Toda salida basada en fixtures debe permanecer marcada como sintética.
-7. Un CSV genérico requiere mapeo explícito de columnas y unidades; no se deduce semántica desde el encabezado.
-8. Todo error de lectura debe identificar el código y, cuando corresponda, la fila y columna afectadas.
-9. La inspección CSV local no habilita comparaciones entre archivos hasta validar sincronización, canal, método y base física.
-10. Los archivos de vehículos reales solo se incorporan a pruebas con autorización, procedencia y permisos de redistribución claros.
+7. El resolver puede preseleccionar solo coincidencias exactas, únicas y dimensionalmente compatibles; coincidencias difusas, por dimensión o rango requieren confirmación.
+8. Los símbolos de unidad se procesan sin lowercase global; cada alias y conversión debe estar en el registro versionado y probarse con casos de colisión.
+9. Las magnitudes o rangos numéricos nunca son una prueba única de identidad semántica ni de unidad.
+10. La ausencia de un eje o muestra no autoriza a sintetizarla, interpolarla o imputarla durante la importación.
+11. Todo error de lectura debe identificar el código y, cuando corresponda, la fila y columna afectadas.
+12. La inspección CSV local no habilita comparaciones entre archivos hasta validar sincronización, canal, método y base física.
+13. Los archivos de vehículos reales solo se incorporan a pruebas con autorización, procedencia y permisos de redistribución claros.
 
 ## Definición de terminado
 

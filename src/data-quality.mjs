@@ -16,6 +16,23 @@ function median(values) {
 const finite = value => Number.isFinite(value);
 const pct = (count, total) => total ? Math.round(count / total * 10000) / 100 : 0;
 
+// Envelopes amplios para alertas de plausibilidad, no límites universales del hardware.
+const PLAUSIBILITY_ENVELOPES = Object.freeze({
+  rpm: { min: 0, max: 25000, unit: "RPM" },
+  speed_kmh: { min: 0, max: 500, unit: "km/h" },
+  throttle_pct: { min: 0, max: 100, unit: "%" },
+  iat_c: { min: -80, max: 250, unit: "°C" },
+  coolant_temp_c: { min: -80, max: 250, unit: "°C" },
+  battery_v: { min: 0, max: 40, unit: "V" },
+  boost_target: { min: -150, max: 1000, unit: "kPa" },
+  boost_actual: { min: -150, max: 1000, unit: "kPa" },
+  map_abs_kpa: { min: 0, max: 1000, unit: "kPa" },
+  fuel_pressure_kpa: { min: 0, max: 1000, unit: "kPa" },
+  ignition_advance_deg: { min: -90, max: 120, unit: "deg" },
+  lambda: { min: 0.4, max: 3, unit: "lambda" },
+  afr: { min: 4, max: 45, unit: "AFR" },
+});
+
 /**
  * Devuelve métricas calculadas desde las muestras actuales, nunca desde un
  * perfil guardado previamente. "Sin alertas" no significa que la medición sea
@@ -26,13 +43,16 @@ export function assessRunDataQuality(run) {
   const sampleCount = samples.length;
   const warnings = [];
   const timeValues = samples.map(sample => sample?.time_s);
-  const validTimeCount = timeValues.filter(finite).length;
+  const hasTimeAxis = Object.hasOwn(run?.units ?? {}, "time_s") || timeValues.some(finite);
+  const hasRpmAxis = Object.hasOwn(run?.units ?? {}, "rpm") ||
+    samples.some(sample => finite(sample?.channels?.rpm));
+  const validTimeCount = hasTimeAxis ? timeValues.filter(finite).length : 0;
   let missingTimeCount = 0;
   let retrogressions = 0;
   let duplicateAdjacentTimes = 0;
   const positiveIntervals = [];
 
-  for (let index = 0; index < timeValues.length; index += 1) {
+  for (let index = 0; hasTimeAxis && index < timeValues.length; index += 1) {
     if (!finite(timeValues[index])) {
       missingTimeCount += 1;
       continue;
@@ -45,7 +65,7 @@ export function assessRunDataQuality(run) {
   }
 
   const timeOrdered = retrogressions === 0;
-  const durationSeconds = sampleCount >= 2
+  const durationSeconds = hasTimeAxis && sampleCount >= 2
     && validTimeCount === sampleCount
     && timeOrdered
     ? timeValues.at(-1) - timeValues[0]
@@ -63,12 +83,33 @@ export function assessRunDataQuality(run) {
     let validCount = 0;
     let min = Infinity;
     let max = -Infinity;
-    for (const sample of samples) {
-      const value = sample?.channels?.[key];
-      if (!finite(value)) continue;
-      validCount += 1;
-      if (value < min) min = value;
-      if (value > max) max = value;
+    const observedIntervals = [];
+    for (let index = 0; index < samples.length; index += 1) {
+      const value = samples[index]?.channels?.[key];
+      if (finite(value)) {
+        validCount += 1;
+        if (value < min) min = value;
+        if (value > max) max = value;
+      }
+      if (!hasTimeAxis || index === 0) continue;
+      const previousTime = samples[index - 1]?.time_s;
+      const currentTime = samples[index]?.time_s;
+      const previousValue = samples[index - 1]?.channels?.[key];
+      if (finite(previousTime) && finite(currentTime) && currentTime > previousTime &&
+          finite(previousValue) && finite(value)) {
+        observedIntervals.push(currentTime - previousTime);
+      }
+    }
+    const orderedIntervals = [...observedIntervals].sort((a, b) => a - b);
+    const medianInterval = median(orderedIntervals);
+    const intervalMad = median(orderedIntervals.map(interval => Math.abs(interval - medianInterval)));
+    const envelope = PLAUSIBILITY_ENVELOPES[key] ?? null;
+    let outsideEnvelopeCount = 0;
+    if (envelope) {
+      for (const sample of samples) {
+        const value = sample?.channels?.[key];
+        if (finite(value) && (value < envelope.min || value > envelope.max)) outsideEnvelopeCount += 1;
+      }
     }
     return {
       key,
@@ -76,7 +117,23 @@ export function assessRunDataQuality(run) {
       missingCount: sampleCount - validCount,
       coveragePct: pct(validCount, sampleCount),
       min: validCount ? min : null,
-      max: validCount ? max : null
+      max: validCount ? max : null,
+      plausibility: envelope ? {
+        status: outsideEnvelopeCount ? "outside_broad_envelope" : "within_broad_envelope",
+        min: envelope.min,
+        max: envelope.max,
+        unit: envelope.unit,
+        outsideCount: outsideEnvelopeCount,
+      } : { status: "not_assessed", outsideCount: 0 },
+      sampling: {
+        observedAdjacentIntervalCount: observedIntervals.length,
+        medianIntervalSeconds: medianInterval,
+        medianObservedRateHz: medianInterval > 0 ? 1 / medianInterval : null,
+        minimumAdjacentIntervalSeconds: orderedIntervals.length ? orderedIntervals[0] : null,
+        maximumAdjacentIntervalSeconds: orderedIntervals.length ? orderedIntervals.at(-1) : null,
+        medianAbsoluteDeviationSeconds: intervalMad,
+        relativeJitterPct: medianInterval > 0 ? intervalMad / medianInterval * 100 : null,
+      },
     };
   });
 
@@ -113,8 +170,11 @@ export function assessRunDataQuality(run) {
   if (sampleCount < 2) {
     warnings.push("Hay menos de dos muestras; el registro no alcanza para revisar una secuencia temporal.");
   }
-  if (missingTimeCount) {
+  if (hasTimeAxis && missingTimeCount) {
     warnings.push(missingTimeCount + " muestra(s) no tienen un tiempo numérico válido.");
+  }
+  if (!hasTimeAxis && !hasRpmAxis) {
+    warnings.push("No hay eje temporal ni eje RPM declarado; no se pueden interpretar ni comparar las muestras como una serie de motor.");
   }
   if (retrogressions) {
     warnings.push(retrogressions + " retroceso(s) del tiempo entre muestras consecutivas; no se reordenaron los datos.");
@@ -129,6 +189,11 @@ export function assessRunDataQuality(run) {
   const emptyChannels = channels.filter(channel => channel.validCount === 0);
   if (emptyChannels.length) {
     warnings.push(emptyChannels.length + " canal(es) no tienen ningún valor numérico utilizable.");
+  }
+  const outOfEnvelopeChannels = channels.filter(channel => channel.plausibility?.outsideCount > 0);
+  if (outOfEnvelopeChannels.length) {
+    warnings.push(outOfEnvelopeChannels.length +
+      " canal(es) tienen valores fuera de un rango amplio de plausibilidad; revisar sensor, unidad y escala. No se descartaron ni corrigieron muestras.");
   }
   if (sourceMetadata?.skippedNonEmptyRowCount > 0) {
     warnings.push("El lector omitió " + sourceMetadata.skippedNonEmptyRowCount + " fila(s) no vacías; revisar el origen si esas filas pueden ser importantes.");
@@ -151,6 +216,8 @@ export function assessRunDataQuality(run) {
     status,
     sampleCount,
     timestamp: {
+      available: hasTimeAxis,
+      axis: hasTimeAxis ? "time_s" : hasRpmAxis ? "rpm" : null,
       validCount: validTimeCount,
       missingCount: missingTimeCount,
       retrogressions,

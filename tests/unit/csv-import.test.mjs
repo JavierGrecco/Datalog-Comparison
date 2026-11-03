@@ -52,6 +52,8 @@ test("lee el fixture ECU sintético con punto y coma y decimales explícitos", a
   assert.equal(run.sourceDomain, "ecu");
   assert.equal(run.samples[1].channels.torque_nm, 151.25);
   assert.equal(run.samples[1].channels.rpm, 2100);
+  assert.equal(run.samples[1].sourceValues.time_s, "0.1");
+  assert.equal(run.samples[1].sourceValues.rpm, "2100");
   assert.equal(run.runManifest.role, "exploratory");
   assert.equal(assessRunDataQuality(run).status, "no_obvious_issues");
 });
@@ -285,12 +287,12 @@ test("aplica límites de tamaño, filas, columnas y longitud de celda", () => {
   assert.throws(() => parseCsvText("a\n12345\n", { maxFieldLength: 4 }), /tamaño máximo/i);
 });
 
-test("exige dominio, tiempo, RPM, asignación única y unidades declaradas", async () => {
+test("exige dominio, al menos un eje, asignación única y unidades declaradas", async () => {
   const parsed = parseCsvText(await fixture("ecu-synthetic-semicolon.csv"));
   assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, { sourceDomain: undefined })),
     error => error.code === "CSV_SOURCE_DOMAIN_REQUIRED");
-  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, { channelMapping: { time_s: "Elapsed [s]" } })),
-    error => error.code === "CSV_REQUIRED_CHANNEL_MISSING");
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, { channelMapping: {} })),
+    error => error.code === "CSV_AXIS_REQUIRED");
   assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
     channelMapping: {
       time_s: "Elapsed [s]", rpm: "Engine speed [rpm]", torque_nm: "Torque [Nm]",
@@ -364,7 +366,7 @@ test("normaliza unidades explícitas a las unidades canónicas y conserva la pro
   assert.ok(Math.abs(run.samples[0].channels.speed_kmh - 96.56064) < 1e-8);
   assert.ok(Math.abs(run.samples[0].channels.iat_c - 20) < 1e-9);
   assert.ok(Math.abs(run.samples[0].channels.map_abs_kpa - 100) < 0.001);
-  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/1");
+  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/2");
   assert.equal(run.importMetadata.sourceUnits.iat_c, "°F");
   assert.equal(run.importMetadata.unitConversions.iat_c.from, "°F");
 });
@@ -517,4 +519,38 @@ test("el comparador no trata una base de dinamómetro desconocida como equivalen
   assert.equal(result.commonChannels.some(channel => channel.key === "torque_nm"), false);
   assert.match(result.blockedChannels.find(channel => channel.key === "torque_nm").reason,
     /no está identificada de forma fiable/i);
+});
+
+
+test("la base física declarada no puede contradecir los calificadores de torque/potencia", async () => {
+  const parsed = parseCsvText(
+    "Engine RPM,Wheel Torque (Nm),Wheel Power (kW)\\n2000,180,55\\n3000,210,80\\n",
+  );
+  const common = {
+    id: "basis-header-conflict",
+    name: "Banco con calificadores explícitos",
+    sourceDomain: "dyno",
+    channelMapping: {
+      rpm: "Engine RPM",
+      torque_nm: "Wheel Torque (Nm)",
+      power_kw: "Wheel Power (kW)",
+    },
+    units: { torque_nm: "Nm", power_kw: "kW" },
+    importedAt: "2026-11-03T00:00:00.000Z",
+  };
+  assert.throws(() => mapCsvToRun(parsed, { ...common, measurementBasis: "engine" }),
+    error => error.code === "CSV_DYNO_BASIS_HEADER_MISMATCH");
+
+  const conflictingLabels = parseCsvText(
+    "Engine RPM,Wheel Torque (Nm),Engine Power (kW)\\n2000,180,55\\n3000,210,80\\n",
+  );
+  assert.throws(() => mapCsvToRun(conflictingLabels, {
+    ...common,
+    channelMapping: {
+      rpm: "Engine RPM",
+      torque_nm: "Wheel Torque (Nm)",
+      power_kw: "Engine Power (kW)",
+    },
+    measurementBasis: "wheel",
+  }), error => error.code === "CSV_DYNO_HEADER_BASIS_CONFLICT");
 });

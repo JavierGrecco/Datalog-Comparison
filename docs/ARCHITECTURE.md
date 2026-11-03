@@ -19,7 +19,9 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 | --- | --- |
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado y vista previa aislada. |
-| src/csv-import.mjs | Parser genérico, límites, contrato de canales y adaptación a registro exploratorio. |
+| src/csv-import.mjs | Parser genérico, límites, contrato de canales, preservación de valores fuente mapeados y registro exploratorio. |
+| src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
+| src/unit-registry.mjs | Registro versionado de símbolos, dimensiones, unidades canónicas y conversiones con sensibilidad al caso. |
 | src/adapters/haltech-nsp.mjs | Perfil experimental para variante Haltech NSP con marcador y encabezados tipados. |
 | src/adapters/dynojet-powercore.mjs | Perfil guiado para CSV Dynojet con mapeo manual y base de medición declarada. |
 | src/demo-model.mjs | Construcción determinista de ejemplos sintéticos y resumen portable. |
@@ -33,11 +35,15 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 ## Límites entre capas
 
 - Los módulos de dominio no acceden al DOM, almacenamiento del navegador ni servicios de red.
-- El parser CSV genérico es independiente de marca y no deduce semántica a partir de encabezados.
+- El parser CSV genérico es independiente de marca; el resolver propone asignaciones trazables y no fuerza encabezados desconocidos.
+- La resolución tiene precedencia por metadatos de fabricante, alias exacto, calificadores, unidad compatible, coincidencia difusa y perfil de valores. Los dos últimos niveles solo sugieren.
+- La unidad identifica dimensión, no siempre el rol. Se separan presión MAP/boost/combustible, actual/objetivo, RPM de motor/rueda/rodillo y bases físicas de torque/potencia.
+- Las columnas no asignadas se registran y permanecen fuera de los canales canónicos; el perfil de valores solo ofrece candidatos explicables y nunca asigna una señal por rango numérico.
 - Los adaptadores específicos se versionan por perfil y documentan evidencia del formato y reglas de conversión.
 - Haltech rechaza estructuras no reconocidas y excluye tipos/canales sin semántica implementada.
-- Dynojet no auto-detecta un esquema de columnas; utiliza mapeo manual y exige declarar base de medición si se importan torque o potencia.
-- Los datos importados conservan el orden y faltantes; no se reordenan, interpolan ni imputan.
+- Dynojet no auto-detecta un esquema propietario; utiliza las sugerencias genéricas y exige confirmar las columnas y la base física si se importan torque o potencia.
+- Los datos importados conservan el orden, faltantes y conversiones; el mapeo genérico conserva además las celdas de origen de los canales mapeados. Los adaptadores específicos documentan el nivel de transformación de sus valores; no se reordenan, interpolan ni imputan.
+- La importación admite eje temporal o RPM; no los sintetiza. El perfil de calidad estima intervalos observados por canal solo cuando hay un eje temporal válido.
 - El inspector crea un registro exploratorio y muestra calidad; no lo agrega a la matriz ni permite compararlo con fixtures.
 - La matriz no calcula una puntuación opaca de confianza.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
