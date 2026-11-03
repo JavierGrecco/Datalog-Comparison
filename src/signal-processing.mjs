@@ -90,6 +90,9 @@ function inspectTimeBase(run, { maxIntervalDeviationPct, maxGapFactor }) {
   if (!Object.hasOwn(run.units, "time_s")) {
     fail("SIGNAL_PROCESSING_TIME_AXIS_REQUIRED", "El registro no contiene un eje temporal declarado en segundos.");
   }
+  if (run.units.time_s !== "s") {
+    fail("SIGNAL_PROCESSING_TIME_UNIT_UNSUPPORTED", "El eje temporal debe estar normalizado a segundos antes de procesar.");
+  }
   const times = run.samples.map((sample, index) => {
     const value = sample?.time_s;
     if (!finite(value)) {
@@ -474,6 +477,9 @@ export function buildRpmSweepCurves(run, {
   if (!Object.hasOwn(run?.units ?? {}, "rpm")) {
     fail("SIGNAL_PROCESSING_RPM_AXIS_REQUIRED", "El registro de dinamómetro no declara el canal RPM.");
   }
+  if (run.units.rpm !== "RPM") {
+    fail("SIGNAL_PROCESSING_RPM_UNIT_UNSUPPORTED", "El eje RPM debe estar normalizado a RPM antes de construir curvas.");
+  }
   if (!run.samples || !Array.isArray(run.samples) || run.samples.length < 2) {
     fail("SIGNAL_PROCESSING_NOT_ENOUGH_SAMPLES", "Se necesitan al menos dos muestras para buscar un barrido.");
   }
@@ -493,6 +499,10 @@ export function buildRpmSweepCurves(run, {
       new Set(selectedChannels).size !== selectedChannels.length) {
     fail("SIGNAL_PROCESSING_DYNO_CHANNELS_INVALID",
       "Seleccioná canales de torque o potencia normalizados y sin duplicados.");
+  }
+  const wrongUnits = selectedChannels.filter(key => run.units[key] !== (key === "torque_nm" ? "Nm" : "kW"));
+  if (wrongUnits.length) {
+    fail("SIGNAL_PROCESSING_DYNO_UNIT_UNSUPPORTED", "Torque y potencia deben estar normalizados a Nm y kW.", { channels: wrongUnits });
   }
   const nonDynoChannels = selectedChannels.filter(key => !["torque_nm", "power_kw"].includes(key));
   if (nonDynoChannels.length) {

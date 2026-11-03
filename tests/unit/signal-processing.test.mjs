@@ -97,6 +97,32 @@ test("los segmentos cortan celdas faltantes sin filtrar a través de ellas", () 
   assert.ok(segments.every(segment => segment.samples.length > 0));
 });
 
+test("un hueco temporal largo divide segmentos incluso si las celdas tienen valores", () => {
+  const source = makeTimeRun({
+    durationSeconds: 12,
+    channelBuilder: (time, index) => ({
+      rpm: 1500 + index,
+      boost_actual: Math.sin(index / 12),
+    }),
+  });
+  for (let index = 600; index < source.samples.length; index += 1) {
+    source.samples[index].time_s += 1;
+  }
+
+  const result = resampleTimeBasedSignals(source, {
+    targetRateHz: 20,
+    channels: ["boost_actual"],
+    maxGapFactor: 3,
+  });
+  const segments = result.signals.boost_actual.segments;
+
+  assert.equal(segments.length, 2);
+  assert.ok(segments[0].sourceEndSampleIndex < 600);
+  assert.ok(segments[1].sourceStartSampleIndex >= 600);
+  assert.ok(segments.every(segment => segment.samples.length > 0));
+  assert.equal(source.samples.length, 1201);
+});
+
 test("rechaza tiempo incompleto, duplicado, regresivo y una base demasiado irregular", () => {
   const incomplete = makeTimeRun();
   incomplete.samples[50].time_s = null;
@@ -136,6 +162,25 @@ test("rechaza factores no enteros, upsampling, canales sin tipo y señales demas
   const result = resampleTimeBasedSignals(source, { targetRateHz: 20, channels: ["boost_actual"] });
   assert.equal(result.signals.boost_actual.outputSampleCount, 0);
   assert.ok(result.warnings.some(warning => /segmentos/.test(warning)));
+});
+
+test("rechaza ejes con unidades no canónicas antes de derivar señales", () => {
+  const source = makeTimeRun();
+  assert.throws(() => resampleTimeBasedSignals({
+    ...source,
+    units: { ...source.units, time_s: "ms" },
+  }, { targetRateHz: 20, channels: ["boost_actual"] }),
+  error => error.code === "SIGNAL_PROCESSING_TIME_UNIT_UNSUPPORTED");
+
+  const dyno = makeDynoRun();
+  assert.throws(() => buildRpmSweepCurves({
+    ...dyno,
+    units: { ...dyno.units, rpm: "rad/s" },
+  }), error => error.code === "SIGNAL_PROCESSING_RPM_UNIT_UNSUPPORTED");
+  assert.throws(() => buildRpmSweepCurves({
+    ...dyno,
+    units: { ...dyno.units, torque_nm: "ft-lb" },
+  }), error => error.code === "SIGNAL_PROCESSING_DYNO_UNIT_UNSUPPORTED");
 });
 
 test("valida el origen temporal y parámetros numéricos", () => {
