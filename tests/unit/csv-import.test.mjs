@@ -35,7 +35,7 @@ function importOptions(parsed, overrides = {}) {
   };
 }
 
-test("lee el fixture ECU sintético con BOM, punto y coma y decimales explícitos", async () => {
+test("lee el fixture ECU sintético con punto y coma y decimales explícitos", async () => {
   const csv = await fixture("ecu-synthetic-semicolon.csv");
   const parsed = parseCsvText(csv);
 
