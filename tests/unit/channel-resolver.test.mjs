@@ -178,7 +178,7 @@ test("un encabezado de boost genérico conserva la ambigüedad actual/objetivo",
 
 test("admite un log ECU con tiempo y sin RPM sin inventar el canal faltante", () => {
   const parsed = parseCsvText(
-    "Elapsed Time (ms),Throttle Position (%)\\n0,5\\n100,12\\n200,30\\n",
+    "Elapsed Time (ms),Throttle Position (%)\n0,5\n100,12\n200,30\n",
   );
   const run = mapCsvToRun(parsed, {
     id: "missing-rpm",
@@ -199,7 +199,7 @@ test("admite un log ECU con tiempo y sin RPM sin inventar el canal faltante", ()
 
 test("admite una curva de dinamómetro RPM vs torque sin eje temporal", () => {
   const parsed = parseCsvText(
-    "Engine RPM,Wheel Torque (Nm)\\n2000,180\\n3000,210\\n4000,195\\n",
+    "Engine RPM,Wheel Torque (Nm)\n2000,180\n3000,210\n4000,195\n",
   );
   const run = mapCsvToRun(parsed, {
     id: "dyno-no-time",
@@ -223,7 +223,7 @@ test("admite una curva de dinamómetro RPM vs torque sin eje temporal", () => {
 
 test("requiere al menos un eje y no admite torque/potencia dyno sin RPM", () => {
   const parsed = parseCsvText(
-    "Throttle Position (%),Coolant Temperature (C)\\n10,85\\n20,90\\n",
+    "Throttle Position (%),Coolant Temperature (C)\n10,85\n20,90\n",
   );
   assert.throws(() => mapCsvToRun(parsed, {
     id: "no-axis",
@@ -234,7 +234,7 @@ test("requiere al menos un eje y no admite torque/potencia dyno sin RPM", () => 
     importedAt: "2026-11-03T00:00:00.000Z",
   }), error => error.code === "CSV_AXIS_REQUIRED");
 
-  const dyno = parseCsvText("Time (s),Wheel Torque (Nm)\\n0,180\\n0.1,195\\n");
+  const dyno = parseCsvText("Time (s),Wheel Torque (Nm)\n0,180\n0.1,195\n");
   assert.throws(() => mapCsvToRun(dyno, {
     id: "dyno-no-rpm",
     name: "Dyno sin RPM",
@@ -248,7 +248,7 @@ test("requiere al menos un eje y no admite torque/potencia dyno sin RPM", () => 
 
 test("calcula frecuencia observada y jitter robusto por canal sin afirmar frecuencia configurada", () => {
   const parsed = parseCsvText(
-    "Elapsed Time (s),Engine RPM,Throttle Position (%)\\n0,1000,5\\n0.1,1100,10\\n0.2,1200,15\\n0.4,1400,20\\n",
+    "Elapsed Time (s),Engine RPM,Throttle Position (%)\n0,1000,5\n0.1,1100,10\n0.2,1200,15\n0.4,1400,20\n",
   );
   const run = mapCsvToRun(parsed, {
     id: "sampling-profile",
@@ -305,7 +305,7 @@ test("el perfil numérico respeta el separador decimal declarado y no interpreta
 
 test("una alerta de plausibilidad señala el rango sin corregir ni descartar la muestra", () => {
   const parsed = parseCsvText(
-    "Elapsed Time (s),Engine RPM,Throttle Position (%)\\n0,1000,50\\n0.1,1100,110\\n0.2,1200,60\\n",
+    "Elapsed Time (s),Engine RPM,Throttle Position (%)\n0,1000,50\n0.1,1100,110\n0.2,1200,60\n",
   );
   const run = mapCsvToRun(parsed, {
     id: "plausibility-review",
@@ -385,7 +385,7 @@ test("no confunde velocidad de rueda/rodillo con velocidad del vehículo", () =>
 
 test("el jitter se informa con MAD de intervalos por canal", () => {
   const parsed = parseCsvText(
-    "Elapsed Time (s),Engine RPM\\n0,1000\\n0.1,1100\\n0.3,1200\\n0.6,1300\\n",
+    "Elapsed Time (s),Engine RPM\n0,1000\n0.1,1100\n0.3,1200\n0.6,1300\n",
   );
   const run = mapCsvToRun(parsed, {
     id: "irregular-sampling",

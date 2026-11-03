@@ -52,7 +52,7 @@ test("lee el fixture ECU sintético con punto y coma y decimales explícitos", a
   assert.equal(run.sourceDomain, "ecu");
   assert.equal(run.samples[1].channels.torque_nm, 151.25);
   assert.equal(run.samples[1].channels.rpm, 2100);
-  assert.equal(run.samples[1].sourceValues.time_s, "0.1");
+  assert.equal(run.samples[1].sourceValues.time_s, "0,10");
   assert.equal(run.samples[1].sourceValues.rpm, "2100");
   assert.equal(run.runManifest.role, "exploratory");
   assert.equal(assessRunDataQuality(run).status, "no_obvious_issues");
@@ -524,7 +524,7 @@ test("el comparador no trata una base de dinamómetro desconocida como equivalen
 
 test("la base física declarada no puede contradecir los calificadores de torque/potencia", async () => {
   const parsed = parseCsvText(
-    "Engine RPM,Wheel Torque (Nm),Wheel Power (kW)\\n2000,180,55\\n3000,210,80\\n",
+    "Engine RPM,Wheel Torque (Nm),Wheel Power (kW)\n2000,180,55\n3000,210,80\n",
   );
   const common = {
     id: "basis-header-conflict",
@@ -542,7 +542,7 @@ test("la base física declarada no puede contradecir los calificadores de torque
     error => error.code === "CSV_DYNO_BASIS_HEADER_MISMATCH");
 
   const conflictingLabels = parseCsvText(
-    "Engine RPM,Wheel Torque (Nm),Engine Power (kW)\\n2000,180,55\\n3000,210,80\\n",
+    "Engine RPM,Wheel Torque (Nm),Engine Power (kW)\n2000,180,55\n3000,210,80\n",
   );
   assert.throws(() => mapCsvToRun(conflictingLabels, {
     ...common,
