@@ -98,8 +98,9 @@ function appendTable(container, headers, rows) {
 
 function renderQuality(run, quality) {
   const host = $("#csvQualityTable");
+  const channelLabels = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition.label]));
   const rows = quality.channels.map(channel => [
-    channel.key,
+    channelLabels.get(channel.key) ?? channel.key,
     run.units[channel.key] ?? "—",
     channel.validCount + " / " + quality.sampleCount,
     channel.coveragePct.toFixed(2).replace(".", ",") + "%",
@@ -113,8 +114,11 @@ function renderQuality(run, quality) {
 }
 
 function renderSamplePreview(run) {
+  const channelLabels = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition.label]));
   const channelKeys = Object.keys(run.units).filter(key => key !== "time_s");
-  const headers = ["Fila", "Tiempo (s)", ...channelKeys.map(key => key + " (" + run.units[key] + ")")];
+  const headers = ["Fila", "Tiempo (s)", ...channelKeys.map(key =>
+    (channelLabels.get(key) ?? key) + " (" + run.units[key] + ")"
+  )];
   const rows = run.samples.slice(0, 8).map((sample, index) => [
     String(index + 2),
     sample.time_s === null ? "—" : String(sample.time_s),
