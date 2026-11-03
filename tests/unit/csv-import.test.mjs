@@ -90,7 +90,7 @@ test("admite BOM, CRLF, comillas escapadas y saltos de línea dentro de celdas",
 
 
 test("ignora filas completamente vacías y conserva su recuento de origen", () => {
-  const parsed = parseCsvText("time_s,rpm\\n0,1000\\n\\n1,2000\\n");
+  const parsed = parseCsvText("time_s,rpm\n0,1000\n\n1,2000\n");
   assert.equal(parsed.rows.length, 2);
   assert.equal(parsed.skippedEmptyRows, 1);
   assert.equal(parsed.sourceRowCount, 4);
