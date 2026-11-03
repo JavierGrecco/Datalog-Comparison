@@ -282,7 +282,7 @@ function parseNumericCell(rawValue, decimalSeparator, rowNumber, columnName) {
 function compactUnit(unit) {
   return String(unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("en-US")
     .replace(/[°]/g, "")
-    .replace(/[\\s·._-]/g, "");
+    .replace(/[\s·._-]/g, "");
 }
 
 /**
