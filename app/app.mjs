@@ -5,6 +5,7 @@ import {
 } from "../src/demo-model.mjs";
 import { assessComparisonReadiness } from "../src/comparison-readiness.mjs";
 import { initializeCsvInspector } from "./csv-inspector.mjs";
+import { DEFAULT_MAX_DISPLAY_POINTS, decimateSeriesForDisplay } from "../src/series-display.mjs";
 
 const state = { caseId: "complete", demoCase: null, readiness: null };
 const $ = selector => document.querySelector(selector);
@@ -54,34 +55,47 @@ function appendSvg(svg, tag, attrs = {}, text = null) {
 }
 
 function drawChart(container, { metric, title, unit, reference, candidate }) {
-  const referenceAvailable = finiteValues(reference, metric).length > 1;
-  const candidateAvailable = finiteValues(candidate, metric).length > 1;
-  if (!referenceAvailable || !candidateAvailable) {
-    const missing = !referenceAvailable && !candidateAvailable
-      ? "ambos registros" : !referenceAvailable ? "la referencia" : "la candidata";
+  const countValidPoints = run => {
+    let count = 0;
+    for (const sample of run.samples ?? []) {
+      if (Number.isFinite(sample?.channels?.rpm) &&
+          Number.isFinite(sample?.channels?.[metric])) count += 1;
+    }
+    return count;
+  };
+  const referenceCount = countValidPoints(reference);
+  const candidateCount = countValidPoints(candidate);
+  if (referenceCount < 2 || candidateCount < 2) {
+    const missing = referenceCount < 2 && candidateCount < 2
+      ? "ambos registros" : referenceCount < 2 ? "la referencia" : "la candidata";
     container.innerHTML = '<div class="empty-chart">No hay suficientes muestras numéricas para dibujar ' +
       esc(title.toLowerCase()) + " en " + esc(missing) + ".</div>";
     return;
   }
 
-  const allPoints = [reference, candidate].flatMap(run =>
-    run.samples.map(sample => ({ x: sample?.channels?.rpm, y: sample?.channels?.[metric] }))
-      .filter(point => Number.isFinite(point.x) && Number.isFinite(point.y))
-  );
-  const minX = Math.min(...allPoints.map(point => point.x));
-  const maxX = Math.max(...allPoints.map(point => point.x));
-  const rawMinY = Math.min(...allPoints.map(point => point.y));
-  const rawMaxY = Math.max(...allPoints.map(point => point.y));
+  const bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+  for (const run of [reference, candidate]) {
+    for (const sample of run.samples ?? []) {
+      const x = sample?.channels?.rpm;
+      const y = sample?.channels?.[metric];
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      bounds.minX = Math.min(bounds.minX, x);
+      bounds.maxX = Math.max(bounds.maxX, x);
+      bounds.minY = Math.min(bounds.minY, y);
+      bounds.maxY = Math.max(bounds.maxY, y);
+    }
+  }
+  const { minX, maxX, minY: rawMinY, maxY: rawMaxY } = bounds;
   const yPadding = Math.max((rawMaxY - rawMinY) * 0.12, 1);
-  const minY = rawMinY - yPadding;
-  const maxY = rawMaxY + yPadding;
+  const plotMinY = rawMinY - yPadding;
+  const plotMaxY = rawMaxY + yPadding;
   const width = 780;
   const height = 238;
   const margin = { left: 68, right: 24, top: 22, bottom: 42 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const xFor = x => margin.left + (x - minX) / Math.max(maxX - minX, 1) * plotWidth;
-  const yFor = y => margin.top + (maxY - y) / Math.max(maxY - minY, 1) * plotHeight;
+  const yFor = y => margin.top + (plotMaxY - y) / Math.max(plotMaxY - plotMinY, 1) * plotHeight;
 
   const card = document.createElement("article");
   card.className = "curve-card";
@@ -99,7 +113,7 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
 
   for (let index = 0; index <= 4; index += 1) {
     const y = margin.top + plotHeight * index / 4;
-    const value = maxY - (maxY - minY) * index / 4;
+    const value = plotMaxY - (plotMaxY - plotMinY) * index / 4;
     appendSvg(svg, "line", { x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "grid-line" });
     appendSvg(svg, "text", { x: margin.left - 10, y: y + 4, "text-anchor": "end", class: "axis-label" }, fmt(value));
   }
@@ -116,9 +130,14 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
   appendSvg(svg, "text", { x: margin.left + plotWidth / 2, y: height - 2, "text-anchor": "middle", class: "axis-title" }, "RPM");
 
   const drawRun = (run, className) => {
+    const displaySamples = decimateSeriesForDisplay(run.samples ?? [], {
+      maxPoints: DEFAULT_MAX_DISPLAY_POINTS,
+      getX: sample => sample?.channels?.rpm,
+      getY: sample => sample?.channels?.[metric],
+    });
     let d = "";
     let penDown = false;
-    for (const sample of run.samples) {
+    for (const sample of displaySamples) {
       const x = sample?.channels?.rpm;
       const y = sample?.channels?.[metric];
       if (!Number.isFinite(x) || !Number.isFinite(y)) {
@@ -140,7 +159,6 @@ function drawChart(container, { metric, title, unit, reference, candidate }) {
   card.append(svg, legend);
   container.append(card);
 }
-
 function statusLabel(status) {
   if (status === "blocked") return "Bloqueado";
   if (status === "review_required") return "Requiere revisión";

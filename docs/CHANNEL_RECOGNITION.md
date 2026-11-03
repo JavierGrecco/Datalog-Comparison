@@ -111,7 +111,9 @@ La aplicación separará tres capas:
 2. **Semántica canónica:** nombres, dimensiones, unidades y roles confirmados.
 3. **Señales derivadas:** sincronización, filtrado, interpolación, remuestreo, segmentación por barrido y curvas por RPM.
 
-La tercera capa no está habilitada por este cambio. Cuando se incorpore, deberá declarar su método, frecuencia objetivo y límites; mantener intacta la fuente; interpolar solo señales continuas; usar retención de último valor para estados discretos; preservar eventos; no extrapolar ni cruzar huecos relevantes; y aplicar filtrado antialias antes de reducir la frecuencia. Las curvas de dinamómetro requieren tratamiento por régimen y segmentación de barridos, no remuestreo temporal indiscriminado.
+La capa de señales derivadas aún no realiza sincronización ni remuestreo. Cuando se incorpore, deberá declarar método, frecuencia objetivo y límites; mantener intacta la fuente; interpolar solo señales continuas; usar retención de último valor para estados discretos; preservar eventos; no extrapolar ni cruzar huecos relevantes; y aplicar filtrado antialias antes de reducir la frecuencia. Las curvas de dinamómetro requieren tratamiento por régimen y segmentación de barridos, no remuestreo temporal indiscriminado.
+
+La decimación disponible en `src/series-display.mjs` es distinta: reduce únicamente los puntos enviados al SVG, con selección min/max por bloques. Conserva primera/última muestra de cada segmento y un separador por hueco para que el trazo no conecte datos ausentes. El límite de puntos es flexible si preservar todos los huecos requiere más marcadores. Las métricas, el archivo importado y cualquier cálculo siguen usando las muestras originales.
 
 ## Versionado y evolución
 

@@ -29,6 +29,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 | src/source-policy.mjs | Clasificación de fuentes y bloqueo de mezclas ECU/logger–dinamómetro. |
 | src/data-quality.mjs | Perfil de muestras, cobertura, secuencia temporal y metadatos. |
 | src/sample-selection.mjs | Selección determinista de muestras originales para vistas de inspección, sin interpolación ni mutación. |
+| src/series-display.mjs | Decimación min/max solo para SVG; conserva extremos y cortes de datos faltantes sin modificar los registros. |
 | src/run-comparability.mjs | Detección de canales compartidos y compatibilidad declarada de unidades. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
