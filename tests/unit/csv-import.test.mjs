@@ -136,15 +136,15 @@ test("importa bloques Channel/ID/Type sin confundir canales derivados ni objetiv
   assert.equal(run.importMetadata.parserId, "haltech-nsp-channel-metadata/1");
   assert.equal(run.importMetadata.importFormat, "haltech-nsp-metadata-csv/1");
   assert.equal(run.samples.length, 3);
-  assert.equal(run.samples[0].channels.rpm, 1225);
-  assert.ok(Math.abs(run.samples[0].channels.boost_actual - (-25.3)) < 1e-9);
-  assert.equal(run.samples[0].channels.boost_target, 0);
-  assert.ok(Math.abs(run.samples[0].channels.lambda - 0.976) < 1e-9);
+  assert.equal(run.samples[0].channels.rpm, 1450);
+  assert.ok(Math.abs(run.samples[0].channels.boost_actual - 23.7) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.boost_target - 48.7) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.lambda - 0.965) < 1e-9);
   assert.equal(run.samples[1].channels.lambda, null, "el sentinel NSP debe conservarse como faltante");
-  assert.equal(run.samples[0].channels.throttle_pct, 30.1);
-  assert.ok(Math.abs(run.samples[0].channels.iat_c - 43.45) < 1e-9);
-  assert.ok(Math.abs(run.samples[0].channels.coolant_temp_c - 70.25) < 1e-9);
-  assert.ok(Math.abs(run.samples[0].channels.fuel_pressure_kpa - 339.9) < 1e-9);
+  assert.equal(run.samples[0].channels.throttle_pct, 42.5);
+  assert.ok(Math.abs(run.samples[0].channels.iat_c - 28.35) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.coolant_temp_c - 88.35) < 1e-9);
+  assert.ok(Math.abs(run.samples[0].channels.fuel_pressure_kpa - 298.7) < 1e-9);
   assert.equal(run.samples[0].channels.speed_kmh, 0);
 
   assert.equal(Object.hasOwn(run.units, "map_abs_kpa"), false,
@@ -155,7 +155,7 @@ test("importa bloques Channel/ID/Type sin confundir canales derivados ni objetiv
   assert.ok(run.importMetadata.adapterMetadata.unsupportedChannels.some(channel =>
     channel.name === "Target Lambda" && channel.type === "AFR"
   ));
-  assert.equal(run.importMetadata.adapterMetadata.sourceMetadata["Log Number"], "1118");
+  assert.equal(run.importMetadata.adapterMetadata.sourceMetadata["Log Number"], "synthetic-001");
   assert.ok(run.importMetadata.headerRows.length > 10);
   assert.equal(assessRunDataQuality(run).sourceMetadata.consistent, true);
   assert.ok(run.warnings.some(warning => /Wideband O2 Overall.*lambda/i.test(warning)));

@@ -183,9 +183,9 @@ test("la variante Haltech Channel/ID/Type se importa localmente y muestra sus ca
     "ID : 8018",
     "Type : AFR",
     "DisplayMaxMin : 1361,-110",
-    "14:15:46.000,3696,1225,760,976",
-    "14:15:46.020,3116,1312,771,980",
-    "14:15:46.040,4344,1394,935,982",
+    "00:00:00.000,50,1450,1250,965",
+    "00:00:00.020,30,1650,1300,980",
+    "00:00:00.040,70,1800,1400,950",
   ].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "haltech-metadata-variant.csv",

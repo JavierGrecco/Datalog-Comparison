@@ -1,55 +1,55 @@
 %DataLog%
 DataLogVersion : 1.1
 Software : Haltech NSP
-SoftwareVersion : fixture
-DownloadDateTime : 20260718 04:09:48
+SoftwareVersion : fixture-only
+DownloadDateTime : 20261101 00:00:00
 Channel : Manifold Pressure Derivative
-ID : 1592
+ID : 9901
 Type : AbsPressure
-DisplayMaxMin : 32000,-32000
+DisplayMaxMin : 10000,-10000
 Channel : RPM
-ID : 384
+ID : 9902
 Type : EngineSpeed
-DisplayMaxMin : 20000,0
+DisplayMaxMin : 8000,0
 Channel : Boost Control Actual Pressure
-ID : 1463
+ID : 9903
 Type : Pressure
-DisplayMaxMin : 15013,13
+DisplayMaxMin : 25013,13
 Channel : Boost Control Target Pressure (Corrected)
-ID : 1461
+ID : 9904
 Type : Pressure
-DisplayMaxMin : 15013,1013
+DisplayMaxMin : 25013,1013
 Channel : Wideband O2 Overall
-ID : 8018
+ID : 9905
 Type : AFR
-DisplayMaxMin : 1361,-110
+DisplayMaxMin : 1500,600
 Channel : Target Lambda
-ID : 132
+ID : 9906
 Type : AFR
-DisplayMaxMin : 1361,476
+DisplayMaxMin : 1500,600
 Channel : Throttle Position
-ID : 225
+ID : 9907
 Type : Percentage
 DisplayMaxMin : 1000,0
 Channel : Intake Air Temperature
-ID : 228
+ID : 9908
 Type : Temperature
-DisplayMaxMin : 6231,2331
+DisplayMaxMin : 3731,2731
 Channel : Coolant Temperature
-ID : 229
+ID : 9909
 Type : Temperature
-DisplayMaxMin : 4731,2331
+DisplayMaxMin : 4731,2731
 Channel : Fuel Pressure
-ID : 234
+ID : 9910
 Type : Pressure
-DisplayMaxMin : 31013,1013
+DisplayMaxMin : 1013,15013
 Channel : Vehicle Speed
-ID : 397
+ID : 9911
 Type : Speed
-DisplayMaxMin : 4000,0
-Log Source : 20
-Log Number : 1118
-Log : 20260718 02:15:46
-14:15:46.000,3696,1225,760,1013,976,937,301,3166,3434,4412,0
-14:15:46.020,3116,1312,771,1013,-2147483617,937,368,3167,3435,4420,0
-14:15:46.040,4344,1394,935,1013,980,925,415,3166,3435,4430,0
+DisplayMaxMin : 3000,0
+Log Source : synthetic-fixture
+Log Number : synthetic-001
+Log : 20261101 00:00:00
+00:00:00.000,50,1450,1250,1500,965,980,425,3015,3615,4000,0
+00:00:00.020,30,1650,1300,1500,-2147483617,980,510,3025,3620,4030,0
+00:00:00.040,70,1800,1400,1600,950,970,610,3035,3630,4080,0
