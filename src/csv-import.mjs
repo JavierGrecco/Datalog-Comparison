@@ -278,6 +278,123 @@ function parseNumericCell(rawValue, decimalSeparator, rowNumber, columnName) {
   return value;
 }
 
+
+function compactUnit(unit) {
+  return String(unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("en-US")
+    .replace(/[°]/g, "")
+    .replace(/[\\s·._-]/g, "");
+}
+
+/**
+ * Normaliza unidades declaradas a las unidades canónicas que implican las
+ * claves de canal. No deduce unidades de nombres de columna.
+ */
+function resolveCanonicalUnit(channelKey, sourceUnit) {
+  const unit = compactUnit(sourceUnit);
+  const aliases = {
+    torque_nm: { nm: ["nm", "newtonmeter", "newtonmeters"], "ft-lb": ["ftlb", "lbft", "lbfft"] },
+    power_kw: { kw: ["kw"], w: ["w"], hp: ["hp", "bhp"], ps: ["ps", "cv"] },
+    speed_kmh: { "km/h": ["km/h", "kph", "kmh"], mph: ["mph"], "m/s": ["m/s", "mps"] },
+    boost_target: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
+    boost_actual: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
+    map_abs_kpa: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
+    fuel_pressure_kpa: { kpa: ["kpa"], bar: ["bar"], psi: ["psi"], mbar: ["mbar"], pa: ["pa"] },
+    iat_c: { c: ["c", "celsius", "degc"], f: ["f", "fahrenheit", "degf"], k: ["k", "kelvin"] },
+    coolant_temp_c: { c: ["c", "celsius", "degc"], f: ["f", "fahrenheit", "degf"], k: ["k", "kelvin"] },
+    battery_v: { v: ["v", "volt", "volts"], mv: ["mv", "millivolt", "millivolts"] },
+    throttle_pct: { pct: ["%", "percent", "percentage"] },
+    ignition_advance_deg: { deg: ["deg", "degree", "degrees"], rad: ["rad", "radian", "radians"] },
+    afr: { afr: ["afr"] },
+    lambda: { lambda: ["lambda", "λ"] },
+  };
+  const channelAliases = aliases[channelKey];
+  if (!channelAliases) {
+    fail("CSV_CHANNEL_UNIT_UNSUPPORTED", "No existe una regla de unidades para el canal solicitado.", {
+      channel: channelKey, sourceUnit,
+    });
+  }
+  let matched = null;
+  for (const [kind, values] of Object.entries(channelAliases)) {
+    if (values.some(value => compactUnit(value) === unit)) {
+      matched = kind;
+      break;
+    }
+  }
+  if (!matched) {
+    fail("CSV_CHANNEL_UNIT_UNSUPPORTED",
+      "La unidad '" + String(sourceUnit) + "' no está admitida para el canal " + channelKey + ". No se convirtió el valor.",
+      { channel: channelKey, sourceUnit });
+  }
+
+  const rules = {
+    torque_nm: {
+      nm: ["Nm", 1, 0],
+      "ft-lb": ["Nm", 1.3558179483314004, 0],
+    },
+    power_kw: {
+      kw: ["kW", 1, 0],
+      w: ["kW", 0.001, 0],
+      hp: ["kW", 0.7456998715822702, 0],
+      ps: ["kW", 0.73549875, 0],
+    },
+    speed_kmh: {
+      "km/h": ["km/h", 1, 0],
+      mph: ["km/h", 1.609344, 0],
+      "m/s": ["km/h", 3.6, 0],
+    },
+    boost_target: {
+      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
+      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
+    },
+    boost_actual: {
+      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
+      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
+    },
+    map_abs_kpa: {
+      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
+      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
+    },
+    fuel_pressure_kpa: {
+      kpa: ["kPa", 1, 0], bar: ["kPa", 100, 0], psi: ["kPa", 6.894757293168, 0],
+      mbar: ["kPa", 0.1, 0], pa: ["kPa", 0.001, 0],
+    },
+    iat_c: {
+      c: ["°C", 1, 0], f: ["°C", 5 / 9, -32 * 5 / 9], k: ["°C", 1, -273.15],
+    },
+    coolant_temp_c: {
+      c: ["°C", 1, 0], f: ["°C", 5 / 9, -32 * 5 / 9], k: ["°C", 1, -273.15],
+    },
+    battery_v: {
+      v: ["V", 1, 0], mv: ["V", 0.001, 0],
+    },
+    throttle_pct: {
+      pct: ["%", 1, 0],
+    },
+    ignition_advance_deg: {
+      deg: ["deg", 1, 0], rad: ["deg", 180 / Math.PI, 0],
+    },
+    afr: { afr: ["AFR", 1, 0] },
+    lambda: { lambda: ["lambda", 1, 0] },
+  };
+  const [canonicalUnit, factor, offset] = rules[channelKey][matched];
+  return {
+    sourceUnit: String(sourceUnit).trim(),
+    canonicalUnit,
+    factor,
+    offset,
+    conversionApplied: factor !== 1 || offset !== 0,
+  };
+}
+
+function convertToCanonical(value, rule) {
+  if (value === null) return null;
+  const converted = value * rule.factor + rule.offset;
+  if (!Number.isFinite(converted)) {
+    fail("CSV_UNIT_CONVERSION_NON_FINITE", "La conversión de unidades produjo un valor no finito.");
+  }
+  return converted;
+}
+
 function safeDisplayName(value, fallback) {
   const name = String(value ?? "").split(/[\\/]/).pop().trim();
   return (name || fallback).slice(0, 120);
@@ -331,18 +448,22 @@ export function mapCsvToRun(parsed, {
   }
 
   const headerIndexes = new Map(parsed.headers.map((header, index) => [header, index]));
+  const unitRules = {};
   for (const [key, header] of Object.entries(mapping)) {
     if (!headerIndexes.has(header)) fail("CSV_MAPPING_HEADER_UNKNOWN",
       "La columna asignada ya no existe en el archivo.", { channel: key, header });
     const definition = definitions.get(key);
-    const unit = definition.fixedUnit ?? String(units[key] ?? "").trim();
-    if (!unit || unit.length > 32) fail("CSV_CHANNEL_UNIT_REQUIRED",
+    const sourceUnit = definition.fixedUnit ?? String(units[key] ?? "").trim();
+    if (!sourceUnit || sourceUnit.length > 32) fail("CSV_CHANNEL_UNIT_REQUIRED",
       "Declarar una unidad válida es obligatorio para cada canal asignado.", { channel: key });
-    if (definition.fixedUnit && unit !== definition.fixedUnit) {
+    if (definition.fixedUnit && sourceUnit !== definition.fixedUnit) {
       fail("CSV_FIXED_UNIT_MISMATCH", "El canal " + key + " debe expresarse en " + definition.fixedUnit + ".", {
-        channel: key, expectedUnit: definition.fixedUnit, actualUnit: unit,
+        channel: key, expectedUnit: definition.fixedUnit, actualUnit: sourceUnit,
       });
     }
+    unitRules[key] = definition.fixedUnit
+      ? { sourceUnit, canonicalUnit: definition.fixedUnit, factor: 1, offset: 0, conversionApplied: false }
+      : resolveCanonicalUnit(key, sourceUnit);
   }
   if (decimalSeparator === "," && parsed.delimiter === ",") {
     fail("CSV_DECIMAL_DELIMITER_CONFLICT",
@@ -362,8 +483,9 @@ export function mapCsvToRun(parsed, {
   const sampleRows = parsed.rows.map((row, index) => {
     const channels = {};
     for (const [key, header] of Object.entries(mapping)) {
-      channels[key] = parseNumericCell(row[headerIndexes.get(header)], decimalSeparator,
+      const rawValue = parseNumericCell(row[headerIndexes.get(header)], decimalSeparator,
         index + sourceHeaderRow + 1, header);
+      channels[key] = convertToCanonical(rawValue, unitRules[key]);
     }
     return { time_s: channels.time_s, channels };
   });
@@ -391,12 +513,21 @@ export function mapCsvToRun(parsed, {
     measurementBasis: sourceDomain === "dyno" ? measurementBasis : null,
     measurementBasisLabel: sourceDomain === "dyno" ? basisLabel : null,
     samples: sampleRows,
-    units: Object.fromEntries(Object.entries(mapping).map(([key]) => [
-      key, definitions.get(key).fixedUnit ?? String(units[key]).trim(),
-    ])),
+    units: Object.fromEntries(Object.entries(unitRules).map(([key, rule]) => [key, rule.canonicalUnit])),
     importMetadata: {
       parserId,
       importFormat,
+      unitNormalizationVersion: "datalog-units/1",
+      sourceUnits: Object.fromEntries(Object.entries(unitRules).map(([key, rule]) => [key, rule.sourceUnit])),
+      unitConversions: Object.fromEntries(Object.entries(unitRules)
+        .filter(([, rule]) => rule.conversionApplied)
+        .map(([key, rule]) => [key, {
+          from: rule.sourceUnit,
+          to: rule.canonicalUnit,
+          factor: rule.factor,
+          offset: rule.offset,
+          formula: "canonical = source × factor + offset",
+        }])),
       sourceRowCount: parsed.sourceRowCount,
       headerRows: [sourceHeaderRow],
       skippedNonEmptyRowCount: 0,
@@ -407,7 +538,9 @@ export function mapCsvToRun(parsed, {
     operatingConditions: createEmptyOperatingConditions(),
     warnings: [
       ...parsed.warnings,
-      "El origen y las unidades fueron declarados o interpretados por el perfil; no se autentican automáticamente.",
+      ...Object.entries(unitRules).filter(([, rule]) => rule.conversionApplied).map(([key, rule]) =>
+        key + ": se normalizó " + rule.sourceUnit + " a " + rule.canonicalUnit + " mediante una conversión explícita y versionada."),
+      "El origen y las unidades originales fueron declarados o interpretados por el perfil; no se autentican automáticamente.",
       "El archivo se inspeccionó localmente; no se habilita por sí solo una comparación con otro registro.",
       ...(sourceDomain === "dyno" && measurementBasis === "unknown"
         ? ["La base de medición de torque/potencia del dinamómetro permanece sin identificar."]

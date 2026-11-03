@@ -108,7 +108,7 @@ function resolveChannel(descriptor) {
   else if (type === "Angle" && /(ignition|timing|spark)/.test(name)) key = "ignition_advance_deg";
   else if (type === "BatteryVoltage" && /(battery|batt)/.test(name)) key = "battery_v";
   else if (type === "Speed" && /(vehicle speed|road speed)/.test(name)) key = "speed_kmh";
-  else if (type === "AFR" && /(afr|air fuel)/.test(name)) key = "afr";
+  // AFR is intentionally not mapped: community sources disagree on whether the exported type carries AFR or lambda.
   else if (type === "Raw" && /torque/.test(name) && unitIs(unit, "Nm", "N.m")) key = "torque_nm";
   else if (type === "Raw" && /power/.test(name) && unitIs(unit, "kW")) key = "power_kw";
 
@@ -123,6 +123,16 @@ function getHaltechPayload(text) {
   }
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
   const markerLine = firstNonEmptyLine(lines);
+  const body = lines.slice(markerLine + 1).map(line => line.trim().toLocaleLowerCase("en-US"));
+  const usesChannelList = body.some(line => line.startsWith("channel :"));
+  const usesChannelTable = body.some(line => line === "channel,id,type,displaymaxmin");
+  if (usesChannelList || usesChannelTable) {
+    fail(
+      "HALTECH_LAYOUT_UNSUPPORTED",
+      "El archivo usa una variante Haltech NSP con bloque de metadatos y definiciones de canales (Channel/ID/Type). Este perfil solo admite encabezados tipados en una única fila CSV; no se reinterpretó el archivo.",
+      { detectedLayout: usesChannelList ? "channel-list" : "channel-table" },
+    );
+  }
   let headerLine = -1;
   for (let index = markerLine + 1; index < lines.length; index += 1) {
     if (lines[index].trim()) {
@@ -202,6 +212,12 @@ export function importHaltechNspCsv(text, { id, name, importedAt = new Date().to
     warnings.push(unsupported.length + " canal(es) del archivo NSP no se normalizaron porque el perfil no implementa su semántica o conversión: " +
       unsupported.map(item => item.name + " (" + item.type + ": " + item.unit + ")").join(", ") + ".");
   }
+  if (descriptors.some(item => item.type === "AFR")) {
+    warnings.push("El tipo AFR se dejó fuera del registro canónico: las referencias comunitarias consultadas difieren sobre si sus valores representan AFR o lambda. Se necesita contrastarlo con una exportación NSP real.");
+  }
+  if (supported.some(item => item.descriptor.type === "Pressure")) {
+    warnings.push("Los canales de tipo Pressure se convierten a presión relativa restando una referencia fija de 101,3 kPa, según la especificación comunitaria; no se sustituye por una medición barométrica registrada en el archivo.");
+  }
   warnings.push(
     "Perfil Haltech NSP experimental: las conversiones tipadas siguen una especificación comunitaria de interoperabilidad, no una certificación del fabricante. Confirmá los valores con NSP antes de utilizarlos.",
   );
@@ -219,13 +235,17 @@ export function importHaltechNspCsv(text, { id, name, importedAt = new Date().to
     sourceHeaderRow,
     adapterMetadata: {
       marker: "%DataLog%",
+      layout: "typed-single-header-row",
+      sourceSpecification: "UltraLog FORMAT_SPECIFICATIONS.md · community reverse-engineering · document 1.0",
       timestampFormat: "HH:MM:SS.mmm",
+      ...(supported.some(item => item.descriptor.type === "Pressure") ? { assumedAtmosphericPressureKpa: 101.3 } : {}),
       channelDescriptors: descriptors.map(({ name: channelName, type, unit }) => ({
         name: channelName, type, unit,
       })),
       supportedChannels: supported.map(item => item.key),
       unsupportedChannels: unsupported,
       conversionPolicy: "community-format-spec-v1",
+      ambiguousTypesExcluded: ["AFR"],
     },
   });
   run.warnings.push(...warnings);
