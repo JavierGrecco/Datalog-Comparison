@@ -154,7 +154,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - Haltech NSP se limita a una variante experimental de CSV con marcador %DataLog%; no representa compatibilidad universal.
 - Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo.
 - La importación no habilita comparación entre dos archivos.
-- No convierte unidades, demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud.
+- No demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud. La normalización de unidades admitidas queda registrada.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.
 - No escribe, modifica ni programa una ECU; tampoco diagnostica fallas, demuestra causalidad o emite recomendaciones de calibración validadas.
 

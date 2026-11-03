@@ -160,6 +160,32 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   assert.equal(await page.locator("#csvFile").inputValue(), "");
 });
 
+test("una exportación Haltech con bloque Channel/ID/Type se identifica pero no se fuerza al parser v1", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const text = [
+    "%DataLog%",
+    "Version : 2",
+    "Channel : Engine Speed",
+    "Channel : Manifold Pressure",
+    "00:00:01.000,1800,1000",
+    "00:00:01.100,1900,1020",
+  ].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "haltech-metadata-variant.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(text, "utf8"),
+  });
+  await page.locator("#csvImportStatus").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvImportStatus").innerText(), /variante Haltech NSP.*no se reinterpretó/i);
+  assert.equal(await page.locator("#csvPreview").isVisible(), false);
+  assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
 test("la variante Haltech NSP se detecta por marcador y se inspecciona sin mapeo manual", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });

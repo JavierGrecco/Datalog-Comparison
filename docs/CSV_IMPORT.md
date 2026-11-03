@@ -20,7 +20,7 @@ Hay tres rutas de importación:
 6. En dinamómetro, declarar la base de torque/potencia: rueda, rodillo, cubo, motor o desconocida.
 7. Inspeccionar cobertura, alertas y una muestra de filas.
 
-Tiempo relativo en segundos y RPM son obligatorios en la ruta genérica. No se convierten unidades, relojes, presión absoluta/relativa ni bases de medición implícitamente.
+Tiempo relativo en segundos y RPM son obligatorios en la ruta genérica. Las unidades admitidas se normalizan mediante reglas explícitas y versionadas; la unidad original y la conversión aplicada quedan registradas en metadatos. No se infieren unidades por el nombre del encabezado ni se convierten bases físicas de medición.
 
 ## Parser CSV genérico
 
@@ -38,7 +38,7 @@ Tiempo relativo en segundos y RPM son obligatorios en la ruta genérica. No se c
 
 ### Identificación y alcance
 
-El adaptador reconoce únicamente la variante descrita por una especificación comunitaria de interoperabilidad:
+El adaptador reconoce únicamente la variante de una sola fila de encabezados tipados descrita por la especificación comunitaria UltraLog 1.0:
 
 - Primer registro no vacío: %DataLog%.
 - Encabezado con estructura Canal(Tipo:Unidad).
@@ -47,7 +47,7 @@ El adaptador reconoce únicamente la variante descrita por una especificación c
 - Delimitador: coma.
 - Decimal: punto.
 
-No se afirma compatibilidad con todas las versiones, modelos, tipos de canal ni archivos NSP. Otra estructura debe rechazarse o abrirse y exportarse nuevamente desde el software correspondiente a la variante admitida.
+Las estructuras con metadatos y definiciones separadas de canales (por ejemplo, registros `Channel : ...` o tablas `Channel,ID,Type,DisplayMaxMin`) se identifican y rechazan con un error específico. OpenECU Alliance 2.0.0 describe una variante de esta familia, pero todavía no tenemos un archivo real ni un contrato de columnas completo validado para implementarla. No se afirma compatibilidad con todas las versiones, modelos o archivos NSP.
 
 ### Conversiones implementadas
 
@@ -63,10 +63,10 @@ Las conversiones tipadas siguen la tabla publicada por la especificación comuni
 | Temperature | raw / 10 − 273,15 | IAT y refrigerante. |
 | BatteryVoltage | raw / 1000 | Tensión de batería. |
 | Speed | raw / 10 | Velocidad del vehículo. |
-| AFR | raw / 1000 | AFR. |
+| AFR | No se normaliza | Se excluye hasta verificar con un archivo real si representa AFR o lambda. |
 | Raw | Directa | Solo torque Nm y potencia kW si nombre y unidad coinciden. |
 
-Los canales sin semántica implementada quedan enumerados como no soportados y no se agregan al registro normalizado. Se exige un canal RPM válido. No se infieren canales por similitud de nombres ni se interpretan automáticamente tipos no incluidos en la tabla.
+Los canales sin semántica implementada quedan enumerados como no soportados y no se agregan al registro normalizado. El tipo AFR se deja deliberadamente fuera debido a discrepancias entre referencias comunitarias sobre su semántica. Se exige un canal RPM válido. No se infieren canales por similitud de nombres ni se interpretan automáticamente tipos no incluidos en la tabla. Los canales Pressure usan una referencia fija de 101,3 kPa para pasar a presión relativa; no se sustituye por el canal barométrico observado.
 
 La especificación consultada declara que parte de su detalle procede de análisis e ingeniería inversa de archivos exportados. Es una referencia comunitaria de interoperabilidad, no documentación oficial ni garantía de compatibilidad. Antes de interpretar un archivo, contrastar sus valores con la exportación original y el software NSP.
 
@@ -76,7 +76,7 @@ La documentación del fabricante confirma que WinPEP 8 Data Center puede trabaja
 
 No se encontró un contrato público de columnas fijo que justifique un parser automático universal. Por eso esta ruta utiliza el parser genérico, exige mapeo manual y registra un identificador de perfil propio. No lee archivos nativos de WinPEP ni Power Vision.
 
-Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. No se convierte entre bases ni unidades. La opción desconocida permanece como advertencia.
+Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/1`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. La opción desconocida permanece como advertencia.
 
 ## Canales canónicos disponibles
 
@@ -91,6 +91,12 @@ Si se asigna torque o potencia, la base de medición se debe declarar como rueda
 | lambda, afr | unidad declarada |
 
 Una clave canónica no certifica que sensores, ubicación de medición o método sean físicamente equivalentes.
+
+## Normalización de unidades
+
+El contrato `datalog-units/1` admite conversiones explícitas para torque (Nm/ft-lb), potencia (kW/W/hp/PS), velocidad (km/h/mph/m/s), presión (kPa/bar/psi/mbar/Pa), temperatura (°C/°F/K), tensión (V/mV) y ángulo (grados/radianes). Las unidades no listadas se rechazan para el canal elegido. La normalización de unidades no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
+
+Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y las marcas temporales, y muestra el intervalo mediano observado. No presupone una frecuencia uniforme ni afirma que coincida con la configuración original.
 
 ## Salida y limitaciones
 

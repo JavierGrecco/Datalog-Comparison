@@ -162,6 +162,20 @@ function renderPreview() {
     summary.append(makeElement("p", "csv-preview-meta",
       "Perfil: " + run.importMetadata.importFormat));
   }
+  const conversions = Object.entries(run.importMetadata?.unitConversions ?? {});
+  if (conversions.length) {
+    const labels = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition.label]));
+    summary.append(makeElement("p", "csv-preview-meta",
+      "Unidades normalizadas: " + conversions.map(([key, item]) =>
+        (labels.get(key) ?? key) + " · " + item.from + " → " + item.to
+      ).join(" · ")));
+  }
+  const medianInterval = quality.timestamp.positiveIntervalMedianSeconds;
+  if (Number.isFinite(medianInterval)) {
+    summary.append(makeElement("p", "csv-preview-meta",
+      "Intervalo temporal mediano observado: " + (medianInterval * 1000).toFixed(2) +
+      " ms. No equivale a verificar la frecuencia configurada en el logger o dinamómetro."));
+  }
 
   const metrics = makeElement("div", "csv-preview-metrics");
   const timeStatus = quality.timestamp.missingCount || quality.timestamp.retrogressions ||
