@@ -160,6 +160,73 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   assert.equal(await page.locator("#csvFile").inputValue(), "");
 });
 
+test("la variante Haltech NSP se detecta por marcador y se inspecciona sin mapeo manual", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const haltech = [
+    "%DataLog%",
+    "",
+    "Time(Time_ms:ms),RPM(EngineSpeed:rpm),MAP(AbsPressure:kPa),Boost(Pressure:kPa),Throttle(Percentage:%),IAT(Temperature:C)",
+    "00:00:01.000,1800,1000,1800,250,2981.5",
+    "00:00:01.100,2100,1020,1850,350,2982.5",
+    "00:00:01.200,2400,1040,1900,450,2983.5",
+  ].join("\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "haltech-nsp-synthetic.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(haltech, "utf8"),
+  });
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /Haltech NSP CSV/);
+  assert.match(await page.locator("#csvQualityTable").innerText(), /Velocidad de motor/);
+  assert.equal(await page.locator("#csvMappingSection").isVisible(), false);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /variante Haltech NSP/i);
+  assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+test("el perfil Dynojet exige base de medición antes de inspeccionar torque/potencia", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const dynoCsv = [
+    "Time (s),Engine RPM,Wheel Torque (ft-lb),Wheel Power (hp)",
+    "0.00,2200,101.8,42.7",
+    "0.10,2500,106.9,50.9",
+    "0.20,2800,111.7,59.6",
+  ].join("\n");
+  await page.locator("#csvFormatProfile").selectOption("dynojet");
+  await page.locator("#csvFile").setInputFiles({
+    name: "powercore-synthetic.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(dynoCsv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator('[data-channel-key="time_s"]').selectOption("Time (s)");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine RPM");
+  await page.locator('[data-channel-key="torque_nm"]').selectOption("Wheel Torque (ft-lb)");
+  await page.locator('[data-unit-key="torque_nm"]').fill("ft-lb");
+  await page.locator('[data-channel-key="power_kw"]').selectOption("Wheel Power (hp)");
+  await page.locator('[data-unit-key="power_kw"]').fill("hp");
+  await page.locator("#csvInspectButton").click();
+  assert.match(await page.locator("#csvImportStatus").innerText(), /base de medición/i);
+  assert.equal(await page.locator("#csvPreview").isVisible(), false);
+
+  await page.locator("#csvMeasurementBasis").selectOption("wheel");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /Rueda/);
+  assert.match(await page.locator("#csvWarnings").innerText(), /mapeó manualmente/i);
+  assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
 test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación y viewport móvil", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });

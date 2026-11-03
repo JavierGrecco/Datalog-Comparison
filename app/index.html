@@ -34,7 +34,7 @@
 
     <section class="notice" aria-label="Limitación principal">
       <span class="notice-icon" aria-hidden="true">i</span>
-      <p><strong>Importante:</strong> las curvas de los escenarios de demostración son sintéticas. La inspección CSV admite archivos genéricos con mapeo explícito, pero no reconoce formatos propietarios ni valida mediciones reales. No calibra ni diagnostica motores.</p>
+      <p><strong>Importante:</strong> las curvas de demostración son sintéticas. La inspección reconoce una variante experimental de Haltech NSP y ofrece un perfil guiado para CSV Dynojet; no certifica archivos ni valida mediciones reales. No calibra ni diagnostica motores.</p>
     </section>
 
     <section class="case-section" aria-labelledby="caseTitle">
@@ -54,7 +54,7 @@
         <div>
           <p class="eyebrow">02 · INGESTA CONTROLADA</p>
           <h2 id="csvImportTitle">Inspeccionar un CSV local</h2>
-          <p class="section-intro">Seleccioná un archivo, declarará su origen y asigná manualmente las columnas y unidades. No se envía a ningún servicio ni se incorpora a la comparación.</p>
+          <p class="section-intro">Seleccioná una exportación reconocida o un CSV genérico, declar á su origen y revisá el mapeo. Todo el procesamiento se realiza en el navegador.</p>
         </div>
         <span class="synthetic-chip">LECTURA LOCAL</span>
       </div>
@@ -65,6 +65,16 @@
             <span>Archivo CSV</span>
             <input id="csvFile" type="file" accept=".csv,text/csv" required>
             <small>Máximo 10 MB · sin persistencia · el archivo no sale del navegador</small>
+          </label>
+          <label class="csv-control">
+            <span>Formato de exportación</span>
+            <select id="csvFormatProfile">
+              <option value="auto">Detectar Haltech NSP o CSV genérico</option>
+              <option value="generic">CSV genérico</option>
+              <option value="haltech">Haltech NSP · %DataLog%</option>
+              <option value="dynojet">Dynojet PowerCore / WinPEP · mapeo guiado</option>
+            </select>
+            <small>Solo se activa un perfil cuando la estructura está identificada</small>
           </label>
           <label class="csv-control">
             <span>Origen del registro</span>
@@ -95,6 +105,19 @@
             <small>Debe coincidir con la notación numérica del archivo</small>
           </label>
         </div>
+
+        <label id="csvMeasurementBasisControl" class="csv-control csv-measurement-basis" hidden>
+          <span>Base de medición de torque / potencia</span>
+          <select id="csvMeasurementBasis">
+            <option value="">Seleccionar base</option>
+            <option value="wheel">Rueda</option>
+            <option value="roller">Rodillo</option>
+            <option value="hub">Cubo</option>
+            <option value="engine">Motor</option>
+            <option value="unknown">Sin identificar</option>
+          </select>
+          <small>Obligatorio al asignar torque o potencia de dinamómetro. No se realizan conversiones entre bases.</small>
+        </label>
 
         <div id="csvMappingSection" class="csv-mapping-section" hidden>
           <div class="csv-subheading">

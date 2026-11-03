@@ -5,10 +5,14 @@ import {
   mapCsvToRun,
   parseCsvText,
 } from "../src/csv-import.mjs";
+import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltech-nsp.mjs";
+import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 
 const $ = selector => document.querySelector(selector);
-const state = { file: null, text: null, parsed: null, run: null, quality: null };
+const state = {
+  file: null, text: null, parsed: null, run: null, quality: null, profile: "generic",
+};
 
 function makeElement(tag, className, text) {
   const node = document.createElement(tag);
@@ -31,6 +35,18 @@ function clearPreview() {
   $("#csvQualityTable").replaceChildren();
   $("#csvWarnings").replaceChildren();
   $("#csvSampleTable").replaceChildren();
+}
+
+function setProfileControls({ ecu = false, dynojet = false } = {}) {
+  $("#csvSourceDomain").disabled = ecu || dynojet;
+  $("#csvColumnDelimiter").disabled = ecu;
+  $("#csvDecimalSeparator").disabled = ecu;
+  $("#csvMeasurementBasisControl").hidden =
+    !dynojet && $("#csvSourceDomain").value !== "dyno";
+}
+
+function updateMeasurementBasisVisibility() {
+  $("#csvMeasurementBasisControl").hidden = $("#csvSourceDomain").value !== "dyno";
 }
 
 function renderMappingFields(headers) {
@@ -63,14 +79,13 @@ function renderMappingFields(headers) {
     field.append(label, select);
 
     if (definition.fixedUnit) {
-      const unit = makeElement("div", "csv-unit-fixed", "Unidad fija: " + definition.fixedUnit);
-      field.append(unit);
+      field.append(makeElement("div", "csv-unit-fixed", "Unidad fija: " + definition.fixedUnit));
     } else {
       const unitLabel = makeElement("label", "csv-unit-label", "Unidad declarada");
       const unitInput = makeElement("input", "csv-unit-input");
       unitInput.type = "text";
       unitInput.maxLength = 32;
-      unitInput.placeholder = "Ej.: Nm, kW, kPa, °C";
+      unitInput.placeholder = "Ej.: Nm, hp, kPa, °C";
       unitInput.dataset.unitKey = definition.key;
       unitLabel.append(unitInput);
       field.append(unitLabel);
@@ -108,7 +123,7 @@ function renderQuality(run, quality) {
     channel.max === null ? "—" : String(channel.max),
   ]);
   appendTable(host,
-    ["Canal", "Unidad declarada", "Muestras válidas", "Cobertura", "Mínimo", "Máximo"],
+    ["Canal", "Unidad declarada / normalizada", "Muestras válidas", "Cobertura", "Mínimo", "Máximo"],
     rows,
   );
 }
@@ -129,17 +144,24 @@ function renderSamplePreview(run) {
 
 function renderPreview() {
   const { run, quality } = state;
-  const preview = $("#csvPreview");
-  preview.hidden = false;
-
+  $("#csvPreview").hidden = false;
   const summary = $("#csvPreviewSummary");
   summary.replaceChildren();
+
   summary.append(
     makeElement("h3", "", "Archivo inspeccionado: " + run.name),
     makeElement("p", "csv-preview-meta",
       run.sourceType + " · " + run.samples.length + " muestras · " +
-      Object.keys(run.units).length + " canales mapeados"),
+      Object.keys(run.units).length + " canales normalizados"),
   );
+  if (run.measurementBasisLabel) {
+    summary.append(makeElement("p", "csv-preview-meta",
+      "Base de torque/potencia declarada: " + run.measurementBasisLabel));
+  }
+  if (run.importMetadata?.importFormat) {
+    summary.append(makeElement("p", "csv-preview-meta",
+      "Perfil: " + run.importMetadata.importFormat));
+  }
 
   const metrics = makeElement("div", "csv-preview-metrics");
   const timeStatus = quality.timestamp.missingCount || quality.timestamp.retrogressions ||
@@ -174,14 +196,32 @@ function renderPreview() {
     warnings.append(makeElement("p", "csv-no-warnings",
       "No se detectaron alertas estructurales en las comprobaciones disponibles. Esto no valida el ensayo."));
   }
-
   renderQuality(run, quality);
   renderSamplePreview(run);
 }
 
 function selectedDelimiter() {
   const selected = $("#csvColumnDelimiter").value;
-  return selected === "tab" ? "\\t" : selected;
+  return selected === "tab" ? "\t" : selected;
+}
+
+function showGenericMapping(parsed, profile) {
+  state.parsed = parsed;
+  state.profile = profile;
+  renderMappingFields(parsed.headers);
+  $("#csvMappingSection").hidden = false;
+  $("#csvInspectButton").disabled = false;
+  $("#csvInspectButton").textContent = profile === "dynojet"
+    ? "Inspeccionar CSV Dynojet" : "Inspeccionar CSV";
+  if (profile === "dynojet") $("#csvSourceDomain").value = "dyno";
+  setProfileControls({ dynojet: profile === "dynojet" });
+  const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
+  const profileText = profile === "dynojet"
+    ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declar á la base de medición."
+    : "Asigná tiempo y RPM antes de inspeccionarlo.";
+  setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas y " +
+    parsed.rows.length + " filas de datos. " + profileText + warningText,
+  parsed.warnings.length ? "warning" : "success");
 }
 
 function parseLoadedText() {
@@ -191,17 +231,38 @@ function parseLoadedText() {
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
 
+  const selectedProfile = $("#csvFormatProfile").value;
+  const profile = selectedProfile === "auto"
+    ? (detectHaltechNspCsv(state.text) ? "haltech" : "generic")
+    : selectedProfile;
+
   try {
+    if (profile === "haltech") {
+      setProfileControls({ ecu: true });
+      $("#csvSourceDomain").value = "ecu";
+      $("#csvColumnDelimiter").value = ",";
+      $("#csvDecimalSeparator").value = ".";
+      const run = importHaltechNspCsv(state.text, {
+        id: "haltech-nsp-local-" + Date.now(),
+        name: state.file?.name,
+        importedAt: new Date().toISOString(),
+      });
+      state.profile = "haltech";
+      state.run = run;
+      state.quality = assessRunDataQuality(run);
+      renderPreview();
+      setStatus("Se reconoció la variante Haltech NSP %DataLog%. Se normalizaron los canales soportados; revisá los canales excluidos y las reglas de conversión.",
+        state.quality.status === "no_obvious_issues" ? "success" : "warning");
+      return;
+    }
+
+    setProfileControls();
+    if (profile === "dynojet") {
+      $("#csvSourceDomain").value = "dyno";
+      setProfileControls({ dynojet: true });
+    }
     const parsed = parseCsvText(state.text, { delimiter: selectedDelimiter() });
-    state.parsed = parsed;
-    renderMappingFields(parsed.headers);
-    $("#csvMappingSection").hidden = false;
-    $("#csvInspectButton").disabled = false;
-    const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
-    setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas, " +
-      parsed.rows.length + " filas de datos y separador " + parsed.delimiterLabel +
-      ". Asigná tiempo y RPM antes de inspeccionarlo." + warningText,
-    parsed.warnings.length ? "warning" : "success");
+    showGenericMapping(parsed, profile);
   } catch (error) {
     const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
@@ -215,7 +276,6 @@ async function handleFileSelection() {
   state.parsed = null;
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
-
   const file = $("#csvFile").files?.[0];
   if (!file) {
     setStatus("Seleccioná un archivo CSV para comenzar.");
@@ -229,7 +289,6 @@ async function handleFileSelection() {
     setStatus("El archivo supera el límite de 10 MB de esta demo.", "error");
     return;
   }
-
   try {
     const text = await file.text();
     if ($("#csvFile").files?.[0] !== file) return;
@@ -244,6 +303,10 @@ async function handleFileSelection() {
 
 function handleImport(event) {
   event.preventDefault();
+  if (state.profile === "haltech" && state.run) {
+    setStatus("La inspección Haltech NSP ya se completó. El registro permanece aislado de la matriz.", "success");
+    return;
+  }
   clearPreview();
   if (!state.file || !state.parsed) {
     setStatus("Seleccioná y leé un archivo CSV antes de continuar.", "error");
@@ -259,16 +322,23 @@ function handleImport(event) {
     if (input.value.trim()) units[input.dataset.unitKey] = input.value.trim();
   }
 
+  const sourceDomain = state.profile === "dynojet" ? "dyno" : $("#csvSourceDomain").value;
+  const measurementBasis = sourceDomain === "dyno" ? $("#csvMeasurementBasis").value : null;
+  const options = {
+    id: "csv-local-" + Date.now(),
+    name: state.file.name,
+    sourceDomain,
+    channelMapping,
+    units,
+    decimalSeparator: $("#csvDecimalSeparator").value,
+    importedAt: new Date().toISOString(),
+    measurementBasis,
+  };
+
   try {
-    const run = mapCsvToRun(state.parsed, {
-      id: "csv-local-" + Date.now(),
-      name: state.file.name,
-      sourceDomain: $("#csvSourceDomain").value,
-      channelMapping,
-      units,
-      decimalSeparator: $("#csvDecimalSeparator").value,
-      importedAt: new Date().toISOString(),
-    });
+    const run = state.profile === "dynojet"
+      ? importDynojetPowerCoreCsv(state.parsed, options)
+      : mapCsvToRun(state.parsed, options);
     const quality = assessRunDataQuality(run);
     state.run = run;
     state.quality = quality;
@@ -285,14 +355,24 @@ function reset() {
   state.file = null;
   state.text = null;
   state.parsed = null;
+  state.run = null;
+  state.quality = null;
+  state.profile = "generic";
   clearPreview();
   $("#csvFile").value = "";
+  $("#csvFormatProfile").value = "auto";
   $("#csvSourceDomain").value = "";
+  $("#csvSourceDomain").disabled = false;
   $("#csvDecimalSeparator").value = ".";
+  $("#csvDecimalSeparator").disabled = false;
   $("#csvColumnDelimiter").value = "auto";
+  $("#csvColumnDelimiter").disabled = false;
+  $("#csvMeasurementBasis").value = "";
+  $("#csvMeasurementBasisControl").hidden = true;
   $("#csvMappingFields").replaceChildren();
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
+  $("#csvInspectButton").textContent = "Inspeccionar CSV";
   setStatus("Seleccioná un archivo CSV para comenzar.");
 }
 
@@ -300,7 +380,9 @@ export function initializeCsvInspector() {
   const form = $("#csvImportForm");
   if (!form) return;
   $("#csvFile").addEventListener("change", handleFileSelection);
+  $("#csvFormatProfile").addEventListener("change", parseLoadedText);
   $("#csvColumnDelimiter").addEventListener("change", parseLoadedText);
+  $("#csvSourceDomain").addEventListener("change", updateMeasurementBasisVisibility);
   $("#csvDecimalSeparator").addEventListener("change", () => {
     if (state.parsed) setStatus("Separador decimal actualizado. Se aplicará al validar los valores numéricos.");
   });
