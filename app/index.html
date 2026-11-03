@@ -142,9 +142,48 @@
         </div>
         <div id="csvWarnings" class="csv-warning-list"></div>
         <div class="csv-preview-block">
-          <h3>Muestra de las primeras filas</h3>
+          <h3>Muestras representativas del registro</h3>
           <div id="csvSampleTable" class="csv-table-wrap"></div>
         </div>
+        <section id="csvDerivedTools" class="csv-derived-panel" aria-labelledby="csvDerivedTitle" hidden>
+          <div class="csv-subheading">
+            <h3 id="csvDerivedTitle">Procesamiento de señales derivadas</h3>
+            <p>Operaciones exploratorias sobre una copia lógica del registro. La fuente, sus muestras y la matriz de comparación permanecen intactas.</p>
+          </div>
+          <div id="csvDerivedTimeControls" class="csv-derived-controls" hidden>
+            <label class="csv-control">
+              <span>Factor de reducción temporal</span>
+              <select id="csvTimeDecimationFactor">
+                <option value="2">2×</option>
+                <option value="4">4×</option>
+                <option value="5" selected>5×</option>
+                <option value="8">8×</option>
+                <option value="10">10×</option>
+                <option value="16">16×</option>
+                <option value="20">20×</option>
+                <option value="32">32×</option>
+              </select>
+              <small id="csvTimeRatePreview">La tasa objetivo se calcula desde el intervalo mediano observado.</small>
+            </label>
+            <button type="button" class="primary-button" id="csvTimeDeriveButton">Procesar señales temporales</button>
+          </div>
+          <div id="csvDerivedDynoControls" class="csv-derived-controls" hidden>
+            <label class="csv-control">
+              <span>Ancho de banda RPM</span>
+              <select id="csvDynoBinWidth">
+                <option value="100" selected>100 RPM</option>
+                <option value="200">200 RPM</option>
+                <option value="250">250 RPM</option>
+                <option value="500">500 RPM</option>
+              </select>
+              <small>Se resume cada barrido por separado; no se interpolan bandas vacías.</small>
+            </label>
+            <button type="button" class="primary-button" id="csvDynoCurveButton">Construir curvas por RPM</button>
+          </div>
+          <p id="csvDerivedStatus" class="csv-derived-status" role="status" aria-live="polite">Seleccioná una operación para generar una vista derivada.</p>
+          <div id="csvDerivedResults" class="csv-derived-results"></div>
+          <p class="csv-derived-note">Las curvas y series son descriptivas. No aplican corrección atmosférica, no certifican potencia y no habilitan comparaciones entre registros.</p>
+        </section>
         <p class="csv-isolation-note"><strong>Modo de inspección:</strong> este registro no se compara con los escenarios sintéticos ni con otro archivo. La integración al flujo de comparación requiere una revisión posterior de sincronización, unidades, condiciones y procedencia.</p>
       </section>
     </section>

@@ -390,3 +390,99 @@ test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación
   assert.deepEqual(httpErrors, [], "la demo no debe solicitar recursos inexistentes");
   assert.deepEqual(externalRequests, [], "la demo no debe enviar solicitudes externas");
 });
+
+
+test("la inspección ECU puede generar señales temporales derivadas sin alterar la fuente", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const rows = Array.from({ length: 501 }, (_, index) => {
+    const time = (index / 100).toFixed(2);
+    const rpm = 1800 + index * 2;
+    const speed = 40 + 0.02 * index;
+    return time + "," + rpm + "," + speed.toFixed(2);
+  });
+  const csv = ["Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h)", ...rows].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "ecu-derived-synthetic.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvColumnDelimiter").selectOption(",");
+  await page.locator("#csvDecimalSeparator").selectOption(".");
+  await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+  await page.locator('[data-unit-key="time_s"]').fill("s");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+  await page.locator('[data-unit-key="rpm"]').fill("RPM");
+  await page.locator('[data-channel-key="speed_kmh"]').selectOption("Vehicle Speed (km/h)");
+  await page.locator('[data-unit-key="speed_kmh"]').fill("km/h");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /501 muestras/);
+  await page.locator("#csvDerivedTimeControls").waitFor({ state: "visible" });
+  await page.locator("#csvTimeDecimationFactor").selectOption("5");
+  await page.locator("#csvTimeDeriveButton").click();
+  await page.waitForFunction(() => document.querySelector("#csvDerivedStatus")?.textContent.includes("Procesamiento temporal completado"));
+  assert.match(await page.locator("#csvDerivedResults").innerText(), /muestras derivadas/);
+  assert.match(await page.locator("#csvDerivedResults").innerText(), /Hz/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /501 muestras/,
+    "el registro original conserva su recuento de muestras");
+  assert.equal(await page.locator("#charts svg").count(), 2,
+    "el procesamiento derivado no habilita ni modifica la matriz de comparación");
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+test("el dinamómetro muestra curvas independientes por barrido y banda RPM", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const firstSweep = Array.from({ length: 36 }, (_, index) => 2500 + index * 100);
+  const drop = [5700, 5300, 4900, 4500, 4100, 3700, 3300, 3000];
+  const secondSweep = Array.from({ length: 31 }, (_, index) => 3000 + index * 100);
+  const rpms = [...firstSweep, ...drop, ...secondSweep];
+  const rows = rpms.map((rpm, index) => {
+    const torque = 180 - Math.pow((rpm - 4400) / 2400, 2) * 80 + Math.sin(index) * 2;
+    const power = 30 + rpm * 0.045 - Math.pow((rpm - 5500) / 2500, 2) * 30;
+    return rpm + "," + torque.toFixed(2) + "," + power.toFixed(2);
+  });
+  const csv = ["Engine RPM,Wheel Torque (Nm),Wheel Power (kW)", ...rows].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "dyno-derived-synthetic.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator("#csvSourceDomain").selectOption("dyno");
+  await page.locator("#csvColumnDelimiter").selectOption(",");
+  await page.locator("#csvDecimalSeparator").selectOption(".");
+  await page.locator("#csvMeasurementBasis").selectOption("wheel");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine RPM");
+  await page.locator('[data-unit-key="rpm"]').fill("RPM");
+  await page.locator('[data-channel-key="torque_nm"]').selectOption("Wheel Torque (Nm)");
+  await page.locator('[data-unit-key="torque_nm"]').fill("Nm");
+  await page.locator('[data-channel-key="power_kw"]').selectOption("Wheel Power (kW)");
+  await page.locator('[data-unit-key="power_kw"]').fill("kW");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/);
+  await page.locator("#csvDerivedDynoControls").waitFor({ state: "visible" });
+  await page.locator("#csvDynoBinWidth").selectOption("200");
+  await page.locator("#csvDynoCurveButton").click();
+  await page.waitForFunction(() => document.querySelector("#csvDerivedStatus")?.textContent.includes("2 barrido"));
+  const derived = await page.locator("#csvDerivedResults").innerText();
+  assert.match(derived, /Barrido 1/);
+  assert.match(derived, /Barrido 2/);
+  assert.match(derived, /Torque/);
+  assert.match(derived, /Potencia/);
+  assert.match(derived, /2000–2200|2000-2200|2600–2800|2600-2800/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
+    "las curvas derivadas no modifican ni mezclan el registro fuente");
+  assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

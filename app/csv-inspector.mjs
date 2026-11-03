@@ -10,11 +10,12 @@ import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltec
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 import { DEFAULT_PREVIEW_SAMPLE_LIMIT, selectPreviewSamples } from "../src/sample-selection.mjs";
+import { DEFAULT_CONTINUOUS_CHANNELS, buildRpmSweepCurves, resampleTimeBasedSignals } from "../src/signal-processing.mjs";
 
 const $ = selector => document.querySelector(selector);
 const state = {
   file: null, text: null, parsed: null, run: null, quality: null, profile: "generic",
-  columnSuggestions: null,
+  columnSuggestions: null, derivedResult: null,
 };
 
 function makeElement(tag, className, text) {
@@ -33,6 +34,12 @@ function setStatus(message, kind = "neutral") {
 function clearPreview() {
   state.run = null;
   state.quality = null;
+  state.derivedResult = null;
+  $("#csvDerivedTools").hidden = true;
+  $("#csvDerivedTimeControls").hidden = true;
+  $("#csvDerivedDynoControls").hidden = true;
+  $("#csvDerivedResults").replaceChildren();
+  setDerivedStatus("Seleccioná una operación para generar una vista derivada.");
   $("#csvPreview").hidden = true;
   $("#csvPreviewSummary").replaceChildren();
   $("#csvQualityTable").replaceChildren();
@@ -250,6 +257,168 @@ function renderSamplePreview(run) {
   }
 }
 
+function setDerivedStatus(message, kind = "neutral") {
+  const status = $("#csvDerivedStatus");
+  status.className = "csv-derived-status" + (kind === "neutral" ? "" : " csv-derived-status-" + kind);
+  status.textContent = message;
+}
+
+function updateTimeRatePreview() {
+  if (!state.quality) return;
+  const interval = state.quality.timestamp.positiveIntervalMedianSeconds;
+  const factor = Number($("#csvTimeDecimationFactor").value);
+  const sourceRate = interval > 0 ? 1 / interval : null;
+  const targetRate = sourceRate !== null ? sourceRate / factor : null;
+  $("#csvTimeRatePreview").textContent = Number.isFinite(targetRate)
+    ? "Tasa observada ≈ " + sourceRate.toFixed(2) + " Hz · salida nominal ≈ " +
+      targetRate.toFixed(2) + " Hz · factor entero " + factor
+    : "No se pudo estimar una tasa de origen desde el tiempo observado.";
+}
+
+function renderDerivedProcessing(run, quality) {
+  const panel = $("#csvDerivedTools");
+  const timeControls = $("#csvDerivedTimeControls");
+  const dynoControls = $("#csvDerivedDynoControls");
+  const continuousChannels = Object.keys(DEFAULT_CONTINUOUS_CHANNELS)
+    .filter(key => Object.hasOwn(run.units, key));
+  const timeAvailable = run.sourceDomain === "ecu" && run.units.time_s === "s" &&
+    Number.isFinite(quality.timestamp.positiveIntervalMedianSeconds) &&
+    quality.timestamp.validCount === run.samples.length &&
+    continuousChannels.length > 0;
+  const dynoAvailable = run.sourceDomain === "dyno" && run.units.rpm === "RPM" &&
+    ["torque_nm", "power_kw"].some(key => Object.hasOwn(run.units, key)) &&
+    Boolean(run.measurementBasis);
+  timeControls.hidden = !timeAvailable;
+  dynoControls.hidden = !dynoAvailable;
+  panel.hidden = !timeAvailable && !dynoAvailable;
+  $("#csvDerivedResults").replaceChildren();
+  state.derivedResult = null;
+  setDerivedStatus("Seleccioná una operación para generar una vista derivada.");
+  if (timeAvailable) updateTimeRatePreview();
+  if (dynoAvailable) {
+    $("#csvDynoCurveButton").textContent = "Construir curvas por RPM";
+  }
+}
+
+function renderTimeDerivedResult(result) {
+  const host = $("#csvDerivedResults");
+  host.replaceChildren();
+  host.append(makeElement("p", "csv-preview-meta",
+    "Artefacto " + result.algorithm + " · " + result.sourceSampleCount +
+    " muestras de origen · " + result.axis.estimatedSourceRateHz.toFixed(2) +
+    " Hz → " + result.axis.targetRateHz.toFixed(2) + " Hz · FIR " +
+    result.parameters.filter.taps + " coeficientes · fase cero offline."));
+  for (const [key, signal] of Object.entries(result.signals)) {
+    const card = makeElement("article", "csv-derived-card");
+    const label = CSV_CHANNEL_DEFINITIONS.find(item => item.key === key)?.label ?? key;
+    card.append(
+      makeElement("h4", "", label + " · " + signal.unit),
+      makeElement("p", "", signal.outputSampleCount + " muestras derivadas · " +
+        signal.segments.length + " segmentos · " + signal.method),
+    );
+    const points = signal.segments.flatMap(segment => segment.samples);
+    if (points.length) {
+      const selected = selectPreviewSamples(points, { limit: DEFAULT_PREVIEW_SAMPLE_LIMIT });
+      const rows = selected.map(({ sample }) => [
+        String(sample.sourceSampleIndex + 1),
+        sample.time_s.toFixed(4),
+        Number(sample.value).toFixed(5),
+      ]);
+      const tableHost = makeElement("div", "csv-table-wrap");
+      appendTable(tableHost, ["Muestra fuente", "Tiempo (s)", "Valor (" + signal.unit + ")"], rows);
+      card.append(tableHost);
+    }
+    for (const warning of signal.warnings) card.append(makeElement("p", "csv-preview-meta", warning));
+    host.append(card);
+  }
+  for (const warning of result.warnings) {
+    host.append(makeElement("p", "csv-preview-meta", warning));
+  }
+}
+
+function renderDynoDerivedResult(result) {
+  const host = $("#csvDerivedResults");
+  host.replaceChildren();
+  host.append(makeElement("p", "csv-preview-meta",
+    "Artefacto " + result.algorithm + " · " + result.sourceSampleCount +
+    " muestras de origen · base física: " + result.measurementBasis +
+    " · bandas de " + result.axis.binWidth + " RPM."));
+  for (const curve of result.curves) {
+    const card = makeElement("article", "csv-derived-card");
+    card.append(makeElement("h4", "",
+      "Barrido " + curve.sweepIndex + " · " + curve.rpmRange.min.toFixed(0) +
+      "–" + curve.rpmRange.max.toFixed(0) + " RPM"));
+    card.append(makeElement("p", "", curve.sourceSampleCount + " muestras de origen · " +
+      curve.sourceStartSampleIndex + "–" + curve.sourceEndSampleIndex +
+      " · barrido ascendente independiente."));
+    for (const [key, channel] of Object.entries(curve.channels)) {
+      const title = key === "torque_nm" ? "Torque" : "Potencia";
+      const peak = channel.peak
+        ? "Pico por banda: " + channel.peak.value.toFixed(2) + " " + channel.unit +
+          " a " + channel.peak.rpm.toFixed(0) + " RPM."
+        : "No hay suficientes bandas para identificar un pico.";
+      card.append(makeElement("h5", "", title + " · " + channel.unit));
+      card.append(makeElement("p", "", peak));
+      const tableHost = makeElement("div", "csv-table-wrap");
+      const rows = channel.bins.map(bin => [
+        bin.rpmLower + "–" + bin.rpmUpper,
+        bin.rpmMedian.toFixed(0),
+        bin.valueMedian.toFixed(2),
+        bin.valueMin.toFixed(2) + "–" + bin.valueMax.toFixed(2),
+        String(bin.sampleCount),
+      ]);
+      appendTable(tableHost, ["Banda RPM", "RPM mediana", "Valor mediano", "Mín.–Máx.", "Muestras"], rows);
+      card.append(tableHost);
+    }
+    host.append(card);
+  }
+  for (const warning of result.warnings) host.append(makeElement("p", "csv-preview-meta", warning));
+}
+
+function handleTimeDerivedProcessing() {
+  if (!state.run || !state.quality) return;
+  try {
+    const factor = Number($("#csvTimeDecimationFactor").value);
+    const medianInterval = state.quality.timestamp.positiveIntervalMedianSeconds;
+    const sourceRate = 1 / medianInterval;
+    const channels = Object.keys(DEFAULT_CONTINUOUS_CHANNELS)
+      .filter(key => Object.hasOwn(state.run.units, key));
+    const result = resampleTimeBasedSignals(state.run, {
+      targetRateHz: sourceRate / factor,
+      channels,
+    });
+    state.derivedResult = result;
+    renderTimeDerivedResult(result);
+    setDerivedStatus(
+      "Procesamiento temporal completado. Se mantuvo la fuente original y se generó un artefacto separado.",
+      result.warnings.length ? "warning" : "success",
+    );
+  } catch (error) {
+    const code = error?.code ? " [" + error.code + "]" : "";
+    setDerivedStatus((error?.message ?? "No se pudo procesar la señal.") + code, "error");
+  }
+}
+
+function handleDynoDerivedProcessing() {
+  if (!state.run) return;
+  try {
+    const result = buildRpmSweepCurves(state.run, {
+      rpmBinWidth: Number($("#csvDynoBinWidth").value),
+    });
+    state.derivedResult = result;
+    renderDynoDerivedResult(result);
+    setDerivedStatus(
+      result.curves.length
+        ? result.curves.length + " barrido(s) detectado(s). No se suavizaron ni mezclaron las tiradas."
+        : "No se detectaron barridos suficientes para generar curvas.",
+      result.status === "ready" ? "success" : "warning",
+    );
+  } catch (error) {
+    const code = error?.code ? " [" + error.code + "]" : "";
+    setDerivedStatus((error?.message ?? "No se pudieron construir las curvas.") + code, "error");
+  }
+}
+
 function renderPreview() {
   const { run, quality } = state;
   $("#csvPreview").hidden = false;
@@ -324,6 +493,7 @@ function renderPreview() {
   }
   renderQuality(run, quality);
   renderSamplePreview(run);
+  renderDerivedProcessing(run, quality);
 }
 
 function selectedDelimiter() {
@@ -507,6 +677,9 @@ export function initializeCsvInspector() {
   const form = $("#csvImportForm");
   if (!form) return;
   $("#csvFile").addEventListener("change", handleFileSelection);
+  $("#csvTimeDecimationFactor").addEventListener("change", updateTimeRatePreview);
+  $("#csvTimeDeriveButton").addEventListener("click", handleTimeDerivedProcessing);
+  $("#csvDynoCurveButton").addEventListener("click", handleDynoDerivedProcessing);
   $("#csvFormatProfile").addEventListener("change", parseLoadedText);
   $("#csvColumnDelimiter").addEventListener("change", parseLoadedText);
   $("#csvSourceDomain").addEventListener("change", updateMeasurementBasisVisibility);
