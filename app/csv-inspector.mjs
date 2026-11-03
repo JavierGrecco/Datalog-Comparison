@@ -134,7 +134,7 @@ function renderPreview() {
     makeElement("h3", "", "Archivo inspeccionado: " + run.name),
     makeElement("p", "csv-preview-meta",
       run.sourceType + " · " + run.samples.length + " muestras · " +
-      run.units && Object.keys(run.units).length + " canales mapeados"),
+      Object.keys(run.units).length + " canales mapeados"),
   );
 
   const metrics = makeElement("div", "csv-preview-metrics");
