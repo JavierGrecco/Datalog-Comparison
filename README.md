@@ -8,7 +8,7 @@ Una demostración técnica para evaluar si dos registros de motor ofrecen una ba
 
 [![Validación de la demo](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JavierGrecco/Datalog-Comparison/actions/workflows/ci.yml)
 
-**Demo experimental · JavaScript · Datos sintéticos · Inspección CSV local**
+**Demo experimental · JavaScript · Datos sintéticos · Adaptadores CSV experimentales**
 
 </div>
 
@@ -32,7 +32,7 @@ La aplicación contiene tres escenarios sintéticos generados en memoria:
 | **Datos incompletos** | Valores ausentes, cobertura parcial y anomalías en la secuencia temporal. Los datos faltantes no se completan artificialmente. |
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 
-Además, se puede **inspeccionar un CSV local genérico** con asignación manual de columnas y unidades. Esta función está aislada de la comparación: permite revisar estructura, faltantes, cobertura y una muestra de filas, sin enviar el archivo a ningún servicio.
+Además, se puede **inspeccionar un CSV local** mediante tres rutas: CSV genérico, una variante experimental Haltech NSP identificada por %DataLog%, y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Los archivos permanecen aislados de la comparación.
 
 En los escenarios sintéticos del mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
@@ -54,13 +54,15 @@ Los controles se presentan por separado, sin reducirlos a una puntuación opaca:
 
 Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La interpretación técnica sigue dependiendo de la evidencia original y de la revisión de una persona con experiencia.
 
-## Inspección CSV local (beta)
+## Importación CSV y perfiles experimentales
 
-La importación requiere declarar el origen, el separador decimal, las columnas de tiempo y RPM y las unidades de cada canal opcional. Admite coma, punto y coma o tabulación, comillas dobles, BOM, CRLF y campos multilínea.
+**Haltech NSP:** se reconoce una variante con marcador %DataLog% y encabezados tipados. El adaptador normaliza únicamente un conjunto limitado de tipos/canales y aplica reglas de conversión tomadas de una especificación comunitaria de interoperabilidad, no certificada por el fabricante.
 
-La función aplica límites de tamaño y estructura, conserva faltantes y rechaza valores numéricos ambiguos o filas con columnas extra. No adivina canales ni convierte unidades. El registro importado queda en modo exploratorio y no se incorpora a la matriz.
+**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un esquema de columnas fijo publicado. Exige mapeo manual y declaración de la base de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
 
-Consultá el [contrato CSV](docs/CSV_IMPORT.md) para conocer el formato de entrada, los límites y las restricciones.
+**CSV genérico:** conserva su flujo de mapeo explícito. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
+
+Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
 ## Ejecutar la aplicación
 
@@ -108,6 +110,7 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 │   └── styles.css
 ├── src/
 │   ├── csv-import.mjs
+│   ├── adapters/          # Perfiles experimentales ECU/dinamómetro
 │   ├── demo-model.mjs
 │   ├── comparison-readiness.mjs
 │   ├── run-comparability.mjs
@@ -148,7 +151,9 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 - Todos los escenarios de comparación y sus curvas son **sintéticos**.
 - Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
-- La importación no reconoce exportaciones propietarias ni habilita comparación entre dos archivos.
+- Haltech NSP se limita a una variante experimental de CSV con marcador %DataLog%; no representa compatibilidad universal.
+- Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo.
+- La importación no habilita comparación entre dos archivos.
 - No convierte unidades, demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.
 - No escribe, modifica ni programa una ECU; tampoco diagnostica fallas, demuestra causalidad o emite recomendaciones de calibración validadas.
@@ -165,7 +170,7 @@ La implementación publicada es una selección acotada propia, preparada para es
 
 ## Estado y licencia
 
-Este repositorio es una **demo experimental de portfolio**, no la publicación del producto completo. La importación CSV genérica es una etapa de inspección, no un parser certificado para equipos comerciales.
+Este repositorio es una **demo experimental de portfolio**, no la publicación del producto completo. Los adaptadores específicos son perfiles experimentales y no están certificados por los fabricantes.
 
 Por ahora, el repositorio **no incluye una licencia de reutilización**. Que el código sea público permite inspeccionarlo, pero no concede por sí solo permiso general para copiarlo, modificarlo o distribuirlo.
 
