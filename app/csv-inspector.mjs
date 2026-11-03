@@ -9,6 +9,7 @@ import { suggestColumnMappings } from "../src/channel-resolver.mjs";
 import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltech-nsp.mjs";
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
+import { DEFAULT_PREVIEW_SAMPLE_LIMIT, selectPreviewSamples } from "../src/sample-selection.mjs";
 
 const $ = selector => document.querySelector(selector);
 const state = {
@@ -231,15 +232,22 @@ function renderQuality(run, quality) {
 function renderSamplePreview(run) {
   const channelLabels = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition.label]));
   const channelKeys = Object.keys(run.units).filter(key => key !== "time_s");
-  const headers = ["Fila", "Tiempo (s)", ...channelKeys.map(key =>
+  const headers = ["Muestra", "Tiempo (s)", ...channelKeys.map(key =>
     (channelLabels.get(key) ?? key) + " (" + run.units[key] + ")"
   )];
-  const rows = run.samples.slice(0, 8).map((sample, index) => [
-    String(index + 2),
+  const selected = selectPreviewSamples(run.samples, { limit: DEFAULT_PREVIEW_SAMPLE_LIMIT });
+  const rows = selected.map(({ index, sample }) => [
+    String(index + 1),
     sample.time_s === null ? "—" : String(sample.time_s),
     ...channelKeys.map(key => sample.channels[key] === null ? "—" : String(sample.channels[key])),
   ]);
-  appendTable($("#csvSampleTable"), headers, rows);
+  const host = $("#csvSampleTable");
+  appendTable(host, headers, rows);
+  if (selected.length < run.samples.length) {
+    host.append(makeElement("p", "csv-preview-meta",
+      "Vista representativa: " + selected.length + " de " + run.samples.length +
+      " muestras, distribuidas por el orden original. Los datos completos del registro permanecen intactos."));
+  }
 }
 
 function renderPreview() {

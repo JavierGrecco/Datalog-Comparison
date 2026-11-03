@@ -18,9 +18,9 @@ Hay tres rutas de importación:
 4. Asignar las columnas a los canales compatibles.
 5. Declarar las unidades de los canales opcionales.
 6. En dinamómetro, declarar la base de torque/potencia: rueda, rodillo, cubo, motor o desconocida.
-7. Inspeccionar cobertura, alertas y una muestra de filas.
+7. Inspeccionar cobertura, alertas y una muestra de filas. La tabla muestra hasta ocho muestras reales distribuidas por el orden de captura, no solo las primeras filas.
 
-El importador admite al menos un eje presente: tiempo relativo o RPM. Las curvas de torque/potencia de dinamómetro requieren RPM y base de medición declarada. No se inventan ejes ausentes ni se rellenan muestras. El resolver local propone mapeos por alias exactos y contexto; los errores de tipeo, inferencias por unidad y perfiles de rango permanecen sujetos a confirmación. Las unidades se normalizan mediante reglas explícitas y versionadas; en CSV genérico y Dynojet se conserva encabezado, unidad y celda textual de origen de los canales mapeados, además de la conversión aplicada. Los adaptadores Haltech que convierten datos antes del mapeo conservan su propia procedencia en metadatos del adaptador y no etiquetan el valor normalizado como celda cruda.
+La vista previa selecciona hasta ocho muestras originales espaciadas a lo largo del array de captura e incluye los extremos. Es una reducción exclusivamente visual: no modifica el registro, no interpola, no elimina datos ni cambia sus índices internos. El importador admite al menos un eje presente: tiempo relativo o RPM. Las curvas de torque/potencia de dinamómetro requieren RPM y base de medición declarada. No se inventan ejes ausentes ni se rellenan muestras. El resolver local propone mapeos por alias exactos y contexto; los errores de tipeo, inferencias por unidad y perfiles de rango permanecen sujetos a confirmación. Las unidades se normalizan mediante reglas explícitas y versionadas; en CSV genérico y Dynojet se conserva encabezado, unidad y celda textual de origen de los canales mapeados, además de la conversión aplicada. Los adaptadores Haltech que convierten datos antes del mapeo conservan su propia procedencia en metadatos del adaptador y no etiquetan el valor normalizado como celda cruda.
 
 ## Parser CSV genérico
 

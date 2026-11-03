@@ -103,6 +103,8 @@ La calidad temporal informa intervalos observados por canal cuando hay marcas de
 
 El importador preserva las filas y el orden original. La inspección de frecuencia observada, cobertura y jitter es descriptiva; no modifica las muestras.
 
+La tabla de inspección aplica una selección representativa de hasta ocho muestras reales, espaciadas por índice e incluyendo primera y última. Los índices originales se muestran como número de muestra. Esta selección solo controla la salida visual; no constituye remuestreo de señal ni altera la fuente.
+
 La aplicación separará tres capas:
 
 1. **Fuente:** celdas y metadatos tal como llegaron, con su procedencia.
