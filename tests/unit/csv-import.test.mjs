@@ -416,9 +416,9 @@ test("dos unidades de origen distintas convergen a Nm antes de comparar canales"
 
 test("el comparador excluye torque y potencia cuando difiere la base física del dinamómetro", async () => {
   const parsed = parseCsvText(
-    "Time (s),RPM,Torque (Nm),Power (kW)\\n" +
-    "0,2000,100,20\\n" +
-    "0.1,2100,110,24\\n",
+    "Time (s),RPM,Torque (Nm),Power (kW)\n" +
+    "0,2000,100,20\n" +
+    "0.1,2100,110,24\n",
   );
   const common = {
     channelMapping: {
@@ -450,7 +450,7 @@ test("el comparador excluye torque y potencia cuando difiere la base física del
 
 test("el comparador no trata una base de dinamómetro desconocida como equivalente", async () => {
   const parsed = parseCsvText(
-    "Time (s),RPM,Torque (Nm)\\n0,2000,100\\n0.1,2100,110\\n",
+    "Time (s),RPM,Torque (Nm)\n0,2000,100\n0.1,2100,110\n",
   );
   const mapping = {
     time_s: "Time (s)", rpm: "RPM", torque_nm: "Torque (Nm)",
