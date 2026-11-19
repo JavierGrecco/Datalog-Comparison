@@ -295,11 +295,21 @@ test("rechaza comillas mal formadas y contenido después del cierre de comillas"
     error => error.code === "CSV_TRAILING_DATA_AFTER_QUOTE");
 });
 
-test("aplica límites de tamaño, filas, columnas y longitud de celda", () => {
+test("aplica límites de tamaño, filas, columnas, longitud de celda y cantidad total de celdas", () => {
   assert.throws(() => parseCsvText("a,b\n1,2\n", { maxTextLength: 3 }), /tamaño de texto/i);
   assert.throws(() => parseCsvText("a,b\n1,2\n3,4\n", { maxRows: 1 }), /máximo de filas/i);
   assert.throws(() => parseCsvText("a,b,c\n1,2,3\n", { maxColumns: 2 }), /máximo de columnas/i);
   assert.throws(() => parseCsvText("a\n12345\n", { maxFieldLength: 4 }), /tamaño máximo/i);
+
+  // Las celdas vacías también ocupan espacio al construir la tabla en memoria.
+  const wideTable = "a,b,c\n1,,3\n4,5,6\n";
+  assert.throws(() => parseCsvText(wideTable, { maxCells: 8 }), error =>
+    error.code === "CSV_TOO_MANY_CELLS" &&
+    error.details.row === 3 &&
+    error.details.maxCells === 8 &&
+    error.details.parsedCells === 9);
+  assert.throws(() => parseCsvText("a,b\n1,2\n", { maxCells: 0 }),
+    error => error.code === "CSV_LIMIT_INVALID");
 });
 
 test("exige dominio, al menos un eje, asignación única y unidades declaradas", async () => {

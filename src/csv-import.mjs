@@ -12,6 +12,7 @@ export const MAX_CSV_CHARACTERS = 10_000_000;
 export const MAX_CSV_ROWS = 100_000;
 export const MAX_CSV_COLUMNS = 128;
 export const MAX_CSV_FIELD_LENGTH = 16_384;
+export const MAX_CSV_TOTAL_CELLS = 2_000_000;
 
 export const CSV_CHANNEL_DEFINITIONS = Object.freeze([
   { key: "time_s", label: "Tiempo relativo", required: false, axis: true, defaultUnit: "s" },
@@ -97,6 +98,7 @@ function parseRecords(text, delimiter, limits) {
   let quoteClosed = false;
   let physicalLine = 1;
   let recordStartLine = 1;
+  let totalCellCount = 0;
 
   const append = char => {
     field += char;
@@ -108,6 +110,12 @@ function parseRecords(text, delimiter, limits) {
   };
   const pushField = () => {
     record.push(field);
+    totalCellCount += 1;
+    if (totalCellCount > limits.maxCells) {
+      fail("CSV_TOO_MANY_CELLS",
+        "El archivo supera el máximo total de celdas permitido para una importación segura.",
+        { line: recordStartLine, maxCells: limits.maxCells, parsedCells: totalCellCount });
+    }
     field = "";
     quoteClosed = false;
     if (record.length > limits.maxColumns) {
@@ -202,6 +210,7 @@ export function parseCsvText(input, options = {}) {
     maxRows = MAX_CSV_ROWS,
     maxColumns = MAX_CSV_COLUMNS,
     maxFieldLength = MAX_CSV_FIELD_LENGTH,
+    maxCells = MAX_CSV_TOTAL_CELLS,
   } = options;
   if (input.length > maxTextLength) fail("CSV_TOO_LARGE", "El archivo supera el tamaño de texto permitido.", { maxTextLength });
   if (![...DELIMITERS, "auto"].includes(delimiter)) {
@@ -209,14 +218,15 @@ export function parseCsvText(input, options = {}) {
   }
   if (!Number.isSafeInteger(maxRows) || maxRows < 1 ||
       !Number.isSafeInteger(maxColumns) || maxColumns < 1 ||
-      !Number.isSafeInteger(maxFieldLength) || maxFieldLength < 1) {
+      !Number.isSafeInteger(maxFieldLength) || maxFieldLength < 1 ||
+      !Number.isSafeInteger(maxCells) || maxCells < 1) {
     fail("CSV_LIMIT_INVALID", "Los límites de lectura deben ser enteros positivos.");
   }
 
   const text = input.replace(/^\uFEFF/, "");
   if (!text.trim()) fail("CSV_EMPTY_FILE", "El archivo CSV está vacío.");
   const selectedDelimiter = delimiter === "auto" ? detectDelimiter(text) : delimiter;
-  const allRecords = parseRecords(text, selectedDelimiter, { maxRows, maxColumns, maxFieldLength });
+  const allRecords = parseRecords(text, selectedDelimiter, { maxRows, maxColumns, maxFieldLength, maxCells });
   const skippedEmptyRows = allRecords.filter(isBlankRecord).length;
   const records = allRecords.filter(record => !isBlankRecord(record));
   if (records.length < 2) {

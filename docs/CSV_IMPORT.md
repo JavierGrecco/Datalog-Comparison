@@ -32,7 +32,7 @@ La vista previa selecciona hasta ocho muestras originales espaciadas a lo largo 
 - Los errores de estructura o de valores numéricos informan la línea real del archivo, no la posición compactada de la muestra.
 - Las filas cortas conservan sus campos finales como faltantes y exponen las líneas que requieren revisión.
 - Filas cortas conservadas como faltantes con advertencia; filas con celdas extra rechazadas.
-- Límites: 10 MB, 100.000 filas, 128 columnas y 16.384 caracteres por celda.
+- Límites: 10 MB de texto, 100.000 filas, 128 columnas, 16.384 caracteres por celda y 2.000.000 de celdas en todo el archivo (incluidos encabezados, filas vacías y celdas sin valor). El límite total evita que una tabla muy ancha consuma memoria desproporcionada.
 - Valores vacíos, NA, N/A, null, NaN, —, -- y - conservados como faltantes.
 - Los valores numéricos ambiguos producen error con fila y columna.
 - No se ordenan filas, interpolan muestras ni imputan valores.
