@@ -63,6 +63,24 @@ function comparableUnit(run, key) {
   return unitText.toLocaleLowerCase();
 }
 
+function countNumericChannelSamples(samples) {
+  const counts = new Map();
+  for (const sample of samples) {
+    const channels = sample?.channels;
+    if (!channels || typeof channels !== "object" || Array.isArray(channels)) continue;
+    for (const [key, value] of Object.entries(channels)) {
+      if (key === "time_s") continue;
+      if (!counts.has(key)) counts.set(key, 0);
+      if (Number.isFinite(value)) counts.set(key, counts.get(key) + 1);
+    }
+  }
+  return counts;
+}
+
+function coveragePct(validCount, sampleCount) {
+  return sampleCount ? validCount / sampleCount * 100 : 0;
+}
+
 function runTimeQuality(run) {
   const samples = Array.isArray(run?.samples) ? run.samples : [];
   const times = samples.map(sample => sample?.time_s).filter(Number.isFinite);
@@ -124,19 +142,34 @@ export function assessRunComparability(referenceRun, candidateRun) {
     warnings.push("La duración registrada difiere entre ensayos; los máximos no garantizan que se midan en el mismo tramo operativo.");
   }
 
-  const channelKeys = new Set();
-  for (const sample of [...referenceSamples, ...candidateSamples]) {
-    if (sample?.channels && typeof sample.channels === "object") {
-      for (const key of Object.keys(sample.channels)) {
-        if (key !== "time_s") channelKeys.add(key);
-      }
-    }
-  }
+  const referenceCounts = countNumericChannelSamples(referenceSamples);
+  const candidateCounts = countNumericChannelSamples(candidateSamples);
+  const channelKeys = [...new Set([...referenceCounts.keys(), ...candidateCounts.keys()])].sort();
+  const unsharedChannels = [];
 
-  for (const key of [...channelKeys].sort()) {
-    const referenceCount = referenceSamples.filter(sample => Number.isFinite(sample?.channels?.[key])).length;
-    const candidateCount = candidateSamples.filter(sample => Number.isFinite(sample?.channels?.[key])).length;
-    if (!referenceCount || !candidateCount) continue;
+  for (const key of channelKeys) {
+    const referenceCount = referenceCounts.get(key) ?? 0;
+    const candidateCount = candidateCounts.get(key) ?? 0;
+    if (!referenceCount && !candidateCount) continue;
+
+    const referenceCoveragePct = coveragePct(referenceCount, referenceSamples.length);
+    const candidateCoveragePct = coveragePct(candidateCount, candidateSamples.length);
+    if (!referenceCount || !candidateCount) {
+      const availability = !referenceCount ? "missing_in_reference" : "missing_in_candidate";
+      const missingRole = !referenceCount ? "referencia" : "candidata";
+      const presentRole = !referenceCount ? "candidata" : "referencia";
+      unsharedChannels.push({
+        key,
+        availability,
+        referenceCount,
+        candidateCount,
+        referenceCoveragePct,
+        candidateCoveragePct,
+        reason: "La señal tiene valores numéricos en la " + presentRole +
+          " pero no en la " + missingRole + "; no existe una base compartida para compararla."
+      });
+      continue;
+    }
 
     const referenceUnitText = String(referenceRun?.units?.[key] ?? "").trim();
     const candidateUnitText = String(candidateRun?.units?.[key] ?? "").trim();
@@ -147,6 +180,10 @@ export function assessRunComparability(referenceRun, candidateRun) {
         key,
         referenceUnit: referenceUnitText || "no declarada",
         candidateUnit: candidateUnitText || "no declarada",
+        referenceCount,
+        candidateCount,
+        referenceCoveragePct,
+        candidateCoveragePct,
         reason: "La unidad de una de las señales no está declarada de forma fiable."
       });
       continue;
@@ -156,6 +193,10 @@ export function assessRunComparability(referenceRun, candidateRun) {
         key,
         referenceUnit: referenceUnitText,
         candidateUnit: candidateUnitText,
+        referenceCount,
+        candidateCount,
+        referenceCoveragePct,
+        candidateCoveragePct,
         reason: "Las unidades no coinciden. El laboratorio no convierte unidades automáticamente."
       });
       continue;
@@ -167,6 +208,10 @@ export function assessRunComparability(referenceRun, candidateRun) {
         key,
         referenceUnit: referenceUnitText,
         candidateUnit: candidateUnitText,
+        referenceCount,
+        candidateCount,
+        referenceCoveragePct,
+        candidateCoveragePct,
         ...basisMismatch,
       });
       continue;
@@ -177,8 +222,8 @@ export function assessRunComparability(referenceRun, candidateRun) {
       unit: referenceUnitText,
       referenceCount,
       candidateCount,
-      referenceCoveragePct: referenceSamples.length ? referenceCount / referenceSamples.length * 100 : 0,
-      candidateCoveragePct: candidateSamples.length ? candidateCount / candidateSamples.length * 100 : 0
+      referenceCoveragePct,
+      candidateCoveragePct
     });
   }
 
@@ -187,6 +232,9 @@ export function assessRunComparability(referenceRun, candidateRun) {
   }
   if (blockedChannels.length) {
     warnings.push(blockedChannels.length + " canal(es) con datos quedaron excluidos por unidades o bases de medición ausentes o incompatibles.");
+  }
+  if (unsharedChannels.length) {
+    warnings.push(unsharedChannels.length + " señal(es) tienen valores numéricos en un solo registro; no se comparan.");
   }
 
   // El prototipo aún no registra ni verifica todas las condiciones operativas del ensayo.
@@ -209,6 +257,7 @@ export function assessRunComparability(referenceRun, candidateRun) {
     },
     commonChannels,
     blockedChannels,
+    unsharedChannels,
     warnings,
     operatingConditionsVerified: false,
     causalInferenceAllowed: false

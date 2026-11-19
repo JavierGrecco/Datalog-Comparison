@@ -16,21 +16,34 @@ function median(values) {
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2
     ? sorted[middle]
-    : (sorted[middle - 1] + sorted[middle]) / 2;
+    : sorted[middle - 1] / 2 + sorted[middle] / 2;
 }
 
 function summarize(run, key) {
   const samples = Array.isArray(run?.samples) ? run.samples : [];
-  const values = samples.map(sample => sample?.channels?.[key]).filter(Number.isFinite);
+  const values = [];
+  let mean = 0;
+  let min = Infinity;
+  let max = -Infinity;
+
+  for (const sample of samples) {
+    const value = sample?.channels?.[key];
+    if (!Number.isFinite(value)) continue;
+    values.push(value);
+    const count = values.length;
+    mean = mean * ((count - 1) / count) + value / count;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+
   if (!values.length) return null;
-  const total = values.reduce((sum, value) => sum + value, 0);
   return {
     sampleCount: samples.length,
     validCount: values.length,
     coveragePct: samples.length ? values.length / samples.length * 100 : 0,
-    min: Math.min(...values),
-    max: Math.max(...values),
-    mean: total / values.length,
+    min,
+    max,
+    mean,
     median: median(values),
   };
 }
@@ -108,7 +121,25 @@ export function compareRunDistributions(
   if (channelsGate?.status === "blocked") blockedReasons.push(channelsGate.summary);
 
   const channels = [];
-  const excludedChannels = [];
+  const excludedChannels = [
+    ...comparability.blockedChannels.map(channel => ({
+      key: channel.key,
+      reasonCode: "incompatible_channel_contract",
+      reason: channel.reason,
+      referenceUnit: channel.referenceUnit,
+      candidateUnit: channel.candidateUnit,
+      referenceMeasurementBasis: channel.referenceMeasurementBasis,
+      candidateMeasurementBasis: channel.candidateMeasurementBasis,
+      referenceCount: channel.referenceCount,
+      candidateCount: channel.candidateCount,
+      referenceCoveragePct: channel.referenceCoveragePct,
+      candidateCoveragePct: channel.candidateCoveragePct,
+    })),
+    ...comparability.unsharedChannels.map(channel => ({
+      ...channel,
+      reasonCode: channel.availability,
+    })),
+  ];
   if (!blockedReasons.length) {
     for (const channel of comparability.commonChannels) {
       const referenceStats = summarize(reference, channel.key);
@@ -118,6 +149,7 @@ export function compareRunDistributions(
           candidateStats.coveragePct < minimumCoveragePct) {
         excludedChannels.push({
           key: channel.key,
+          reasonCode: "below_minimum_coverage",
           reason: "La cobertura es inferior al " + minimumCoveragePct + "% en al menos uno de los registros.",
           referenceCoveragePct: referenceStats.coveragePct,
           candidateCoveragePct: candidateStats.coveragePct,

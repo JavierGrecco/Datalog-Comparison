@@ -238,3 +238,26 @@ test("el umbral de cobertura rechaza valores fuera del intervalo porcentual", ()
     RangeError,
   );
 });
+
+
+test("la matriz muestra señales disponibles en un solo registro como revisión de canales", () => {
+  const reference = makeRun("reference");
+  const candidate = makeRun("candidate");
+  candidate.samples.forEach((sample, index) => {
+    sample.channels.speed_kmh = 50 + index * 10;
+  });
+  candidate.units.speed_kmh = "km/h";
+
+  const comparison = assessRunComparability(reference, candidate);
+  const unshared = comparison.unsharedChannels.find(channel => channel.key === "speed_kmh");
+  assert.equal(unshared.availability, "missing_in_reference");
+  assert.equal(unshared.referenceCount, 0);
+  assert.equal(unshared.candidateCount, 2);
+  assert.equal(unshared.candidateCoveragePct, 100);
+
+  const readiness = assessComparisonReadiness(reference, candidate);
+  const channelsGate = readiness.gates.find(item => item.id === "channels");
+  assert.equal(channelsGate.status, "review_required");
+  assert.ok(channelsGate.findings.some(item => /speed_kmh:.*valores numéricos en la candidata/i.test(item)));
+  assert.ok(readiness.nextActions.some(item => /solo aparecen en uno/i.test(item)));
+});

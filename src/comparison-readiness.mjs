@@ -207,6 +207,13 @@ export function assessComparisonReadiness(
     channelFindings.push(channelsWithLowCoverage.length + " canal(es) compartidos tienen cobertura inferior al " +
       minimumChannelCoveragePct + "% en al menos un registro.");
   }
+  if (comparison.unsharedChannels.length) {
+    channelFindings.push(comparison.unsharedChannels.length +
+      " señal(es) tienen valores en un solo registro y no cuentan con una contraparte compartida.");
+    for (const channel of comparison.unsharedChannels) {
+      addUnique(channelFindings, channel.key + ": " + channel.reason);
+    }
+  }
   if (!comparison.commonChannels.length) {
     channelFindings.push("No hay canales numéricos compartidos con unidades coincidentes y declaradas.");
   }
@@ -227,7 +234,7 @@ export function assessComparisonReadiness(
 
   const channelStatus = comparison.commonChannels.length === 0
     ? "blocked"
-    : comparison.blockedChannels.length || channelsWithLowCoverage.length
+    : comparison.blockedChannels.length || comparison.unsharedChannels.length || channelsWithLowCoverage.length
       ? "review_required"
       : "supported";
 
@@ -317,6 +324,8 @@ export function assessComparisonReadiness(
   }
   if (comparison.blockedChannels.length) addUnique(nextActions,
     "Revisá las unidades y bases físicas de los canales excluidos; documentá la equivalencia antes de habilitarlos.");
+  if (comparison.unsharedChannels.length) addUnique(nextActions,
+    "Revisá los canales que solo aparecen en uno de los registros y confirmá si faltan por mapeo, configuración o captura; no se completan automáticamente.");
   if (channelsWithLowCoverage.length) {
     addUnique(nextActions, "Inspeccioná la cobertura de " + channelsWithLowCoverage.slice(0, 5).map(item => item.key).join(", ") +
       " (mínimo de revisión configurado: " + minimumChannelCoveragePct + "%).");

@@ -18,7 +18,7 @@ El estado general se calcula de forma conservadora: un bloqueo prevalece sobre c
 | --- | --- | --- |
 | Origen | Clasificación ECU/logger, dinamómetro o desconocida. | Bloquea una mezcla ECU/logger–dinamómetro y una mezcla entre un origen conocido y otro sin clasificar. |
 | Calidad y tiempo | Cantidad de muestras, canales analizables, faltantes, tiempos, filas omitidas y metadatos de importación. | Bloquea datos insuficientes; requiere revisión ante advertencias de integridad o cobertura. |
-| Canales, unidades y base física | Señales compartidas, unidad declarada, cobertura y base de torque/potencia del dinamómetro. | Excluye torque/potencia cuando la base física falta o difiere; revisa unidades excluidas o cobertura inferior al umbral. |
+| Canales, unidades y base física | Señales compartidas, valores ausentes, unidad declarada, cobertura y base de torque/potencia del dinamómetro. | Excluye cada canal incompatible por separado; deja en revisión las señales presentes en un solo registro o con cobertura inferior al umbral, sin impedir el análisis de otros canales compatibles. |
 | Condiciones | Campos relevantes por fuente, diferencias, desconocidos, estado y procedencia. | Requiere revisión si hay valores distintos, desconocidos, no verificados o un contrato inválido. |
 | Procedencia | Roles, huellas, contexto y manifiestos. | Requiere revisión ante manifiestos ausentes, incompletos, en borrador, inválidos o con posibles duplicados. |
 | Validación real | Identificación explícita de datos sintéticos. | Los escenarios sintéticos siempre requieren validación con evidencia real autorizada antes de extraer conclusiones mecánicas. |
@@ -42,3 +42,14 @@ Las pruebas unitarias cubren reglas de origen, compatibilidad de unidades, calid
 La prueba de navegador recorre la entrada pública, selección de casos, bloqueo entre fuentes y entre bases físicas de dinamómetro, visualización, teclado, descarga de JSON, errores de consola, errores HTTP, viewport móvil y solicitudes externas.
 
 La CI confirma únicamente que pasan las comprobaciones automatizadas configuradas. No valida sensores, motores, bancos ni mediciones físicas.
+
+
+## Inventario de señales no comparables
+
+La evaluación distingue tres situaciones a nivel de canal:
+
+- **Incompatible:** hay datos en ambos registros, pero la unidad no coincide/no está declarada o la base física de torque/potencia no es compatible.
+- **No compartida:** hay valores numéricos en un registro y ninguno en el otro. El informe identifica cuál de los dos no aporta esa señal; no completa ni presume el motivo.
+- **Cobertura insuficiente:** la señal existe en ambos, pero uno o ambos registros quedan debajo del umbral configurado.
+
+Estas exclusiones no ocultan otros canales que sí superan sus propias comprobaciones. La ausencia unilateral genera revisión y un próximo paso explícito; no se interpreta como cero ni como medición equivalente.

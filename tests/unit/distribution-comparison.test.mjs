@@ -87,13 +87,17 @@ test("bloquea orígenes no identificados", () => {
   assert.match(result.blockedReasons[0], /mismo dominio identificado/i);
 });
 
-test("bloquea unidades incompatibles sin conversiones implícitas", () => {
+test("excluye solo el canal con unidades incompatibles y conserva los canales válidos", () => {
   const result = compareRunDistributions(
     makeRun("reference", { unit: "Nm" }),
     makeRun("candidate", { unit: "ft-lb" }),
   );
-  assert.equal(result.status, "blocked");
-  assert.equal(result.channels.length, 0);
+  assert.equal(result.status, "review_required");
+  assert.ok(result.channels.some(channel => channel.key === "rpm"));
+  assert.equal(result.channels.some(channel => channel.key === "torque_nm"), false);
+  const excluded = result.excludedChannels.find(channel => channel.key === "torque_nm");
+  assert.equal(excluded.reasonCode, "incompatible_channel_contract");
+  assert.match(excluded.reason, /unidades no coinciden/i);
 });
 
 test("bloquea el mismo archivo en ambos roles mediante SHA-256", () => {
@@ -113,7 +117,9 @@ test("excluye torque de dinamómetro cuando las bases físicas no coinciden", ()
   );
   assert.equal(result.status, "review_required");
   assert.equal(result.channels.some(channel => channel.key === "torque_nm"), false);
-  assert.ok(result.excludedChannels.some(channel => channel.key === "torque_nm"));
+  const excludedTorque = result.excludedChannels.find(channel => channel.key === "torque_nm");
+  assert.equal(excludedTorque.reasonCode, "incompatible_channel_contract");
+  assert.match(excludedTorque.reason, /base física de torque\/potencia no coincide/i);
   assert.ok(result.channels.some(channel => channel.key === "rpm"));
 });
 
@@ -132,4 +138,26 @@ test("valida el umbral de cobertura", () => {
   assert.throws(() => compareRunDistributions(
     makeRun("reference"), makeRun("candidate"), { minimumCoveragePct: 101 },
   ), RangeError);
+});
+
+
+test("informa una señal que solo tiene valores en uno de los dos registros", () => {
+  const reference = makeRun("reference");
+  const candidate = makeRun("candidate");
+  candidate.samples.forEach((sample, index) => {
+    sample.channels.speed_kmh = 40 + index * 5;
+  });
+  candidate.units.speed_kmh = "km/h";
+
+  const result = compareRunDistributions(reference, candidate);
+  const excluded = result.excludedChannels.find(channel => channel.key === "speed_kmh");
+
+  assert.equal(result.status, "review_required");
+  assert.equal(excluded.reasonCode, "missing_in_reference");
+  assert.equal(excluded.referenceCount, 0);
+  assert.equal(excluded.candidateCount, 4);
+  assert.equal(excluded.referenceCoveragePct, 0);
+  assert.equal(excluded.candidateCoveragePct, 100);
+  assert.match(excluded.reason, /en la candidata pero no en la referencia/i);
+  assert.equal(result.channels.some(channel => channel.key === "speed_kmh"), false);
 });

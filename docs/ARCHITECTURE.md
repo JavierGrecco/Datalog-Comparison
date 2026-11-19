@@ -31,7 +31,8 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 | src/sample-selection.mjs | Selección determinista de muestras originales para vistas de inspección, sin interpolación ni mutación. |
 | src/series-display.mjs | Decimación min/max solo para SVG; conserva extremos y cortes de datos faltantes sin modificar los registros. |
 | src/signal-processing.mjs | Señales derivadas: decimación temporal FIR para señales continuas, retención para discretas y curvas de dinamómetro por barridos y bandas RPM. |
-| src/run-comparability.mjs | Detección de canales compartidos y compatibilidad declarada de unidades. |
+| src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
+| src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
 
@@ -49,6 +50,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 - La importación admite eje temporal o RPM; no los sintetiza. El perfil de calidad estima intervalos observados por canal solo cuando hay un eje temporal válido.
 - El inspector crea un registro exploratorio y muestra calidad; no lo agrega a la matriz ni permite compararlo con fixtures.
 - La matriz no calcula una puntuación opaca de confianza.
+- El comparador de distribuciones resume cada registro por separado; excluye y explica canales incompatibles, unilaterales o con cobertura insuficiente. No alinea relojes ni empareja puntos.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
 - El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
 - El informe sintético no exporta muestras completas ni rutas locales.
