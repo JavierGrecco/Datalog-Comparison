@@ -25,7 +25,7 @@ Esas carpetas están excluidas de Git. Revisá siempre el destino y el contenido
 
 ### Lectura controlada
 
-El importador CSV genérico limita el texto a 10 MB, las filas a 100.000, las columnas a 128, cada celda a 16.384 caracteres y el total a 2.000.000 de celdas por archivo. El límite total cuenta también celdas vacías y encabezados, porque cada una ocupa espacio al construir la tabla en memoria. También valida encabezados duplicados, filas más anchas que el encabezado, números no finitos, separadores y unidades incompatibles.
+El importador CSV genérico limita el texto a 10 MB, las filas a 100.000, las columnas a 128, cada celda a 16.384 caracteres y el total a 2.000.000 de celdas por archivo. La lectura de bytes acepta UTF-8 con o sin BOM y UTF-16 con BOM; una secuencia inválida se rechaza antes del parser para no convertir bytes dañados en caracteres de sustitución. El límite total cuenta también celdas vacías y encabezados, porque cada una ocupa espacio al construir la tabla en memoria. También valida encabezados duplicados, filas más anchas que el encabezado, números no finitos, separadores y unidades incompatibles.
 
 Estos límites reducen el riesgo de cargas accidentales demasiado grandes. No son una garantía contra todos los archivos maliciosos ni sustituyen las protecciones del navegador y del sistema operativo.
 
@@ -51,7 +51,7 @@ Los manifiestos registran información disponible sobre el origen declarado, el 
 
 Una huella SHA-256 permite comprobar si los bytes de un archivo coinciden con los bytes usados para calcular esa misma huella. **No demuestra quién creó el archivo, qué vehículo lo produjo, si un sensor estaba calibrado ni si el ensayo fue auténtico.** Tampoco acredita que dos mediciones sean físicamente comparables.
 
-Conservar el archivo original sin modificarlo y registrar la versión del parser, las unidades y las transformaciones ayuda a reproducir una importación. No reemplaza una revisión técnica del registro original.
+Conservar el archivo original sin modificarlo y registrar la codificación detectada, la versión del parser, las unidades y las transformaciones ayuda a reproducir una importación. No reemplaza una revisión técnica del registro original.
 
 ## Qué verifican las pruebas
 

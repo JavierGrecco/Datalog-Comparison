@@ -1,3 +1,4 @@
+import { CsvTextDecodingError, decodeCsvBytes } from "../src/text-decoder.mjs";
 import {
   CSV_CHANNEL_DEFINITIONS,
   MAX_CSV_CHARACTERS,
@@ -14,9 +15,19 @@ import { DEFAULT_CONTINUOUS_CHANNELS, buildRpmSweepCurves, resampleTimeBasedSign
 
 const $ = selector => document.querySelector(selector);
 const state = {
-  file: null, text: null, parsed: null, run: null, quality: null, profile: "generic",
+  file: null, text: null, textEncoding: null, parsed: null, run: null, quality: null, profile: "generic",
   columnSuggestions: null, derivedResult: null,
 };
+
+function sourceEncodingLabel(encoding) {
+  const labels = {
+    "utf-8": "UTF-8",
+    "utf-8-bom": "UTF-8 con BOM",
+    "utf-16le-bom": "UTF-16LE con BOM",
+    "utf-16be-bom": "UTF-16BE con BOM",
+  };
+  return labels[encoding] ?? "No declarada";
+}
 
 function makeElement(tag, className, text) {
   const node = document.createElement(tag);
@@ -435,6 +446,10 @@ function renderPreview() {
     summary.append(makeElement("p", "csv-preview-meta",
       "Base de torque/potencia declarada: " + run.measurementBasisLabel));
   }
+  if (run.importMetadata?.sourceEncoding) {
+    summary.append(makeElement("p", "csv-preview-meta",
+      "Codificación de origen: " + sourceEncodingLabel(run.importMetadata.sourceEncoding)));
+  }
   if (run.importMetadata?.importFormat) {
     summary.append(makeElement("p", "csv-preview-meta",
       "Perfil: " + run.importMetadata.importFormat));
@@ -515,8 +530,9 @@ function showGenericMapping(parsed, profile) {
   const profileText = profile === "dynojet"
     ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarar la base de medición."
     : "Asigná tiempo y RPM antes de inspeccionarlo.";
-  setStatus("Archivo leído localmente: " + parsed.headers.length + " columnas y " +
-    parsed.rows.length + " filas de datos. " + profileText + warningText,
+  setStatus("Archivo leído localmente (" + sourceEncodingLabel(state.textEncoding) + "): " +
+    parsed.headers.length + " columnas y " + parsed.rows.length + " filas de datos. " +
+    profileText + warningText,
   parsed.warnings.length ? "warning" : "success");
 }
 
@@ -542,12 +558,13 @@ function parseLoadedText() {
         id: "haltech-nsp-local-" + Date.now(),
         name: state.file?.name,
         importedAt: new Date().toISOString(),
+        sourceEncoding: state.textEncoding,
       });
       state.profile = "haltech";
       state.run = run;
       state.quality = assessRunDataQuality(run);
       renderPreview();
-      setStatus("Se reconoció la variante Haltech NSP %DataLog%. Se normalizaron los canales soportados; revisá los canales excluidos y las reglas de conversión.",
+      setStatus("Se reconoció la variante Haltech NSP %DataLog% (" + sourceEncodingLabel(state.textEncoding) + "). Se normalizaron los canales soportados; revisá los canales excluidos y las reglas de conversión.",
         state.quality.status === "no_obvious_issues" ? "success" : "warning");
       return;
     }
@@ -560,7 +577,8 @@ function parseLoadedText() {
     const parsed = parseCsvText(state.text, { delimiter: selectedDelimiter() });
     showGenericMapping(parsed, profile);
   } catch (error) {
-    const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
+    const detail = error instanceof CsvImportError || error instanceof CsvTextDecodingError
+      ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
   }
 }
@@ -569,6 +587,7 @@ async function handleFileSelection() {
   clearPreview();
   state.file = null;
   state.text = null;
+  state.textEncoding = null;
   state.parsed = null;
   $("#csvMappingSection").hidden = true;
   $("#csvInspectButton").disabled = true;
@@ -586,13 +605,16 @@ async function handleFileSelection() {
     return;
   }
   try {
-    const text = await file.text();
+    const bytes = await file.arrayBuffer();
     if ($("#csvFile").files?.[0] !== file) return;
+    const decoded = decodeCsvBytes(bytes);
     state.file = file;
-    state.text = text;
+    state.text = decoded.text;
+    state.textEncoding = decoded.encoding;
     parseLoadedText();
   } catch (error) {
-    const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
+    const detail = error instanceof CsvImportError || error instanceof CsvTextDecodingError
+      ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
   }
 }
@@ -628,6 +650,7 @@ function handleImport(event) {
     units,
     decimalSeparator: $("#csvDecimalSeparator").value,
     importedAt: new Date().toISOString(),
+    sourceEncoding: state.textEncoding,
     measurementBasis,
   };
 
@@ -639,7 +662,7 @@ function handleImport(event) {
     state.run = run;
     state.quality = quality;
     renderPreview();
-    setStatus("Inspección completada. El archivo permanece en memoria local y no se agregó a la matriz de comparación.",
+    setStatus("Inspección completada (" + sourceEncodingLabel(run.importMetadata?.sourceEncoding) + "). El archivo permanece en memoria local y no se agregó a la matriz de comparación.",
       quality.status === "no_obvious_issues" ? "success" : "warning");
   } catch (error) {
     const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
@@ -650,6 +673,7 @@ function handleImport(event) {
 function reset() {
   state.file = null;
   state.text = null;
+  state.textEncoding = null;
   state.parsed = null;
   state.run = null;
   state.quality = null;

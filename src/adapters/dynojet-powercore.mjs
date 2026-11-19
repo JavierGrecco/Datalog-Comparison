@@ -12,7 +12,7 @@ function fail(code, message, details = {}) {
 
 export function importDynojetPowerCoreCsv(parsed, {
   id, name, channelMapping, units, decimalSeparator = ".",
-  measurementBasis = null, importedAt = new Date().toISOString(),
+  measurementBasis = null, importedAt = new Date().toISOString(), sourceEncoding = null,
 } = {}) {
   if (!parsed || !Array.isArray(parsed.headers) || !Array.isArray(parsed.rows)) {
     fail("DYNOJET_PARSED_CSV_REQUIRED", "Se necesita un CSV genérico parseado antes de aplicar el perfil Dynojet.");
@@ -30,6 +30,7 @@ export function importDynojetPowerCoreCsv(parsed, {
     units,
     decimalSeparator,
     importedAt,
+    sourceEncoding,
     parserId: DYNOJET_POWERCORE_ADAPTER_ID,
     importFormat: "dynojet-powercore-guided-csv/1",
     measurementBasis,

@@ -19,7 +19,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 | --- | --- |
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado y vista previa aislada. |
-| src/csv-import.mjs | Parser genérico, límites, contrato de canales, preservación de valores fuente mapeados y registro exploratorio. |
+| src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |\n| src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
 | src/unit-registry.mjs | Registro versionado de símbolos, dimensiones, unidades canónicas y conversiones con sensibilidad al caso. |
 | src/adapters/haltech-nsp.mjs | Perfil experimental para variante Haltech NSP con marcador y encabezados tipados. |

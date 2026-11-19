@@ -5,6 +5,7 @@
 import { createRunManifestFromRun } from "./run-manifest.mjs";
 import { createEmptyOperatingConditions } from "./operating-conditions.mjs";
 import { UNIT_REGISTRY_VERSION, resolveUnitForChannel } from "./unit-registry.mjs";
+import { CSV_TEXT_ENCODINGS } from "./text-decoder.mjs";
 
 export const CSV_IMPORT_SCHEMA = "datalog-workbench.csv-import/1";
 export const CSV_RUN_SCHEMA = "datalog-workbench.csv-run/1";
@@ -349,7 +350,7 @@ export function mapCsvToRun(parsed, {
   id, name, sourceDomain, channelMapping, units, decimalSeparator = ".",
   importedAt = new Date().toISOString(), parserId = "datalog-csv/1",
   importFormat = "generic-csv", sourceHeaderRow = 1, sourceHeaderRows = null,
-  adapterMetadata = null, measurementBasis = null,
+  adapterMetadata = null, measurementBasis = null, sourceEncoding = null,
 } = {}) {
   if (!parsed || parsed.schema !== CSV_IMPORT_SCHEMA || !Array.isArray(parsed.headers) ||
       !Array.isArray(parsed.rows)) {
@@ -366,6 +367,11 @@ export function mapCsvToRun(parsed, {
   }
   if (!units || typeof units !== "object" || Array.isArray(units)) {
     fail("CSV_UNITS_REQUIRED", "Declarar las unidades de los canales es obligatorio.");
+  }
+  if (sourceEncoding !== null && !CSV_TEXT_ENCODINGS.includes(sourceEncoding)) {
+    fail("CSV_SOURCE_ENCODING_UNSUPPORTED",
+      "La codificación de origen no pertenece a las variantes admitidas por el importador.",
+      { sourceEncoding });
   }
   if (!Number.isSafeInteger(sourceHeaderRow) || sourceHeaderRow < 1) {
     fail("CSV_SOURCE_HEADER_ROW_INVALID", "La fila de encabezado de origen debe ser un entero positivo.");
@@ -509,6 +515,7 @@ export function mapCsvToRun(parsed, {
     importMetadata: {
       parserId,
       importFormat,
+      ...(sourceEncoding ? { sourceEncoding } : {}),
       unitNormalizationVersion: UNIT_REGISTRY_VERSION,
       sourceUnits: Object.fromEntries(Object.entries(unitRules).map(([key, rule]) => [key, rule.sourceUnit])),
       unitConversions: Object.fromEntries(Object.entries(unitRules)

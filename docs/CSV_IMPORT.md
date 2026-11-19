@@ -25,7 +25,7 @@ La vista previa selecciona hasta ocho muestras originales espaciadas a lo largo 
 ## Parser CSV genérico
 
 - Separadores: coma, punto y coma y tabulación.
-- Comillas dobles, comillas escapadas, campos multilínea, BOM y CRLF/LF.
+- Codificación: UTF-8 con o sin BOM y UTF-16 little-endian/big-endian cuando incluyen BOM. Las secuencias inválidas se rechazan; las codificaciones locales/ANSI no se adivinan.\n- Comillas dobles, comillas escapadas, campos multilínea y CRLF/LF.
 - Encabezados obligatorios, no vacíos y únicos después de normalizar espacios, Unicode y mayúsculas.
 - Filas completamente vacías ignoradas y contabilizadas.
 - Se conserva el número de línea física del encabezado y de cada muestra, incluso con CRLF, filas vacías y celdas entrecomilladas multilínea.
@@ -119,7 +119,7 @@ Dynojet Data Center permite configurar por separado el paso de exportación por 
 
 ## Salida y limitaciones
 
-El mapeo genérico crea un registro exploratorio con muestras en orden de origen, valores canónicos, celdas textuales originales de los canales mapeados, faltantes, unidades, versión del parser, asignaciones, metadatos y advertencias. Los adaptadores específicos preservan su procedencia según el punto de conversión de cada perfil y no declaran valores transformados como celdas originales. Las columnas no mapeadas quedan enumeradas en importMetadata.unmappedHeaders, no se incorporan al modelo semántico. El estado sin alertas estructurales no autentica origen, sensor, unidades, sincronización, método ni condiciones físicas.
+El mapeo genérico crea un registro exploratorio con muestras en orden de origen, valores canónicos, celdas textuales originales de los canales mapeados, faltantes, unidades, versión del parser, codificación detectada cuando se leyó desde bytes, asignaciones, metadatos y advertencias. Los adaptadores específicos preservan su procedencia según el punto de conversión de cada perfil y no declaran valores transformados como celdas originales. Las columnas no mapeadas quedan enumeradas en importMetadata.unmappedHeaders, no se incorporan al modelo semántico. El estado sin alertas estructurales no autentica origen, sensor, unidades, sincronización, método ni condiciones físicas.
 
 Fuera de alcance:
 

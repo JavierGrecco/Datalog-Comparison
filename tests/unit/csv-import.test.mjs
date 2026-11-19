@@ -332,6 +332,23 @@ test("exige dominio, al menos un eje, asignación única y unidades declaradas",
   })), error => error.code === "CSV_COLUMN_MAPPED_MORE_THAN_ONCE");
 });
 
+
+test("registra la codificación de origen y rechaza etiquetas no admitidas", async () => {
+  const parsed = parseCsvText(
+    "Elapsed [s],Engine speed [rpm]\n0,1000\n0.1,1100\n",
+  );
+  const options = importOptions(parsed, {
+    channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]" },
+    units: {},
+    sourceEncoding: "utf-16le-bom",
+  });
+  const run = mapCsvToRun(parsed, options);
+  assert.equal(run.importMetadata.sourceEncoding, "utf-16le-bom");
+
+  assert.throws(() => mapCsvToRun(parsed, { ...options, sourceEncoding: "windows-1252" }),
+    error => error.code === "CSV_SOURCE_ENCODING_UNSUPPORTED");
+});
+
 test("no transforma unidades ni completa valores faltantes", () => {
   const parsed = parseCsvText("Elapsed [s];Engine speed [rpm];Torque [Nm]\n0,0;1000;100\n0,1;1100;N/A\n0,2;1200;120\n");
   const run = mapCsvToRun(parsed, importOptions(parsed, {

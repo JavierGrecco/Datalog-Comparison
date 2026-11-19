@@ -195,6 +195,56 @@ test("los encabezados CSV importados se muestran como texto y no inyectan HTML",
 });
 
 
+test("importa CSV UTF-16LE con BOM y conserva la codificación en la procedencia", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const csv = "Elapsed [s],Engine speed [rpm]\n0,1000\n0.1,1100\n";
+  const buffer = Buffer.from("\uFEFF" + csv, "utf16le");
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "utf16le-synthetic.csv",
+    mimeType: "text/csv",
+    buffer,
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvImportStatus").innerText(), /UTF-16LE con BOM/);
+
+  await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvColumnDelimiter").selectOption(",");
+  await page.locator("#csvDecimalSeparator").selectOption(".");
+  await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /Codificación de origen: UTF-16LE con BOM/);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /no se agregó a la matriz de comparación/i);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+test("rechaza bytes CSV que no cumplen UTF-8 estricto sin reemplazar caracteres", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "invalid-encoding.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from([0x52, 0x50, 0x4d, 0x2c, 0xff]),
+  });
+  await page.waitForFunction(() => document.querySelector("#csvImportStatus")?.textContent.includes("CSV_ENCODING_UNSUPPORTED"));
+  assert.match(await page.locator("#csvImportStatus").innerText(), /CSV_ENCODING_UNSUPPORTED/);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /no se adivinará otra codificación/i);
+  assert.equal(await page.locator("#csvMappingSection").isVisible(), false);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+
 test("los errores de tipeo y rangos numéricos no asignan canales automáticamente", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });

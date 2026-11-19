@@ -324,7 +324,7 @@ function unsupportedSummary(unsupported) {
   return preview.join(", ") + (remainder > 0 ? " y " + remainder + " canal(es) más" : "");
 }
 
-function importMetadataLayout(payload, { id, name, importedAt }) {
+function importMetadataLayout(payload, { id, name, importedAt, sourceEncoding }) {
   const parsedLayout = parseMetadataLayout(payload.lines, payload.markerLine);
   const { descriptors, dataRows, metadata, firstDataIndex, skippedEmptyRows } = parsedLayout;
   const supported = [];
@@ -416,6 +416,7 @@ function importMetadataLayout(payload, { id, name, importedAt }) {
     units,
     decimalSeparator: ".",
     importedAt,
+    sourceEncoding,
     parserId: HALTECH_NSP_METADATA_ADAPTER_ID,
     importFormat: "haltech-nsp-metadata-csv/1",
     sourceHeaderRow: firstDataIndex,
@@ -450,7 +451,7 @@ function importMetadataLayout(payload, { id, name, importedAt }) {
   return run;
 }
 
-function importTypedLayout(payload, { id, name, importedAt }) {
+function importTypedLayout(payload, { id, name, importedAt, sourceEncoding }) {
   const parsed = parseCsvText(payload.payload, { delimiter: "," });
   const descriptors = parsed.headers.map(parseDescriptor);
   if (descriptors.length < 2) fail("HALTECH_TOO_FEW_CHANNELS", "El registro Haltech necesita tiempo y al menos un canal de señal.");
@@ -530,6 +531,7 @@ function importTypedLayout(payload, { id, name, importedAt }) {
     units,
     decimalSeparator: ".",
     importedAt,
+    sourceEncoding,
     parserId: HALTECH_NSP_ADAPTER_ID,
     importFormat: "haltech-nsp-csv/1",
     sourceHeaderRow: payload.sourceHeaderRow,
@@ -563,6 +565,7 @@ export function importHaltechNspCsv(text, options = {}) {
     id: options.id,
     name: options.name,
     importedAt: options.importedAt ?? new Date().toISOString(),
+    sourceEncoding: options.sourceEncoding ?? null,
   };
   return payload.layout === "channel-metadata"
     ? importMetadataLayout(payload, normalizedOptions)
