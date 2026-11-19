@@ -47,7 +47,7 @@ La rama canónica de este proyecto es `main`.
 8. Los símbolos de unidad se procesan sin lowercase global; cada alias y conversión debe estar en el registro versionado y probarse con casos de colisión.
 9. Las magnitudes o rangos numéricos nunca son una prueba única de identidad semántica ni de unidad.
 10. La ausencia de un eje o muestra no autoriza a sintetizarla, interpolarla o imputarla durante la importación.
-11. Todo error de lectura debe identificar el código y, cuando corresponda, la fila y columna afectadas.
+11. Todo error de lectura debe identificar el código y, cuando corresponda, la fila y columna afectadas. Las filas reportadas deben ser líneas físicas del archivo original, incluso cuando existan líneas vacías o campos multilínea.
 12. La inspección CSV local no habilita comparaciones entre archivos hasta validar sincronización, canal, método y base física.
 13. Los archivos de vehículos reales solo se incorporan a pruebas con autorización, procedencia y permisos de redistribución claros.
 

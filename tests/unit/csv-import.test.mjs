@@ -253,6 +253,9 @@ test("ignora filas completamente vacías y conserva su recuento de origen", () =
   assert.equal(parsed.rows.length, 2);
   assert.equal(parsed.skippedEmptyRows, 1);
   assert.equal(parsed.sourceRowCount, 4);
+  assert.equal(parsed.headerLine, 1);
+  assert.deepEqual(parsed.sourceLineNumbers, [2, 4]);
+  assert.deepEqual(parsed.shortRowLineNumbers, []);
 });
 
 test("normaliza encabezados para detectar duplicados ambiguos", () => {
@@ -267,10 +270,22 @@ test("rechaza encabezados vacíos y filas con más celdas que las declaradas", (
     error => error.code === "CSV_ROW_TOO_WIDE");
 });
 
+test("informa la línea física correcta cuando una fila ancha sigue a contenido multilínea y filas vacías", () => {
+  const csv = 'time_s,rpm,note\\n0,1000,"line one\\nline two"\\n\\n1,1100,extra,overflow\\n';
+  assert.throws(() => parseCsvText(csv), error =>
+    error.code === "CSV_ROW_TOO_WIDE" && error.details.row === 5);
+});
+
 test("advierte filas cortas y conserva los campos finales como faltantes", () => {
   const parsed = parseCsvText("time_s,rpm,torque_nm\n0,1000,100\n1,2000\n");
   assert.equal(parsed.rows[1][2], "");
   assert.match(parsed.warnings[0], /fila\(s\).*faltantes/i);
+});
+
+test("expone las líneas físicas de filas incompletas", () => {
+  const parsed = parseCsvText("time_s,rpm,torque_nm\\n0,1000,100\\n\\n1,2000\\n");
+  assert.equal(parsed.rows[1][2], "");
+  assert.deepEqual(parsed.shortRowLineNumbers, [4]);
 });
 
 test("rechaza comillas mal formadas y contenido después del cierre de comillas", () => {
@@ -326,6 +341,21 @@ test("rechaza valores numéricos que no respetan el separador decimal selecciona
     units: { torque_nm: "Nm" }, decimalSeparator: ",",
   })), error => error.code === "CSV_NUMERIC_VALUE_INVALID" &&
     error.details.row === 3 && error.details.column === "Torque [Nm]");
+});
+
+test("los errores de mapeo conservan la línea física tras filas vacías y celdas multilínea", () => {
+  const parsed = parseCsvText(
+    'Elapsed [s],Engine speed [rpm],Note\\r\\n' +
+    '0,1000,"first line\\r\\ncontinued"\\r\\n' +
+    '\\r\\n' +
+    '1,not-a-number,"last row"\\r\\n',
+  );
+  assert.deepEqual(parsed.sourceLineNumbers, [2, 5]);
+  assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
+    channelMapping: { time_s: "Elapsed [s]", rpm: "Engine speed [rpm]" },
+    units: {},
+  })), error => error.code === "CSV_NUMERIC_VALUE_INVALID" &&
+    error.details.row === 5 && error.details.column === "Engine speed [rpm]");
 });
 
 test("rechaza datos con coma decimal y coma como delimitador al mismo tiempo", () => {

@@ -235,14 +235,17 @@ export function parseCsvText(input, options = {}) {
 
   const warnings = [];
   let shortRows = 0;
-  const rows = records.slice(1).map((sourceRecord, rowIndex) => {
+  const dataRecords = records.slice(1);
+  const shortRowLineNumbers = [];
+  const rows = dataRecords.map(sourceRecord => {
     if (sourceRecord.values.length > headers.length) {
       fail("CSV_ROW_TOO_WIDE",
         "Una fila contiene más celdas que el encabezado; no se puede asignar cada valor sin ambigüedad.",
-        { row: rowIndex + 2, expectedColumns: headers.length, actualColumns: sourceRecord.values.length });
+        { row: sourceRecord.line, expectedColumns: headers.length, actualColumns: sourceRecord.values.length });
     }
     if (sourceRecord.values.length < headers.length) {
       shortRows += 1;
+      shortRowLineNumbers.push(sourceRecord.line);
       return [...sourceRecord.values, ...Array(headers.length - sourceRecord.values.length).fill("")];
     }
     return sourceRecord.values;
@@ -255,7 +258,14 @@ export function parseCsvText(input, options = {}) {
     delimiter: selectedDelimiter,
     delimiterLabel: selectedDelimiter === "\t" ? "tabulación" :
       selectedDelimiter === ";" ? "punto y coma" : "coma",
-    headers, rows, sourceRowCount: allRecords.length, skippedEmptyRows, warnings,
+    headers,
+    rows,
+    headerLine: records[0].line,
+    sourceLineNumbers: dataRecords.map(record => record.line),
+    shortRowLineNumbers,
+    sourceRowCount: allRecords.length,
+    skippedEmptyRows,
+    warnings,
   };
 }
 
@@ -350,6 +360,16 @@ export function mapCsvToRun(parsed, {
   if (!Number.isSafeInteger(sourceHeaderRow) || sourceHeaderRow < 1) {
     fail("CSV_SOURCE_HEADER_ROW_INVALID", "La fila de encabezado de origen debe ser un entero positivo.");
   }
+  if (parsed.sourceLineNumbers !== undefined) {
+    const validSourceLines = Array.isArray(parsed.sourceLineNumbers) &&
+      parsed.sourceLineNumbers.length === parsed.rows.length &&
+      parsed.sourceLineNumbers.every((line, index, lines) =>
+        Number.isSafeInteger(line) && line > 0 && (index === 0 || line > lines[index - 1]));
+    if (!validSourceLines) {
+      fail("CSV_SOURCE_LINE_NUMBERS_INVALID",
+        "Las referencias a líneas del archivo deben ser enteros positivos, crecientes y coincidir con las filas parseadas.");
+    }
+  }
   if (parsed.rows.length < 2) fail("CSV_NOT_ENOUGH_SAMPLES", "Se necesitan al menos dos filas de datos para crear un registro.");
 
   const definitions = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition]));
@@ -437,8 +457,9 @@ export function mapCsvToRun(parsed, {
     const sourceValues = {};
     for (const [key, header] of Object.entries(mapping)) {
       const sourceCell = row[headerIndexes.get(header)] ?? "";
-      const rawValue = parseNumericCell(sourceCell, decimalSeparator,
-        index + sourceHeaderRow + 1, header);
+      const sourceLine = parsed.sourceLineNumbers?.[index];
+      const rowNumber = sourceLine ?? index + sourceHeaderRow + 1;
+      const rawValue = parseNumericCell(sourceCell, decimalSeparator, rowNumber, header);
       channels[key] = convertToCanonical(rawValue, unitRules[key]);
       sourceValues[key] = String(sourceCell);
     }

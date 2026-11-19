@@ -28,6 +28,9 @@ La vista previa selecciona hasta ocho muestras originales espaciadas a lo largo 
 - Comillas dobles, comillas escapadas, campos multilínea, BOM y CRLF/LF.
 - Encabezados obligatorios, no vacíos y únicos después de normalizar espacios, Unicode y mayúsculas.
 - Filas completamente vacías ignoradas y contabilizadas.
+- Se conserva el número de línea física del encabezado y de cada muestra, incluso con CRLF, filas vacías y celdas entrecomilladas multilínea.
+- Los errores de estructura o de valores numéricos informan la línea real del archivo, no la posición compactada de la muestra.
+- Las filas cortas conservan sus campos finales como faltantes y exponen las líneas que requieren revisión.
 - Filas cortas conservadas como faltantes con advertencia; filas con celdas extra rechazadas.
 - Límites: 10 MB, 100.000 filas, 128 columnas y 16.384 caracteres por celda.
 - Valores vacíos, NA, N/A, null, NaN, —, -- y - conservados como faltantes.
