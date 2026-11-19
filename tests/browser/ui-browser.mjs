@@ -164,6 +164,37 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   assert.equal(await page.locator("#csvFile").inputValue(), "");
 });
 
+test("los encabezados CSV importados se muestran como texto y no inyectan HTML", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const injectedHeader = '<img src=x onerror=window.__csvInjected=true>';
+  const csv = [
+    "Elapsed [s],Engine RPM," + injectedHeader,
+    "0,850,10",
+    "0.1,900,20",
+  ].join("\n");
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "untrusted-header.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+
+  const mapping = page.locator("#csvMappingFields");
+  assert.ok((await mapping.textContent()).includes(injectedHeader),
+    "el encabezado original debe permanecer visible como texto");
+  assert.equal(await mapping.locator("img, svg, script").count(), 0,
+    "el contenido importado no debe crear elementos HTML");
+  assert.equal(await page.evaluate(() => Boolean(window.__csvInjected)), false,
+    "el contenido importado no debe ejecutar atributos de evento");
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+
 test("los errores de tipeo y rangos numéricos no asignan canales automáticamente", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });

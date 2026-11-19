@@ -5,20 +5,29 @@ on:
   pull_request:
   workflow_dispatch:
 
+# El workflow solo necesita leer el repositorio.
 permissions:
   contents: read
+
+# Evita gastar recursos en ejecuciones antiguas del mismo ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
+          package-manager-cache: false
       - name: Instalar dependencias fijadas
         run: npm ci --no-audit --no-fund
+      - name: Auditar dependencias
+        run: npm audit --audit-level=high
       - name: Instalar Chromium para la prueba de navegador
         run: npx playwright install --with-deps chromium
       - name: Comprobar sintaxis de JavaScript

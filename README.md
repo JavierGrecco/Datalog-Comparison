@@ -87,6 +87,7 @@ Las pruebas automatizadas requieren **Node.js 22 o posterior** y npm. Desde la r
 
 ```bash
 npm ci
+npm audit --audit-level=high
 npx playwright install chromium
 npm test
 ```
@@ -195,6 +196,8 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 ## Datos y privacidad
 
 La aplicación web procesa ejemplos y CSV importados localmente en el navegador; no utiliza cuentas, telemetría, servicios de análisis ni solicita datos a APIs externas. La política de seguridad del contenido restringe las conexiones salientes desde la aplicación.
+
+Para conocer las medidas, límites y prácticas recomendadas, consultá [Seguridad e integridad de datos](docs/SECURITY_AND_DATA_INTEGRITY.md).
 
 Los comandos de datasets son acciones locales separadas y explícitas: `data:obd-sample` consulta Hugging Face para descargar únicamente el slice solicitado. Los archivos se guardan en `data/external/`, fuera de Git, junto a su atribución y SHA-256. El generador escribe en `data/generated/`, también excluida de Git. Ninguno de esos comandos se ejecuta al abrir la web.
 
