@@ -60,7 +60,9 @@ function measurementBasisMismatch(referenceRun, candidateRun, key) {
 function comparableUnit(run, key) {
   const unitText = String(run?.units?.[key] ?? "").trim();
   if (!unitText || UNKNOWN_UNIT.test(unitText)) return null;
-  return unitText.toLocaleLowerCase();
+  // Los símbolos son sensibles a mayúsculas (Pa ≠ pA, mW ≠ MW, Nm ≠ nm).
+  // El importador ya entrega unidades canónicas; no plegar símbolos aquí.
+  return unitText;
 }
 
 function countNumericChannelSamples(samples) {

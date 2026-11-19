@@ -23,7 +23,7 @@ El estado general se calcula de forma conservadora: un bloqueo prevalece sobre c
 | Procedencia | Roles, huellas, contexto y manifiestos. | Requiere revisión ante manifiestos ausentes, incompletos, en borrador, inválidos o con posibles duplicados. |
 | Validación real | Identificación explícita de datos sintéticos. | Los escenarios sintéticos siempre requieren validación con evidencia real autorizada antes de extraer conclusiones mecánicas. |
 
-El umbral de cobertura por defecto es 80 %. Es una política de revisión configurable, no una tolerancia de ingeniería ni una afirmación de validez metrológica.
+El umbral de cobertura por defecto es 80 %. Es una política de revisión configurable, no una tolerancia de ingeniería ni una afirmación de validez metrológica. Las unidades importadas se normalizan con el registro versionado; en el comparador, los símbolos se respetan con sensibilidad a mayúsculas y minúsculas (por ejemplo, Pa ≠ pA, mW ≠ MW y Nm ≠ nm).
 
 ## Restricciones deliberadas
 

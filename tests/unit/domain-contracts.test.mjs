@@ -261,3 +261,20 @@ test("la matriz muestra señales disponibles en un solo registro como revisión 
   assert.ok(channelsGate.findings.some(item => /speed_kmh:.*valores numéricos en la candidata/i.test(item)));
   assert.ok(readiness.nextActions.some(item => /solo aparecen en uno/i.test(item)));
 });
+
+
+test("la comparación de unidades conserva mayúsculas y minúsculas de los símbolos", () => {
+  const reference = makeRun("reference");
+  const candidate = makeRun("candidate");
+  for (const run of [reference, candidate]) {
+    run.samples.forEach(sample => { sample.channels.map_abs_kpa = 100; });
+    run.units.map_abs_kpa = "Pa";
+  }
+  candidate.units.map_abs_kpa = "pA";
+
+  const comparison = assessRunComparability(reference, candidate);
+  assert.ok(comparison.commonChannels.some(channel => channel.key === "rpm"));
+  assert.ok(comparison.blockedChannels.some(channel =>
+    channel.key === "map_abs_kpa" && /unidades no coinciden/i.test(channel.reason)
+  ));
+});
