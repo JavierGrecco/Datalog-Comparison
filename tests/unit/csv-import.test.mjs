@@ -305,7 +305,7 @@ test("aplica límites de tamaño, filas, columnas, longitud de celda y cantidad 
   const wideTable = "a,b,c\n1,,3\n4,5,6\n";
   assert.throws(() => parseCsvText(wideTable, { maxCells: 8 }), error =>
     error.code === "CSV_TOO_MANY_CELLS" &&
-    error.details.row === 3 &&
+    error.details.line === 3 &&
     error.details.maxCells === 8 &&
     error.details.parsedCells === 9);
   assert.throws(() => parseCsvText("a,b\n1,2\n", { maxCells: 0 }),
