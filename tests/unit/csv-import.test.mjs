@@ -271,7 +271,7 @@ test("rechaza encabezados vacíos y filas con más celdas que las declaradas", (
 });
 
 test("informa la línea física correcta cuando una fila ancha sigue a contenido multilínea y filas vacías", () => {
-  const csv = 'time_s,rpm,note\\n0,1000,"line one\\nline two"\\n\\n1,1100,extra,overflow\\n';
+  const csv = 'time_s,rpm,note\n0,1000,"line one\nline two"\n\n1,1100,extra,overflow\n';
   assert.throws(() => parseCsvText(csv), error =>
     error.code === "CSV_ROW_TOO_WIDE" && error.details.row === 5);
 });
@@ -283,7 +283,7 @@ test("advierte filas cortas y conserva los campos finales como faltantes", () =>
 });
 
 test("expone las líneas físicas de filas incompletas", () => {
-  const parsed = parseCsvText("time_s,rpm,torque_nm\\n0,1000,100\\n\\n1,2000\\n");
+  const parsed = parseCsvText("time_s,rpm,torque_nm\n0,1000,100\n\n1,2000\n");
   assert.equal(parsed.rows[1][2], "");
   assert.deepEqual(parsed.shortRowLineNumbers, [4]);
 });
@@ -345,10 +345,10 @@ test("rechaza valores numéricos que no respetan el separador decimal selecciona
 
 test("los errores de mapeo conservan la línea física tras filas vacías y celdas multilínea", () => {
   const parsed = parseCsvText(
-    'Elapsed [s],Engine speed [rpm],Note\\r\\n' +
-    '0,1000,"first line\\r\\ncontinued"\\r\\n' +
-    '\\r\\n' +
-    '1,not-a-number,"last row"\\r\\n',
+    'Elapsed [s],Engine speed [rpm],Note\r\n' +
+    '0,1000,"first line\r\ncontinued"\r\n' +
+    '\r\n' +
+    '1,not-a-number,"last row"\r\n',
   );
   assert.deepEqual(parsed.sourceLineNumbers, [2, 5]);
   assert.throws(() => mapCsvToRun(parsed, importOptions(parsed, {
