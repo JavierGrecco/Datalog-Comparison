@@ -27,6 +27,8 @@ export const OPERATING_CONDITION_FIELDS = Object.freeze([
   { key: "dyno_ramp_rate_rpm_s", label: "Rampa del banco", type: "number", unit: "RPM/s", optional: true, min: 0, hint: "Ramp rate del ensayo, si el equipo lo declara; no es una velocidad del vehículo." },
   { key: "dyno_smoothing_setting", label: "Suavizado del gráfico del banco", type: "text", unit: "", optional: true, hint: "Anotá el nivel/algoritmo exacto. No compares niveles desconocidos como si fueran equivalentes." },
   { key: "dyno_model", label: "Modelo del dinamómetro", type: "text", unit: "", optional: true, hint: "Fabricante, modelo y configuración del banco." },
+  { key: "dyno_type", label: "Tipo de dinamómetro", type: "select", unit: "", options: [{ value: "engine", label: "Banco de motor" }, { value: "chassis", label: "Banco de chasis" }], optional: true, hint: "Identificá el tipo de banco. No se infiere a partir de la curva." },
+  { key: "dyno_measurement_basis", label: "Base física de medición", type: "select", unit: "", options: [{ value: "engine", label: "Motor" }, { value: "wheel", label: "Rueda" }, { value: "hub", label: "Cubo" }, { value: "roller", label: "Rodillo" }], optional: true, hint: "Motor solo para banco de motor; rueda, cubo o rodillo para banco de chasis." },
   { key: "dyno_correction_standard", label: "Norma de corrección de potencia", type: "text", unit: "", optional: true, hint: "Ej.: SAE J1349 (edición), ISO 1585 u otro método declarado. No se aplica una corrección automáticamente." },
   { key: "dyno_fan_setup", label: "Ventilación y refrigeración", type: "text", unit: "", optional: true, hint: "Posición, tipo y configuración del ventilador; documentá si se mantuvo entre tiradas." },
   { key: "instrument_calibration", label: "Calibración de instrumentos", type: "text", unit: "", optional: true, hint: "Identificación, fecha o estado de calibración de sensores y equipos de medición." },
@@ -99,6 +101,9 @@ export function validateOperatingConditions(conditions, label = "operatingCondit
         if (Number.isFinite(definition.min) && entry.value < definition.min) errors.push(entryLabel + ".value está por debajo del mínimo permitido.");
         if (Number.isFinite(definition.max) && entry.value > definition.max) errors.push(entryLabel + ".value está por encima del máximo permitido.");
       }
+    } else if (definition.type === "select" &&
+        (!validText(entry.value) || !definition.options?.some(option => option.value === entry.value))) {
+      errors.push(entryLabel + ".value debe coincidir con una opción permitida.");
     } else if (!validText(entry.value)) {
       errors.push(entryLabel + ".value debe ser texto no vacío.");
     }

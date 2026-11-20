@@ -75,13 +75,15 @@ const protocolModes = {
 };
 const ECU_FIELDS = ["calibration_id", "fuel", "intake_temp_c", "coolant_temp_c"];
 const ECU_TRANSIENT_FIELDS = ["vehicle_engine", "calibration_id", "fuel", "ambient_temp_c"];
-const DYNO_FIELDS = [
-  "vehicle_engine", "fuel", "gear", "test_method", "dyno_model", "dyno_load_mode",
-  "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting", "dyno_correction_standard",
-  "dyno_fan_setup", "instrument_calibration", "tire_size", "tire_pressure_kpa",
-  "tire_condition", "dyno_strapping", "ambient_temp_c", "ambient_pressure_kpa",
-  "relative_humidity_pct",
+const DYNO_COMMON_FIELDS = [
+  "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
+  "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
+  "dyno_fan_setup", "instrument_calibration", "ambient_temp_c",
 ];
+const DYNO_CHASSIS_FIELDS = [
+  "gear", "tire_size", "tire_pressure_kpa", "tire_condition", "dyno_strapping",
+];
+const DYNO_SWEEP_FIELDS = ["dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"];
 function renderProtocolModeOptions() {
   const domain = $("#protocolDomain").value;
   const mode = $("#protocolMode");
@@ -97,27 +99,60 @@ function renderProtocolModeOptions() {
 function protocolRequiredFields() {
   const domain = $("#protocolDomain").value;
   const mode = $("#protocolMode").value;
-  if (domain === "dyno") return DYNO_FIELDS;
+  if (domain === "dyno") {
+    const dynoType = document.querySelector('[data-condition-key="dyno_type"]')?.value ?? "";
+    return [
+      ...DYNO_COMMON_FIELDS,
+      ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
+    ];
+  }
   return mode === "steady_state" ? ECU_FIELDS : ECU_TRANSIENT_FIELDS;
 }
 function renderProtocolConditionFields() {
   const host = $("#protocolConditionFields");
   if (!host) return;
+  const previous = new Map();
+  for (const card of host.querySelectorAll(".protocol-condition-card")) {
+    const value = card.querySelector("[data-condition-key]");
+    const key = value?.dataset.conditionKey;
+    if (!key) continue;
+    previous.set(key, {
+      value: value.value,
+      status: card.querySelector("[data-condition-status]")?.value ?? "unknown",
+      source: card.querySelector("[data-condition-source]")?.value ?? "",
+      note: card.querySelector("[data-condition-note]")?.value ?? "",
+    });
+  }
   host.replaceChildren();
   const definitions = new Map(OPERATING_CONDITION_FIELDS.map(item => [item.key, item]));
   for (const key of protocolRequiredFields()) {
     const definition = definitions.get(key);
+    const saved = previous.get(key);
     const card = element("fieldset", "protocol-condition-card");
     const legend = element("legend", "", definition.label + (definition.unit ? " (" + definition.unit + ")" : ""));
     const valueLabel = element("label", "csv-control");
     valueLabel.append(element("span", "", "Valor"));
-    const value = element(definition.type === "number" ? "input" : "input", "protocol-condition-value");
-    value.type = definition.type === "number" ? "number" : "text";
+    const value = definition.type === "select"
+      ? element("select", "protocol-condition-value")
+      : element("input", "protocol-condition-value");
+    if (definition.type === "number") value.type = "number";
+    else if (definition.type !== "select") value.type = "text";
     value.dataset.conditionKey = key;
     value.id = "conditionValue-" + key;
+    if (definition.type === "select") {
+      const placeholder = element("option", "", "Seleccioná una opción");
+      placeholder.value = "";
+      value.append(placeholder);
+      for (const optionDefinition of definition.options ?? []) {
+        const option = element("option", "", optionDefinition.label);
+        option.value = optionDefinition.value;
+        value.append(option);
+      }
+    }
     if (definition.min !== undefined) value.min = String(definition.min);
     if (definition.max !== undefined) value.max = String(definition.max);
-    value.placeholder = "Sin dato";
+    if (definition.type !== "select") value.placeholder = "Sin dato";
     valueLabel.append(value);
     const statusLabel = element("label", "csv-control");
     statusLabel.append(element("span", "", "Estado de evidencia"));
@@ -139,6 +174,12 @@ function renderProtocolConditionFields() {
     note.type = "text"; note.dataset.conditionNote = key;
     note.maxLength = 500; note.placeholder = definition.hint ?? "";
     noteLabel.append(note);
+    if (saved) {
+      value.value = saved.value;
+      status.value = saved.status;
+      source.value = saved.source;
+      note.value = saved.note;
+    }
     card.append(legend, valueLabel, statusLabel, sourceLabel, noteLabel);
     host.append(card);
   }
@@ -248,6 +289,9 @@ export function initializeProtocolInspector() {
   $("#protocolJsonInput").addEventListener("input", clearPendingArtifact);
   $("#protocolDomain").addEventListener("change", renderProtocolModeOptions);
   $("#protocolMode").addEventListener("change", () => { renderProtocolConditionFields(); updateProtocolPointFields(); });
+  $("#protocolConditionFields").addEventListener("change", event => {
+    if (event.target?.matches('[data-condition-key="dyno_type"]')) renderProtocolConditionFields();
+  });
   $("#protocolBuildButton").addEventListener("click", () => {
     const status = $("#protocolBuilderStatus");
     status.textContent = "";
@@ -302,7 +346,7 @@ export function initializeProtocolInspector() {
         },
         payload: { input, assessment: result },
       } } }));
-      $("#protocolBuilderStatus").textContent = "Evaluación lista. Podés guardarla manualmente en un expediente local desde la sección de expedientes.";
+      $("#protocolBuilderStatus").textContent = "Evaluación lista. No certifica una norma ni autentica las fuentes; podés guardar el resultado manualmente en un expediente local.";
 
       status.textContent = "Evaluación local terminada. El resultado no certifica una norma ni autentica las fuentes declaradas.";
     } catch (error) {

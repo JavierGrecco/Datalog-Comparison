@@ -13,13 +13,15 @@ const ECU_STEADY_FIELDS = [
 const ECU_TRANSIENT_FIELDS = [
   "vehicle_engine", "calibration_id", "fuel", "ambient_temp_c",
 ];
-const DYNO_FIELDS = [
-  "vehicle_engine", "fuel", "gear", "test_method", "dyno_model",
-  "dyno_load_mode", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting",
-  "dyno_correction_standard", "dyno_fan_setup", "instrument_calibration",
-  "tire_size", "tire_pressure_kpa", "tire_condition", "dyno_strapping",
-  "ambient_temp_c", "ambient_pressure_kpa", "relative_humidity_pct",
+const DYNO_COMMON_FIELDS = [
+  "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
+  "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
+  "dyno_fan_setup", "instrument_calibration", "ambient_temp_c",
 ];
+const DYNO_CHASSIS_FIELDS = [
+  "gear", "tire_size", "tire_pressure_kpa", "tire_condition", "dyno_strapping",
+];
+const DYNO_SWEEP_FIELDS = ["dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"];
 
 const usable = entry => entry && ["measured", "verified"].includes(entry.status) &&
   entry.value !== null && entry.value !== "" && typeof entry.source === "string" && entry.source.trim();
@@ -145,6 +147,8 @@ export function assessTestProtocol(runs, {
   const mode = [...modes][0];
   let requiredFields;
   let setupFields;
+  let dynoType = null;
+  let measurementBasis = null;
   if (domain === "ecu" && mode === "steady_state") {
     requiredFields = ECU_STEADY_FIELDS;
     setupFields = ["calibration_id", "fuel"];
@@ -152,11 +156,46 @@ export function assessTestProtocol(runs, {
     requiredFields = ECU_TRANSIENT_FIELDS;
     setupFields = ["vehicle_engine", "calibration_id", "fuel"];
   } else if (domain === "dyno" && ["inertia_sweep", "loaded_sweep", "steady_state"].includes(mode)) {
-    requiredFields = DYNO_FIELDS;
-    setupFields = ["vehicle_engine", "fuel", "gear", "dyno_model", "dyno_load_mode",
-      "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting", "dyno_correction_standard",
-      "dyno_fan_setup", "instrument_calibration", "tire_size", "tire_pressure_kpa",
-      "tire_condition", "dyno_strapping"];
+    const typeEntries = runs.map(run => getCondition(run, "dyno_type"));
+    const basisEntries = runs.map(run => getCondition(run, "dyno_measurement_basis"));
+    const declared = entry => usable(entry) && typeof entry.value === "string";
+    const typeValues = new Set(typeEntries.filter(declared).map(entry => entry.value));
+    const basisValues = new Set(basisEntries.filter(declared).map(entry => entry.value));
+
+    if (typeEntries.some(entry => !declared(entry) || !["engine", "chassis"].includes(entry.value))) {
+      findings.push({ code: "dyno_type_unknown", message: "Cada registro debe identificar el banco como motor o chasis con una fuente declarada." });
+    } else if (typeValues.size !== 1) {
+      findings.push({ code: "dyno_type_mismatch", message: "No se pueden agrupar repeticiones de banco de motor y banco de chasis." });
+    } else {
+      dynoType = [...typeValues][0];
+    }
+
+    if (basisEntries.some(entry => !declared(entry) || !["engine", "wheel", "hub", "roller"].includes(entry.value))) {
+      findings.push({ code: "dyno_measurement_basis_unknown", message: "Cada registro debe declarar una base física de medición válida." });
+    } else if (basisValues.size !== 1) {
+      findings.push({ code: "dyno_measurement_basis_mismatch", message: "Las repeticiones usan bases físicas distintas; no deben compararse como una misma medición." });
+    } else {
+      measurementBasis = [...basisValues][0];
+    }
+
+    if (dynoType && measurementBasis &&
+        !((dynoType === "engine" && measurementBasis === "engine") ||
+          (dynoType === "chassis" && ["wheel", "hub", "roller"].includes(measurementBasis)))) {
+      findings.push({ code: "dyno_measurement_basis_incompatible", message: "La base de medición no corresponde al tipo de dinamómetro declarado." });
+    }
+
+    requiredFields = [
+      ...DYNO_COMMON_FIELDS,
+      ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
+    ];
+    setupFields = [
+      "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
+      "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
+      "dyno_fan_setup", "instrument_calibration",
+      ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
+    ];
   } else {
     findings.push({ code: "unsupported_protocol_mode", message: "Modo no reconocido para el dominio. ECU: steady_state/transient; dinamómetro: inertia_sweep/loaded_sweep/steady_state." });
     requiredFields = [];
@@ -178,7 +217,11 @@ export function assessTestProtocol(runs, {
   if (repeatability.status === "review_required") {
     findings.push({ code: "repeatability_limit_exceeded", message: "Al menos una métrica supera el límite de CV definido por el usuario." });
   }
-  const blocked = findings.some(item => ["mixed_or_unknown_domain", "unsupported_protocol_mode"].includes(item.code));
+  const blocked = findings.some(item => [
+    "mixed_or_unknown_domain", "unsupported_protocol_mode", "dyno_type_unknown",
+    "dyno_type_mismatch", "dyno_measurement_basis_unknown",
+    "dyno_measurement_basis_mismatch", "dyno_measurement_basis_incompatible",
+  ].includes(item.code));
   if (!repeatability.metrics.length) {
     findings.push({ code: "no_repeatability_metrics", message: "No hay métricas numéricas para evaluar repetibilidad." });
   }

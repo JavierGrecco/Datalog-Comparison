@@ -984,3 +984,51 @@ test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos
   assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
   assert.deepEqual(externalRequests,[]);
 });
+
+
+test("el constructor guiado diferencia banco de motor y banco de chasis", async t => {
+  const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
+    await openDemo(t, { width: 390, height: 844 });
+  await page.locator("#protocolDomain").selectOption("dyno");
+  await page.locator("#protocolMode").selectOption("steady_state");
+  await page.locator('[data-condition-key="dyno_type"]').selectOption("engine");
+  await page.waitForFunction(() => !document.querySelector('[data-condition-key="tire_size"]'));
+  await page.locator('[data-condition-key="dyno_measurement_basis"]').selectOption("engine");
+
+  const values = {
+    vehicle_engine: "Motor SI 1.6",
+    fuel: "Nafta 98 RON",
+    test_method: "Banco de motor estacionario",
+    dyno_model: "Schenck Dynas3 LI 250",
+    dyno_load_mode: "Freno de corrientes parásitas",
+    dyno_correction_standard: "Sin corrección; dato bruto",
+    dyno_fan_setup: "Ventilación de laboratorio documentada",
+    instrument_calibration: "Registro de calibración 2026",
+    ambient_temp_c: "25",
+  };
+  for (const [key, value] of Object.entries(values)) {
+    await page.locator('[data-condition-key="' + key + '"]').fill(value);
+    await page.locator('[data-condition-status="' + key + '"]').selectOption("measured");
+    await page.locator('[data-condition-source="' + key + '"]').fill("Registro de prueba");
+  }
+  for (const key of ["dyno_type", "dyno_measurement_basis"]) {
+    await page.locator('[data-condition-status="' + key + '"]').selectOption("verified");
+    await page.locator('[data-condition-source="' + key + '"]').fill("Ficha del banco");
+  }
+  await page.locator("#protocolRpm").fill("3000");
+  await page.locator("#protocolLoad").fill("100");
+  await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
+  await page.locator("#protocolBuildButton").click();
+  await page.locator("#protocolResult").waitFor({ state: "visible" });
+  const generated = JSON.parse(await page.locator("#protocolJsonInput").inputValue());
+  assert.equal(generated.runs.length, 3);
+  assert.equal(generated.runs[0].operatingConditions.fields.dyno_type.value, "engine");
+  assert.equal(generated.runs[0].operatingConditions.fields.dyno_measurement_basis.value, "engine");
+  assert.equal(generated.runs[0].operatingConditions.fields.tire_size.status, "unknown");
+  const required = await page.locator("#protocolResult").innerText();
+  assert.match(required, /Controles configurados completos/);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

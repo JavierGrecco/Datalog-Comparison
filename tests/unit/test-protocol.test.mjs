@@ -26,6 +26,7 @@ function dynoRun(id, torque) {
     operatingConditions: conditions({
       vehicle_engine: "1.6 SI", fuel: "nafta 98 RON", gear: "4",
       test_method: "chassis dynamometer", dyno_model: "Dynojet 224x",
+      dyno_type: "chassis", dyno_measurement_basis: "wheel",
       dyno_load_mode: "inercial", dyno_ramp_rate_rpm_s: 300,
       dyno_smoothing_setting: "5", dyno_correction_standard: "SAE J1349:2025",
       dyno_fan_setup: "ventilador frontal fijo", instrument_calibration: "verificación 2026-11-01",
@@ -50,7 +51,7 @@ test("un estudio ECU con menos de tres adquisiciones no se aprueba por repetibil
   assert.ok(result.findings.some(item => item.code === "insufficient_replicates"));
 });
 
-test("un dinamómetro exige configuración de banco, neumáticos, ambiente y corrección declarados", () => {
+test("un banco de chasis exige configuración, neumáticos, sujeción, ambiente y corrección declarados", () => {
   const result = assessTestProtocol([dynoRun("a", 100), dynoRun("b", 100.2), dynoRun("c", 99.9)],
     { maximumCvPct: 1 });
   assert.equal(result.status, "supported");
@@ -113,4 +114,72 @@ test("un punto ECU sin RPM o carga y sin estabilización queda en revisión", ()
   const result = assessTestProtocol([run], { maximumCvPct: 2 });
   assert.ok(result.findings.some(item => item.code === "operating_point_incomplete"));
   assert.ok(result.findings.some(item => item.code === "stabilization_not_declared"));
+});
+
+
+function engineDynoRun(id, torque) {
+  const run = dynoRun(id, torque);
+  run.protocol = { id: "engine-steady-v1", mode: "steady_state" };
+  run.operatingPointId = "engine-3000rpm-300nm";
+  run.operatingPoint = { rpm: 3000, loadNm: 300 };
+  const fields = run.operatingConditions.fields;
+  for (const key of ["gear", "tire_size", "tire_pressure_kpa", "tire_condition",
+    "dyno_strapping", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
+    fields[key] = { value: null, status: "unknown", source: "", note: "" };
+  }
+  fields.test_method.value = "Banco de motor estacionario";
+  fields.dyno_type.value = "engine";
+  fields.dyno_measurement_basis.value = "engine";
+  return run;
+}
+
+test("un banco de motor estacionario no exige marcha, neumáticos, sujeción, rampa ni suavizado", () => {
+  const result = assessTestProtocol([
+    engineDynoRun("a", 100), engineDynoRun("b", 100.1), engineDynoRun("c", 99.9),
+  ], { maximumCvPct: 1 });
+  assert.equal(result.status, "supported");
+  assert.equal(result.domain, "dyno");
+  assert.equal(result.mode, "steady_state");
+  for (const key of ["gear", "tire_size", "tire_pressure_kpa", "tire_condition",
+    "dyno_strapping", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
+    assert.equal(result.requiredConditions.includes(key), false, key + " no debe ser obligatorio en banco de motor estacionario");
+  }
+});
+
+test("un protocolo no agrupa bases rueda y rodillo como una misma medición", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[2].operatingConditions.fields.dyno_measurement_basis.value = "roller";
+  const result = assessTestProtocol(runs, { maximumCvPct: 1 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "dyno_measurement_basis_mismatch"));
+});
+
+test("un banco de chasis no puede declarar base motor y un banco de motor no puede declarar base rueda", () => {
+  const chassis = dynoRun("chassis", 100);
+  chassis.operatingConditions.fields.dyno_measurement_basis.value = "engine";
+  const invalidChassis = assessTestProtocol([chassis, dynoRun("b", 100.1), dynoRun("c", 99.9)], { maximumCvPct: 1 });
+  assert.equal(invalidChassis.status, "blocked");
+  assert.ok(invalidChassis.findings.some(item => item.code === "dyno_measurement_basis_incompatible"));
+
+  const engine = engineDynoRun("engine", 100);
+  engine.operatingConditions.fields.dyno_measurement_basis.value = "wheel";
+  const invalidEngine = assessTestProtocol([engine, engineDynoRun("b", 100.1), engineDynoRun("c", 99.9)], { maximumCvPct: 1 });
+  assert.equal(invalidEngine.status, "blocked");
+  assert.ok(invalidEngine.findings.some(item => item.code === "dyno_measurement_basis_incompatible"));
+});
+
+test("los barridos requieren rampa y suavizado, pero el punto estacionario no", () => {
+  const sweepRuns = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  for (const run of sweepRuns) {
+    for (const key of ["dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
+      run.operatingConditions.fields[key] = { value: null, status: "unknown", source: "", note: "" };
+    }
+  }
+  const sweep = assessTestProtocol(sweepRuns, { maximumCvPct: 1 });
+  assert.equal(sweep.status, "review_required");
+  assert.ok(sweep.findings.some(item => item.code === "condition_not_evidenced" && item.field === "dyno_ramp_rate_rpm_s"));
+
+  const steadyRuns = [engineDynoRun("a", 100), engineDynoRun("b", 100.1), engineDynoRun("c", 99.9)];
+  const steady = assessTestProtocol(steadyRuns, { maximumCvPct: 1 });
+  assert.equal(steady.status, "supported");
 });

@@ -9,6 +9,7 @@ import {
   LOCAL_DOSSIER_BACKUP_SCHEMA_DOCUMENT as localDossierBackupSchema,
 } from "../src/report-schemas.mjs";
 import { openSavedImportedReport } from "./imported-report-inspector.mjs";
+import { buildDossierEvolution } from "../src/dossier-evolution.mjs";
 
 const $ = selector => document.querySelector(selector);
 let repository = null;
