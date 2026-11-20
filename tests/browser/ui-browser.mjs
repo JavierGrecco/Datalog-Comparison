@@ -1129,6 +1129,18 @@ test("la interfaz informa una métrica incompleta sin presentar el CV parcial co
 test("el constructor guiado detecta una métrica obligatoria ausente en todas las repeticiones", async t => {
   const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
     await openDemo(t, { width: 390, height: 844 });
+  await page.locator("#protocolRpm").fill("3000");
+  await page.locator("#protocolLoad").fill("80");
+  for (const [key, value] of [
+    ["calibration_id", "map-test-1"],
+    ["fuel", "RON 98"],
+    ["intake_temp_c", "32"],
+    ["coolant_temp_c", "88"],
+  ]) {
+    await page.locator('[data-condition-key="' + key + '"]').fill(value);
+    await page.locator('[data-condition-status="' + key + '"]').selectOption("measured");
+    await page.locator('[data-condition-source="' + key + '"]').fill("Registro sintético de prueba");
+  }
   await page.locator("#protocolExpectedMetrics").fill("power_kw, lambda");
   await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
   await page.locator("#protocolBuildButton").click();
