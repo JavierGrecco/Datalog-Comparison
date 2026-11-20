@@ -55,7 +55,6 @@ function normalizeChannelLabel(header) {
   const normalized = String(header ?? "").normalize("NFKC").trim()
     .toLocaleLowerCase("en-US").replace(/[._-]+/g, " ").replace(/\s+/g, " ");
   const aliases = new Map([
-    ["time", "Elapsed Time"],
     ["sec", "Elapsed Time"],
     ["secl", "Elapsed Time"],
     ["elapsed time", "Elapsed Time"],
@@ -117,8 +116,9 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
     : originalHeaders.map(() => "");
   const dataOffset = unitsRowPresent ? 1 : 0;
   const enrichedHeaders = originalHeaders.map((header, index) => {
-    if (hasExplicitUnit(header) || !sourceUnits[index]) return header;
-    return normalizeChannelLabel(header) + " (" + sourceUnits[index] + ")";
+    if (hasExplicitUnit(header)) return header;
+    const semanticName = normalizeChannelLabel(header);
+    return sourceUnits[index] ? semanticName + " (" + sourceUnits[index] + ")" : semanticName;
   });
 
   const headerLine = parsed.headerLine + (preamble ? firstLineIndex + 1 : firstLineIndex);

@@ -25,7 +25,7 @@ test("detecta el preámbulo MS3 y conserva el formato tabulado con fila de unida
   assert.ok(parsed.headers.includes("Engine RPM (rpm)"));
   assert.ok(parsed.headers.includes("Elapsed Time (s)"));
   assert.ok(parsed.headers.includes("MAP (kPa)"));
-  assert.equal(parsed.tunerStudioMetadata.sourceHeaders[1], "RPM");
+  assert.equal(parsed.tunerStudioMetadata.sourceHeaders[2], "RPM");
   assert.equal(parsed.tunerStudioMetadata.sourceUnits.RPM, "rpm");
 });
 
@@ -75,11 +75,11 @@ test("admite CSV TunerStudio con coma y sin fila de unidades, pero no inventa un
   const parsed = parseTunerStudioMsl(text);
   assert.equal(parsed.delimiter, ",");
   assert.equal(parsed.tunerStudioMetadata.unitsRowPresent, false);
-  assert.deepEqual(parsed.headers, ["Elapsed Time", "Engine RPM", "TPS"]);
+  assert.deepEqual(parsed.headers, ["Time", "Engine RPM", "Throttle Position"]);
   assert.ok(parsed.warnings.some(item => /no incluye una fila de unidades/i.test(item)));
   assert.throws(() => importTunerStudioMsl(parsed, {
     sourceDomain: "ecu",
-    channelMapping: { time_s: "Elapsed Time", rpm: "Engine RPM" },
+    channelMapping: { time_s: "Time", rpm: "Engine RPM" },
     units: { time_s: "s" },
   }), /unidad .*no está reconocida/i);
 });
