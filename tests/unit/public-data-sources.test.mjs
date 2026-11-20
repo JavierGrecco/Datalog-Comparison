@@ -10,6 +10,15 @@ test("el catálogo de datos tiene identificadores únicos y una política explí
   assert.equal(catalog.schema, "datalog-public-data-sources/1");
   assert.equal(catalog.policy.publicAvailabilityIsNotAReuseLicense, true);
   assert.equal(catalog.policy.rawExternalFilesAreNotCommittedByDefault, true);
+  const allowedEvidenceClasses = new Set(catalog.policy.evidenceClasses);
+  for (const source of catalog.sources) {
+    assert.ok(
+      allowedEvidenceClasses.has(source.evidenceClass),
+      source.id + " debe usar una clase de evidencia canónica",
+    );
+    assert.ok(typeof source.evidenceDetail === "string" && source.evidenceDetail.length > 0,
+      source.id + " debe explicar los matices de su evidencia");
+  }
 
   const ids = catalog.sources.map(source => source.id);
   assert.ok(ids.every(id => typeof id === "string" && id.length > 0));

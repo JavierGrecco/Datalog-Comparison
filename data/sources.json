@@ -17,7 +17,7 @@
       "title": "OBD-II Telemetry – Opel Corsa 1.2 (2012)",
       "url": "https://huggingface.co/datasets/PedroCuisinier2025/OBD2_panel_opel_2012",
       "creator": "PedroCuisinier2025",
-      "evidenceClass": "measured-with-derived-columns",
+      "evidenceClass": "measured",
       "license": {
         "spdx": "CC-BY-4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -68,7 +68,8 @@
         "maximumRowsPerRequest": 100,
         "command": "npm run data:obd-sample -- --offset 0 --length 100",
         "repositoryPolicy": "save small slices only under ignored data/external/"
-      }
+      },
+      "evidenceDetail": "Measured OBD-II PID channels plus author-derived torque, power, gear and fuel-use fields."
     },
     {
       "id": "engine-dyno-h2-cng",
@@ -82,7 +83,7 @@
         "Krish Desai"
       ],
       "published": "2024-07-07",
-      "evidenceClass": "measured-and-theoretical-values",
+      "evidenceClass": "measured",
       "license": {
         "spdx": "CC-BY-4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -94,7 +95,8 @@
         "The public description does not prove the files contain continuous time series or RPM sweeps.",
         "Inspect raw files, columns, units and acquisition axes before using the RPM-sweep builder.",
         "Keep measured and theoretical values separate."
-      ]
+      ],
+      "evidenceDetail": "Published dataset description includes raw dynamometer acquisitions and theoretical comparisons; inspect each file before separating them."
     },
     {
       "id": "hpa-motec-example-logged-data",
@@ -108,7 +110,8 @@
       "redistribution": "not-cleared",
       "fileSchemaStatus": "not-yet-downloaded",
       "deviceIdentity": "MoTeC logging data offered in a MoTeC M1 tutorial thread; exact ECU/model and archive contents have not been independently verified.",
-      "repositoryPolicy": "Private local practice/QA only. Do not commit the archive, extracted files, derived copies or CI artifacts, or redistribute them, without written permission or a file-specific licence covering those uses."
+      "repositoryPolicy": "Private local practice/QA only. Do not commit the archive, extracted files, derived copies or CI artifacts, or redistribute them, without written permission or a file-specific licence covering those uses.",
+      "evidenceDetail": "MoTeC practice-data candidate; archive not downloaded or independently inspected."
     },
     {
       "id": "speeduino-serial-sim",
@@ -137,38 +140,44 @@
         "Not a calibrated dynamometer or tuning target.",
         "MIT applies to source code; do not assume it licenses generated logs or embedded OSM-derived track data."
       ],
-      "repositoryPolicy": "Use externally; do not vendor source/track data or redistribute generated logs until rights are confirmed."
+      "repositoryPolicy": "Use externally; do not vendor source/track data or redistribute generated logs until rights are confirmed.",
+      "evidenceDetail": "Model-generated telemetry; generated logs do not have a separately stated data licence.",
+      "generatedDataRedistribution": "not-cleared"
     },
     {
       "id": "rusefi-online",
       "title": "rusEFI Online public logs",
       "url": "https://rusefi.com/online/",
       "documentationUrl": "https://github.com/rusefi/rusefi/wiki/Online",
-      "evidenceClass": "unverified-redistribution-rights",
+      "evidenceClass": "unverified",
       "license": null,
       "redistribution": "not-cleared",
-      "repositoryPolicy": "local private QA only until owner permission or data licence is confirmed"
+      "repositoryPolicy": "local private QA only until owner permission or data licence is confirmed",
+      "evidenceDetail": "Community logs are publicly viewable, but data reuse and redistribution rights are not confirmed."
     },
     {
       "id": "haltech-miniecumaps-logs",
       "title": "ClassicMiniDIY MiniECUMaps – Haltech NSP example logs",
       "url": "https://github.com/ClassicMiniDIY/MiniECUMaps",
-      "evidenceClass": "unverified-redistribution-rights",
+      "evidenceClass": "unverified",
       "license": null,
       "redistribution": "not-cleared",
-      "repositoryPolicy": "local private QA only until data licence or permission is confirmed"
+      "repositoryPolicy": "local private QA only until data licence or permission is confirmed",
+      "evidenceDetail": "Public example logs; file-specific reuse and redistribution rights are not confirmed."
     },
     {
       "id": "engine-dyno-road-estimates",
       "title": "EngineDyno example road logs and derived power estimates",
       "url": "https://github.com/moffa13/EngineDyno",
-      "evidenceClass": "derived-and-unverified-redistribution-rights",
+      "evidenceClass": "derived",
       "license": null,
       "redistribution": "not-cleared",
       "cautions": [
         "Torque/power are estimated from road speed/RPM and vehicle assumptions, not measured on a chassis dynamometer.",
         "No explicit licence for the example logs was confirmed."
-      ]
+      ],
+      "evidenceDetail": "Road-performance estimates derived from vehicle assumptions; not direct dynamometer measurements, and log redistribution rights are not confirmed.",
+      "repositoryPolicy": "Do not import, commit or redistribute the example logs until the file-specific licence or permission has been confirmed."
     },
     {
       "id": "ecu-calibration-steady-state-study-2026",
@@ -181,7 +190,7 @@
         "Fauzi Ibrahim"
       ],
       "published": "2026-08-20",
-      "evidenceClass": "published-experimental-aggregates-and-protocol",
+      "evidenceClass": "measured",
       "license": null,
       "redistribution": "no raw samples or article tables copied; citation and limited protocol facts only",
       "protocolEvidence": {
@@ -215,7 +224,9 @@
         "Published study is a protocol-design reference, not a redistributable raw-log fixture.",
         "The matching repository fixture contains synthetic values, not experimental measurements.",
         "Reported expanded uncertainty and instrumentation details do not transfer to other test cells or sensors."
-      ]
+      ],
+      "evidenceDetail": "Published experimental aggregates and protocol; no raw sample series are incorporated into this repository.",
+      "redistributionStatus": "not-cleared"
     }
   ]
 }

@@ -58,6 +58,8 @@ Cada registro utilizado por el proyecto debe poder distinguir entre:
 
 No comparar ni presentar estos grupos como si fueran intercambiables. En particular, una curva de torque/potencia estimada en ruta no debe etiquetarse como curva medida de dinamómetro.
 
+En `data/sources.json`, `evidenceClass` usa únicamente esas cuatro categorías para que el catálogo pueda validarse automáticamente. El campo `evidenceDetail` conserva los matices de cada fuente (por ejemplo, columnas medidas y derivadas, resultados teóricos o datos todavía no verificados). La licencia del código de una herramienta nunca se interpreta como licencia de sus archivos de salida.
+
 ## Atribución y trazabilidad para futuras fixtures
 
 Para incorporar una muestra externa a `tests/fixtures/`:
