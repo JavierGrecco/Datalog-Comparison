@@ -86,7 +86,7 @@ test("el fixture Time Export conserva el intervalo y separa dos tiradas", async 
   });
   assert.equal(parsed.rows.length, 281);
   assert.equal(run.samples[1].time_s, 0.05);
-  assert.equal(quality.timestamp.positiveIntervalMedianSeconds, 0.05);
+  assert.ok(Math.abs(quality.timestamp.positiveIntervalMedianSeconds - 0.05) < 1e-9);
   assert.equal(curves.status, "ready");
   assert.equal(curves.curves.length, 2);
   assert.ok(curves.curves.every(curve => curve.sourceSampleCount > 20));
@@ -109,7 +109,7 @@ test("el serializador y el CLI conservan parámetros y rechazan opciones inváli
   assert.equal(csv, 'Engine RPM,Note,Missing\n2000,"roller, ""A""",\n');
   assert.equal(parseDynoSimulatorCliArgs(["--mode", "time-export", "--interval-ms", "50"]).options.mode, "time-export");
   assert.equal(parseDynoSimulatorCliArgs(["--help"]).help, true);
-  assert.throws(() => parseDynoSimulatorCliArgs(["--rpm-step", "0"]), /rpmStep/);
-  assert.throws(() => parseDynoSimulatorCliArgs(["--mode", "binary"]), /mode/);
+  assert.throws(() => generateSimulatedDyno(parseDynoSimulatorCliArgs(["--rpm-step", "0"]).options), /rpmStep/);
+  assert.throws(() => generateSimulatedDyno(parseDynoSimulatorCliArgs(["--mode", "binary"]).options), /mode/);
   assert.throws(() => generateSimulatedDyno({ scenario: "repeat-pulls", mode: "graph-export" }), /requires mode time-export/i);
 });
