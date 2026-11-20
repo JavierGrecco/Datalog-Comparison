@@ -570,6 +570,22 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/);
   await page.locator("#csvDerivedDynoControls").waitFor({ state: "visible" });
   await page.locator("#csvDynoBinWidth").selectOption("200");
+  await page.evaluate(() => {
+    const OriginalUPlot = window.uPlot;
+    window.__datalogDestroyedCharts = 0;
+    const TrackedUPlot = function(options, data, target) {
+      const chart = new OriginalUPlot(options, data, target);
+      const destroy = chart.destroy.bind(chart);
+      chart.destroy = () => {
+        window.__datalogDestroyedCharts += 1;
+        destroy();
+      };
+      return chart;
+    };
+    Object.setPrototypeOf(TrackedUPlot, OriginalUPlot);
+    Object.assign(TrackedUPlot, OriginalUPlot);
+    window.uPlot = TrackedUPlot;
+  });
   await page.locator("#csvDynoCurveButton").click();
   await page.waitForFunction(() => document.querySelector("#csvDerivedStatus")?.textContent.includes("2 barrido"));
   const derived = await page.locator("#csvDerivedResults").innerText();
@@ -623,6 +639,8 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   await page.locator("#csvMappingSection").waitFor({ state: "visible" });
   assert.equal(await page.locator("#csvDerivedResults .uplot").count(), 0,
     "al cambiar la fuente deben retirarse las gráficas anteriores y sus observadores");
+  assert.equal(await page.evaluate(() => window.__datalogDestroyedCharts), 4,
+    "cada gráfica anterior debe ejecutar destroy() para liberar listeners y cachés");
 
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);

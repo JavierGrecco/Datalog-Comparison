@@ -5,6 +5,7 @@
  * Este módulo valida el eje antes de dibujar: no ordena ni interpola muestras.
  */
 const activeObservers = new Set();
+const activeCharts = new Set();
 
 export function validateTelemetryChartData({ xValues, series } = {}) {
   if (!Array.isArray(xValues) || xValues.length < 2) {
@@ -34,6 +35,8 @@ export function validateTelemetryChartData({ xValues, series } = {}) {
 export function disposeTelemetryCharts() {
   for (const observer of activeObservers) observer.disconnect();
   activeObservers.clear();
+  for (const chart of activeCharts) chart.destroy();
+  activeCharts.clear();
 }
 
 export function renderTelemetryChart(container, {
@@ -91,6 +94,7 @@ export function renderTelemetryChart(container, {
     legend: { show: true },
   };
   const chart = new UPlot(options, data, plotHost);
+  activeCharts.add(chart);
 
   if (typeof ResizeObserver === "function") {
     const observer = new ResizeObserver(entries => {
