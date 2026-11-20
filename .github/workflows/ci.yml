@@ -25,9 +25,9 @@ jobs:
           node-version: "22"
           package-manager-cache: false
       - name: Instalar dependencias fijadas
-        run: npm ci --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Auditar dependencias
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=low
       - name: Instalar Chromium para la prueba de navegador
         run: npx playwright install --with-deps chromium
       - name: Comprobar sintaxis de JavaScript

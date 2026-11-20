@@ -62,6 +62,8 @@ Conservar el archivo original sin modificarlo y registrar la codificación detec
 
 ## Qué verifican las pruebas
 
+La CI instala las dependencias fijadas con `npm ci --ignore-scripts`, para no ejecutar lifecycle scripts de los paquetes durante la instalación. Instala Chromium de forma explícita después. La auditoría usa `npm audit --audit-level=low`: cualquier vulnerabilidad conocida de severidad baja, moderada, alta o crítica debe revisarse y corregirse antes de considerar verde el commit. Las acciones de GitHub se fijan a SHA completos y el workflow solo solicita permiso de lectura del contenido del repositorio.
+
 La CI ejecuta chequeos de sintaxis, pruebas unitarias, pruebas de dominio y un recorrido de navegador con Chromium. Los tests verifican reglas concretas del código, por ejemplo:
 
 - rechazo de archivos CSV mal formados o fuera de los límites;

@@ -92,8 +92,8 @@ Para detener el servidor, presioná `Ctrl+C`.
 Las pruebas automatizadas requieren **Node.js 22 o posterior** y npm. Desde la raíz del repositorio:
 
 ```bash
-npm ci
-npm audit --audit-level=high
+npm ci --ignore-scripts
+npm audit --audit-level=low
 npx playwright install chromium
 npm test
 ```
