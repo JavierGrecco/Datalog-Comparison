@@ -8,6 +8,16 @@ La prioridad técnica es evaluar el core Rust de [i3rs](https://github.com/Friss
 
 No se incorporó código i3rs, ningún log de muestra upstream ni archivos propietarios al repositorio. La licencia MIT del software no concede automáticamente derechos sobre los datos contenidos en sus fixtures.
 
+## Registro de práctica localizado
+
+Se localizó el hilo público de High Performance Academy [“Example Logged Data and Software Tools Download”](https://www.hpacademy.com/es/foro/tutorial-del-software-motec-m1-1/show/example-logged-data-and-software-tools-download/). El tutor Tim White indica que el curso pone a disposición registros de ejemplo de varios sistemas, incluido MoTeC, para descargarlos y practicar. El enlace de descarga publicado es [03-MOTEC-EXAMPLE-LOGGED-DATA.zip](https://www.hpacademy.com/assets/Course-Content/Data-Fundamentals-/c6d3af1dbb/03-MOTEC-EXAMPLE-LOGGED-DATA.zip).
+
+**Alcance de la autorización:** la publicación expresa que el archivo se ofrece para descarga y práctica. No encontramos una licencia de datos ni permiso explícito para volver a publicar o redistribuir el ZIP. Por eso se lo considera apto para pruebas locales de aprendizaje, pero no se debe subir el archivo, sus contenidos ni copias derivadas al repositorio público o a los artefactos de CI sin autorización adicional.
+
+**Identificación pendiente:** el hilo está dentro de la sección del tutorial MoTeC M1 y describe el archivo como registro MoTeC, pero el texto público consultado no identifica el modelo exacto de ECU que generó ese log. Antes de etiquetarlo como un registro M1 hay que descargarlo, inspeccionar los metadatos en i2 y comprobar que el parser puede leerlo. Hasta entonces es un candidato MoTeC, no un fixture M1 confirmado.
+
+MoTeC también informa que M1 Tune es gratuito y trae un *sample package* para examinar. La página oficial describe ese paquete como material de M1 Tune; no lo confundimos con un archivo de telemetría `.ld` ya validado. El flujo oficial de recuperación M1 convierte la imagen de logging a un archivo listo para i2, según la [documentación de MoTeC](https://help.motec.com.au/m1/tune/1.5/Topics/Retrieve_Logged_Data_1.5.html).
+
 ## Por qué i3rs es el candidato prioritario
 
 El core expone:
@@ -100,7 +110,7 @@ El ejemplo es un contrato ilustrativo, no un fixture real ni una salida copiada 
 
 No se habilitará el adaptador hasta completar todos estos puntos:
 
-1. **Datos autorizados:** disponer de al menos un log M1 `.ld` y un sidecar `.ldx` cuya licencia o autorización permita usarlos en pruebas y, si corresponde, redistribuir fixtures. No copiar `test_data/VIR_LAP.ld` ni `.ldx` de i3rs sin esa confirmación.
+1. **Datos autorizados:** usar el archivo de High Performance Academy solo en pruebas locales de práctica, respetando que no hay permiso explícito para redistribuirlo. Confirmar en los metadatos de i2 que el registro proviene de una ECU M1 antes de usarlo como evidencia M1. Para incluir fixtures en el repositorio o en CI se necesita una licencia/ autorización de redistribución independiente. No copiar `test_data/VIR_LAP.ld` ni `.ldx` de i3rs sin esa confirmación.
 2. **Fixture sintético separado:** generar además un binario mínimo sintético para probar límites y errores de parsing; identificarlo expresamente como sintético y no como una captura de ECU.
 3. **Contraste independiente:** comparar parser WASM y CLI nativo con exactamente los mismos bytes: metadatos, canales, unidades, frecuencias, recuentos, muestras y máscaras de validez.
 4. **Validación de ingeniería:** contrastar valores conocidos con el exportador MoTeC de origen o un registro independiente autorizado. Un parser que se ejecuta no demuestra que todas las magnitudes o escalas sean correctas.
@@ -117,4 +127,4 @@ No se habilitará el adaptador hasta completar todos estos puntos:
 
 ## Decisión
 
-**No integrar todavía el parser en la demo.** i3rs es el mejor candidato técnico investigado, pero antes faltan datos de prueba autorizados, contrato multi-rate, límites WASM y validación cruzada. Esta decisión evita presentar una importación parcialmente probada como compatibilidad MoTeC general.
+**No integrar todavía el parser en la demo.** Ya se identificó una fuente pública que ofrece registros MoTeC para práctica local, pero todavía falta descargar e inspeccionar el archivo, confirmar que fue generado por una ECU M1, formalizar el contrato multi-rate, validar los límites WASM y realizar el contraste independiente. La fuente no autoriza expresamente su redistribución. Esta decisión evita presentar una importación parcialmente probada como compatibilidad MoTeC general.

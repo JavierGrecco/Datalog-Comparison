@@ -34,6 +34,8 @@ Se requieren tres repeticiones por defecto. Es una decisión de política inicia
 
 Cada métrica debe estar presente en todas las repeticiones que integran el grupo. Si falta un valor, el resultado informa cuántos valores válidos y faltantes hay; cuando el mínimo de observaciones se alcanza solo con una parte del grupo, el estado es `incomplete_replicates` y exige revisión. No se debe presentar un CV calculado con datos parciales como repetibilidad del conjunto completo.
 
+Cada adquisición debe conservar un identificador de registro propio y no vacío. El evaluador bloquea el grupo si falta un ID o si se repite: copiar una misma adquisición con otro lugar en la lista no la convierte en una repetición independiente. Los IDs se comparan después de quitar espacios externos; se conserva la distinción entre mayúsculas y minúsculas porque son identificadores opacos.
+
 El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
 
 ## Caso público usado para diseñar pruebas

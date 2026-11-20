@@ -291,3 +291,26 @@ test("una diferencia de refrigerante entre repeticiones ECU requiere revisión",
   assert.equal(result.status, "review_required");
   assert.ok(result.findings.some(item => item.code === "setup_mismatch" && item.field === "coolant_temp_c"));
 });
+
+
+test("bloquea una repetición que reutiliza el ID de otra adquisición", () => {
+  const runs = [ecuRun("run-a", 0), ecuRun("run-a", 1), ecuRun("run-c", -1)];
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "duplicate_run_id"));
+});
+
+test("bloquea registros sin un ID de adquisición identificable", () => {
+  const runs = [ecuRun("run-a", 0), ecuRun("run-b", 1), ecuRun("run-c", -1)];
+  runs[1].id = "   ";
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "run_id_missing"));
+});
+
+test("los IDs de adquisición se comparan después de quitar espacios externos", () => {
+  const runs = [ecuRun("run-a", 0), ecuRun(" run-a ", 1), ecuRun("run-c", -1)];
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "duplicate_run_id"));
+});

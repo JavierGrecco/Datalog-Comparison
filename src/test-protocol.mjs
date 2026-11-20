@@ -160,6 +160,22 @@ export function assessTestProtocol(runs, {
   const modes = new Set(runs.map(run => run?.protocol?.mode));
   const protocolIds = new Set(runs.map(run => run?.protocol?.id));
   const findings = [];
+  const runIds = runs.map(run =>
+    typeof run?.id === "string" ? run.id.trim() : ""
+  );
+  if (runIds.some(id => !id)) {
+    findings.push({
+      code: "run_id_missing",
+      message: "Cada adquisición debe tener un identificador de registro no vacío para contar como repetición independiente.",
+    });
+  }
+  const uniqueRunIds = new Set(runIds.filter(Boolean));
+  if (uniqueRunIds.size !== runIds.filter(Boolean).length) {
+    findings.push({
+      code: "duplicate_run_id",
+      message: "Hay identificadores de registro repetidos; una misma adquisición no puede contarse más de una vez como repetición.",
+    });
+  }
   if (modes.size !== 1 || protocolIds.size !== 1 || runs.some(run => !run?.protocol?.id || !run?.protocol?.mode)) {
     findings.push({ code: "protocol_mismatch", message: "Las repeticiones deben declarar el mismo protocolo y modo de adquisición." });
   }
@@ -307,6 +323,7 @@ export function assessTestProtocol(runs, {
   }
   const blocked = findings.some(item => [
     "mixed_or_unknown_domain", "unsupported_protocol_mode", "dyno_type_unknown",
+    "run_id_missing", "duplicate_run_id",
     "protocol_mismatch", "protocol_configuration_mismatch", "operating_point_mismatch",
     "dyno_type_mismatch", "dyno_measurement_basis_unknown",
     "dyno_measurement_basis_mismatch", "dyno_measurement_basis_incompatible",
