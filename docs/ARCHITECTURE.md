@@ -9,16 +9,16 @@ La publicación es un prototipo pequeño, ejecutable en el navegador y orientado
 La interfaz muestra dos rutas independientes:
 
 - Escenarios sintéticos: generador de fixtures → matriz de preparación → gráficos e informe.
-- Importación local: selector de perfil → parser/adaptador → mapeo y normalización → perfil de calidad → vista de inspección aislada.
+- Importación local: selector de perfil → parser/adaptador → mapeo y normalización → perfil de calidad → vista de inspección → asignación explícita referencia/candidata → resumen de distribuciones sin alineación temporal.
 
-La importación no se conecta a la matriz de preparación ni sustituye los escenarios sintéticos.
+El expediente importado permanece separado de la matriz y los gráficos sintéticos. Solo utiliza dos registros CSV aportados por quien ejecuta la demo y conserva copias en memoria de la página.
 
 ## Responsabilidades
 
 | Módulo | Responsabilidad |
 | --- | --- |
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
-| app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado y vista previa aislada. |
+| app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
 | src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |\n| src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
 | src/unit-registry.mjs | Registro versionado de símbolos, dimensiones, unidades canónicas y conversiones con sensibilidad al caso. |
@@ -48,7 +48,7 @@ La importación no se conecta a la matriz de preparación ni sustituye los escen
 - Dynojet no auto-detecta un esquema propietario; utiliza las sugerencias genéricas y exige confirmar las columnas y la base física si se importan torque o potencia.
 - Los datos importados conservan el orden, faltantes y conversiones; el mapeo genérico conserva además las celdas de origen de los canales mapeados. Los adaptadores específicos documentan el nivel de transformación de sus valores; no se reordenan, interpolan ni imputan.
 - La importación admite eje temporal o RPM; no los sintetiza. El perfil de calidad estima intervalos observados por canal solo cuando hay un eje temporal válido.
-- El inspector crea un registro exploratorio y muestra calidad; no lo agrega a la matriz ni permite compararlo con fixtures.
+- El inspector crea registros exploratorios; dos pueden asignarse manualmente a un expediente local de comparación descriptiva. No se mezclan con fixtures sintéticos ni con la matriz de escenarios.
 - La matriz no calcula una puntuación opaca de confianza.
 - El comparador de distribuciones resume cada registro por separado; excluye y explica canales incompatibles, unilaterales o con cobertura insuficiente. No alinea relojes ni empareja puntos.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.

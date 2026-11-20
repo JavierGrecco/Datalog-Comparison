@@ -2,7 +2,7 @@
 
 ## Alcance
 
-La demo permite inspeccionar CSV localmente. Los archivos permanecen en memoria del navegador, no se envían a servicios externos y se descartan al limpiar la vista o recargar la página. Los registros importados no se incorporan a la matriz de comparación.
+La demo permite inspeccionar CSV localmente y asignar dos importaciones explícitamente como referencia y candidata en un expediente separado de los escenarios sintéticos. Calcula SHA-256 sobre los bytes originales para reconocer archivos idénticos y evitar que uno ocupe ambos roles. Los registros y el expediente permanecen en memoria del navegador, no se envían a servicios externos y se descartan al recargar la página o vaciar el expediente. La comparación resume distribuciones independientes y no sincroniza marcas de tiempo ni puntos RPM.
 
 Hay tres rutas de importación:
 
@@ -123,9 +123,9 @@ El mapeo genérico crea un registro exploratorio con muestras en orden de origen
 
 Fuera de alcance:
 
-- Comparación entre dos archivos importados.
+- Comparación sincronizada o punto a punto de dos archivos importados. La versión actual resume medianas, medias y rangos de cada registro por separado, solo en canales con unidades y bases físicas compatibles.
 - Importación de archivos nativos o binarios propietarios.
-- Sincronización de distintos relojes o grupos de adquisición, reconstrucción de una base temporal irregular e interpolación de señales continuas en V1.
+- Sincronización de distintos relojes o grupos de adquisición, reconstrucción de una base temporal irregular e interpolación de señales continuas.
 - Corrección atmosférica SAE, conversión de base física de torque/potencia o certificación del ensayo.
 - Adaptadores FuelTech, ECUMaster, MoTeC, Link, AiM o AEM sin contrato y fixtures autorizados.
 - Persistencia, backend, telemetría o envío de archivos.

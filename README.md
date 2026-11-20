@@ -33,7 +33,7 @@ La aplicación contiene cuatro escenarios sintéticos generados en memoria:
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 | **Bases de banco distintas** | Dos resultados de dinamómetro con la misma unidad, uno de rueda y otro referido a motor. Torque y potencia quedan excluidos aunque el origen sea el mismo. |
 
-Además, se puede **inspeccionar un CSV local** mediante tres rutas: CSV genérico, dos layouts experimentales Haltech NSP identificados por %DataLog% (encabezado tipado y bloques Channel/ID/Type), y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Los archivos permanecen aislados de la comparación. Se examinó una exportación pública Haltech para validar la estructura de metadatos; el archivo no se incluye ni se redistribuye.
+Además, se pueden **inspeccionar CSV locales** mediante tres rutas: CSV genérico, dos layouts experimentales Haltech NSP identificados por %DataLog% (encabezado tipado y bloques Channel/ID/Type), y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Dos importaciones pueden asignarse explícitamente como referencia y candidata en un expediente local. El resumen compara distribuciones de canales compatibles sin alinear relojes ni emparejar muestras; los escenarios sintéticos permanecen separados. Se calcula SHA-256 en el navegador para detectar si se seleccionó dos veces el mismo archivo. Se examinó una exportación pública Haltech para validar la estructura de metadatos; el archivo no se incluye ni se redistribuye.
 
 En los escenarios sintéticos compatibles de un mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. El caso de bases de banco distintas muestra cómo se excluyen esos canales cuando la magnitud física no coincide. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
@@ -61,7 +61,7 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 **Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un CSV crudo público ni un esquema de columnas fijo publicado. El resolver propone coincidencias genéricas que deben confirmarse; también se declara la base física de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
 
-**CSV genérico:** cuenta con un resolver determinista local, sin IA externa, que propone alias, variantes de nombres, unidades y pistas numéricas. Solo las coincidencias exactas, únicas y dimensionalmente compatibles se preseleccionan para revisión; los errores de tipeo, ambigüedades y pistas por rango requieren confirmación. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se conserva la procedencia. Las columnas desconocidas y datos faltantes no se fuerzan dentro del modelo. Todos los archivos importados permanecen en modo exploratorio, local y aislado de la matriz.
+**CSV genérico:** cuenta con un resolver determinista local, sin IA externa, que propone alias, variantes de nombres, unidades y pistas numéricas. Solo las coincidencias exactas, únicas y dimensionalmente compatibles se preseleccionan para revisión; los errores de tipeo, ambigüedades y pistas por rango requieren confirmación. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se conserva la procedencia. Las columnas desconocidas y datos faltantes no se fuerzan dentro del modelo. La comparación importada es local y descriptiva: resume cada archivo por separado y excluye canales sin unidad o base física compatible, no compartidos o con cobertura insuficiente.
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
@@ -188,7 +188,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
 - Haltech NSP reconoce dos layouts experimentales de CSV con marcador %DataLog% (encabezado tipado y bloques Channel/ID/Type); no representa compatibilidad universal.
 - Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo. No se encontró una exportación CSV cruda pública para validarlo de extremo a extremo.
-- La importación no habilita comparación entre dos archivos.
+- La comparación entre dos archivos importados no es sincronizada ni punto a punto: no alinea relojes, no interpola y no calcula diferencias entre muestras emparejadas.
 - No demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud. La normalización de unidades admitidas queda registrada.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.
 - No escribe, modifica ni programa una ECU; tampoco diagnostica fallas, demuestra causalidad o emite recomendaciones de calibración validadas.
