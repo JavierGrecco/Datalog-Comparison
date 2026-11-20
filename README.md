@@ -37,6 +37,8 @@ Además, se pueden **inspeccionar CSV locales** mediante tres rutas: CSV genéri
 
 En los escenarios sintéticos compatibles de un mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. El caso de bases de banco distintas muestra cómo se excluyen esos canales cuando la magnitud física no coincide. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
+Para los CSV importados hay vistas interactivas adicionales, separadas de los escenarios sintéticos. En ECU, las señales temporales derivadas se dibujan por segmento continuo: los huecos y períodos sin muestras no se conectan artificialmente. En dinamómetro, cada barrido y canal conserva los mínimos, medianas y máximos observados por banda de RPM, con cursor y zoom horizontal. Las tablas numéricas permanecen disponibles y exportables; el gráfico no reemplaza los datos ni calcula mediciones nuevas.
+
 ### Cómo decide la matriz
 
 Los controles se presentan por separado, sin reducirlos a una puntuación opaca:
@@ -64,6 +66,8 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 **CSV genérico:** cuenta con un resolver determinista local, sin IA externa, que propone alias, variantes de nombres, unidades y pistas numéricas. Solo las coincidencias exactas, únicas y dimensionalmente compatibles se preseleccionan para revisión; los errores de tipeo, ambigüedades y pistas por rango requieren confirmación. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se conserva la procedencia. Las columnas desconocidas y datos faltantes no se fuerzan dentro del modelo. La comparación importada es local y descriptiva: resume cada archivo por separado y excluye canales sin unidad o base física compatible, no compartidos o con cobertura insuficiente.
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
+
+Los protocolos de ensayo y repetibilidad incluyen perfiles separados para ECU, banco de motor y banco de chasis. La base física debe declararse como motor, rueda, cubo o rodillo; las condiciones requeridas cambian según el método y el tipo de banco. El sistema informa dispersión y CV, pero no aprueba sin un límite explícito definido para ese equipo y método. Ver [Protocolos de ensayo y repetibilidad](docs/TEST_PROTOCOLS.md).
 
 El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md). El repositorio también incluye un [validador CLI](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente) para verificar informes desde archivos o tuberías. La interfaz permite además [abrir y revisar un informe guardado](docs/IMPORTED_COMPARISON_REPORT.md#abrir-un-informe-en-la-interfaz), sin volver a cargar los CSV. Los informes se pueden organizar en [expedientes locales persistentes](docs/LOCAL_DOSSIERS.md), con historial, artefactos derivados y respaldos. El respaldo tiene su [JSON Schema versionado](schemas/local-dossier-backup-1.schema.json) y [ejemplo](examples/local-dossier-backup-1.example.json).
 
@@ -137,6 +141,7 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 ├── app/
 │   ├── app.mjs
 │   ├── csv-inspector.mjs
+│   ├── telemetry-charts.mjs # Presentación Canvas aislada del cálculo
 │   ├── imported-report-inspector.mjs
 │   ├── dossier-inspector.mjs
 │   └── styles.css
@@ -175,6 +180,8 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   └── local-dossier-backup-1.example.json
 ├── docs/
 │   ├── PUBLIC_DATASETS.md
+│   ├── TEST_PROTOCOLS.md
+│   ├── OPEN_SOURCE_COMPONENTS.md
 │   ├── SIMULATOR.md
 │   ├── ARCHITECTURE.md
 │   ├── CSV_IMPORT.md
@@ -185,12 +192,14 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── ENGINEERING.md
 │   ├── LIMITATIONS.md
 │   └── REFERENCES.md
+├── vendor/
+│   └── uplot/             # uPlot 1.6.32 y avisos MIT
 ├── SECURITY.md
 ├── index.html
 └── package.json
 ```
 
-La interfaz está implementada con HTML, CSS y módulos JavaScript nativos. Los gráficos se dibujan en SVG. No hay framework de interfaz, proceso de compilación ni backend para esta demostración.
+La interfaz está implementada con HTML, CSS y módulos JavaScript nativos. Los escenarios sintéticos usan gráficos SVG; las vistas interactivas de telemetría utilizan uPlot 1.6.32 sobre Canvas. La biblioteca y su CSS se sirven localmente desde `vendor/uplot/`, sin CDN ni solicitudes externas. El motor de dominio calcula y valida las series antes de entregarlas a la capa de presentación. No hay framework de interfaz, proceso de compilación ni backend para esta demostración.
 
 ## Arquitectura y criterios de calidad
 
@@ -203,6 +212,8 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - [Notas de ingeniería](docs/ENGINEERING.md): validación, convenciones, política de rama única y definición de terminado.
 - [Datos públicos](docs/PUBLIC_DATASETS.md): datasets reutilizables, atribución y restricciones.
 - [Simulador](docs/SIMULATOR.md): generación reproducible e integración opcional con Speeduino.
+- [Protocolos de ensayo](docs/TEST_PROTOCOLS.md): perfiles y evaluación de repetibilidad.
+- [Componentes open source](docs/OPEN_SOURCE_COMPONENTS.md): criterios de integración, licencias y decisiones sobre bibliotecas y proyectos externos.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
 - [Referencias consultadas](docs/REFERENCES.md): antecedentes revisados durante la investigación.
 
@@ -231,13 +242,13 @@ Los comandos de datasets son acciones de terminal separadas y explícitas: `data
 
 ## Referencias y procedencia
 
-La implementación publicada es una selección acotada propia, preparada para esta demostración. Los proyectos enumerados en [docs/REFERENCES.md](docs/REFERENCES.md) fueron consultados como antecedentes durante la investigación; no son dependencias de ejecución y esta publicación no incluye su código, datos ni recursos gráficos.
+La implementación publicada es una selección acotada propia, preparada para esta demostración. Los proyectos enumerados en [docs/REFERENCES.md](docs/REFERENCES.md) fueron consultados como antecedentes y no son dependencias de ejecución. La excepción es uPlot 1.6.32, redistribuido sin modificaciones en `vendor/uplot/` bajo su licencia MIT, con el texto de licencia, versión, commit y huellas de los archivos documentados en `vendor/uplot/NOTICE.md`. No se importó código ni datos de los demás proyectos evaluados.
 
 ## Estado y licencia
 
 Este repositorio es una **demo experimental de portfolio**, no la publicación del producto completo. Los adaptadores específicos son perfiles experimentales y no están certificados por los fabricantes.
 
-Por ahora, el repositorio **no incluye una licencia de reutilización**. Que el código sea público permite inspeccionarlo, pero no concede por sí solo permiso general para copiarlo, modificarlo o distribuirlo.
+Por ahora, el repositorio **no incluye una licencia general de reutilización para el código propio**. Que el código sea público permite inspeccionarlo, pero no concede por sí solo permiso general para copiarlo, modificarlo o distribuirlo. Los componentes de terceros conservan sus licencias independientes; en particular, la licencia MIT de uPlot se limita a ese componente.
 
 ---
 
