@@ -12,8 +12,9 @@ function conditions(values) {
   return result;
 }
 function ecuRun(id, rpm) {
-  return { id, domain: "ecu", protocol: { id: "ecu-steady-v1", mode: "steady_state" },
+  return { id, domain: "ecu", protocol: { id: "ecu-steady-v1", mode: "steady_state", stabilizationMinutes: 5 },
     operatingPointId: "3000rpm-80pct-load",
+    operatingPoint: { rpm: 3000, loadPct: 80 },
     operatingConditions: conditions({ calibration_id: "map-A", fuel: "nafta 98 RON",
       intake_temp_c: 32, coolant_temp_c: 88 }),
     metrics: { torque_nm: 150 + rpm, lambda: 0.98 + rpm / 100000 } };
@@ -21,6 +22,7 @@ function ecuRun(id, rpm) {
 function dynoRun(id, torque) {
   return { id, domain: "dyno", protocol: { id: "dynojet-roller-v1", mode: "inertia_sweep" },
     operatingPointId: "sweep-2500-6500-rpm",
+    operatingPoint: { rpmStart: 2500, rpmEnd: 6500 },
     operatingConditions: conditions({
       vehicle_engine: "1.6 SI", fuel: "nafta 98 RON", gear: "4",
       test_method: "chassis dynamometer", dyno_model: "Dynojet 224x",
@@ -96,4 +98,19 @@ test("una ECU transitoria requiere identificación del vehículo, mapa, combusti
   const result = assessTestProtocol([run], { maximumCvPct: 3 });
   assert.equal(result.status, "review_required");
   assert.ok(result.findings.some(item => item.code === "insufficient_replicates"));
+});
+
+test("no declara repetibilidad si no hay métricas numéricas", () => {
+  const result = assessRepeatability([{ metrics: {} }, { metrics: {} }, { metrics: {} }], { maximumCvPct: 2 });
+  assert.equal(result.status, "no_metrics");
+  assert.equal(result.metrics.length, 0);
+});
+
+test("un punto ECU sin RPM o carga y sin estabilización queda en revisión", () => {
+  const run = ecuRun("a", 0);
+  run.operatingPoint = { rpm: 3000 };
+  run.protocol.stabilizationMinutes = 0;
+  const result = assessTestProtocol([run], { maximumCvPct: 2 });
+  assert.ok(result.findings.some(item => item.code === "operating_point_incomplete"));
+  assert.ok(result.findings.some(item => item.code === "stabilization_not_declared"));
 });

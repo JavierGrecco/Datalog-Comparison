@@ -99,6 +99,7 @@ export function assessRepeatability(replicates, {
     return { key, count: values.length, mean, min: values.length ? Math.min(...values) : null,
       max: values.length ? Math.max(...values) : null, cvPct, rangePct, status };
   });
+  const hasNoMetrics = metrics.length === 0;
   const hasInsufficient = metrics.some(item => item.status === "insufficient_replicates");
   const hasNoThreshold = metrics.some(item => item.status === "threshold_not_configured");
   const hasExceeded = metrics.some(item => item.status === "above_user_limit");
@@ -108,7 +109,7 @@ export function assessRepeatability(replicates, {
     replicateCount: replicates.length,
     minimumReplicates,
     maximumCvPct,
-    status: hasInsufficient ? "insufficient_replicates"
+    status: hasNoMetrics ? "no_metrics" : hasInsufficient ? "insufficient_replicates"
       : hasExceeded ? "review_required"
         : hasNoThreshold ? "threshold_not_configured" : "within_user_limit",
     metrics,
@@ -179,6 +180,32 @@ export function assessTestProtocol(runs, {
     findings.push({ code: "repeatability_limit_exceeded", message: "Al menos una métrica supera el límite de CV definido por el usuario." });
   }
   const blocked = findings.some(item => ["mixed_or_unknown_domain", "unsupported_protocol_mode"].includes(item.code));
+  if (!repeatability.metrics.length) {
+    findings.push({ code: "no_repeatability_metrics", message: "No hay métricas numéricas para evaluar repetibilidad." });
+  }
+  if (domain === "ecu" && mode === "steady_state") {
+    const stabilization = runs[0]?.protocol?.stabilizationMinutes;
+    if (!Number.isFinite(stabilization) || stabilization <= 0) {
+      findings.push({ code: "stabilization_not_declared", message: "Declarar el tiempo de estabilización antes de adquirir cada punto estacionario." });
+    } else if (stabilization < 5) {
+      findings.push({ code: "stabilization_below_reference_case", message: "La estabilización es menor a 5 minutos. Un estudio publicado utilizó al menos 5 minutos; ese valor es una referencia de caso, no un mínimo universal." });
+    }
+  }
+  const point = runs[0]?.operatingPoint;
+  if (domain === "ecu" && mode === "steady_state" &&
+      (!Number.isFinite(point?.rpm) || point.rpm <= 0 ||
+       (!Number.isFinite(point?.loadPct) && !Number.isFinite(point?.throttlePct)))) {
+    findings.push({ code: "operating_point_incomplete", message: "Un punto ECU estacionario debe declarar RPM y carga o posición de acelerador." });
+  }
+  if (domain === "dyno" && ["inertia_sweep", "loaded_sweep"].includes(mode) &&
+      (!Number.isFinite(point?.rpmStart) || !Number.isFinite(point?.rpmEnd) || point.rpmEnd <= point.rpmStart)) {
+    findings.push({ code: "sweep_range_incomplete", message: "Un barrido de dinamómetro debe declarar RPM inicial y final válidas." });
+  }
+  if (domain === "dyno" && mode === "steady_state" &&
+      (!Number.isFinite(point?.rpm) || point.rpm <= 0 ||
+       (!Number.isFinite(point?.loadNm) && !Number.isFinite(point?.loadPct)))) {
+    findings.push({ code: "operating_point_incomplete", message: "Un punto estacionario de dinamómetro debe declarar RPM y carga." });
+  }
   const status = blocked ? "blocked" : findings.length ? "review_required" : "supported";
   return {
     schema: TEST_PROTOCOL_SCHEMA,

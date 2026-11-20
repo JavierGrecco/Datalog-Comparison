@@ -1,0 +1,159 @@
+{
+  "schema": "datalog-test-protocol-fixture/1",
+  "evidenceClass": "synthetic_test_fixture_based_on_published_protocol_design",
+  "sourceReference": "Wahyudi, Putri & Ibrahim (2026), DOI 10.38038/vocatech.v8i2.359",
+  "note": "The published study reports three acquisitions per steady-state condition and at least five minutes of stabilization. Values below are synthetic test inputs, not extracted measurements from the paper.",
+  "options": {
+    "maximumCvPct": 1,
+    "minimumReplicates": 3
+  },
+  "runs": [
+    {
+      "id": "ecu-study-replicate-1",
+      "domain": "ecu",
+      "protocol": {
+        "id": "ecu-steady-state-study-case/1",
+        "mode": "steady_state",
+        "stabilizationMinutes": 5
+      },
+      "operatingPointId": "3000-rpm-full-load",
+      "operatingPoint": {
+        "rpm": 3000,
+        "loadPct": 100
+      },
+      "operatingConditions": {
+        "schema": "operating-conditions/1",
+        "updatedAt": "2026-11-20T12:00:00.000Z",
+        "fields": {
+          "calibration_id": {
+            "value": "ITA 28 BTDC / lambda 1.0",
+            "status": "measured",
+            "source": "Motec M130 calibration sheet",
+            "note": "Study design reference"
+          },
+          "fuel": {
+            "value": "gasoline",
+            "status": "reported",
+            "source": "published study description",
+            "note": "Fuel specification not independently authenticated"
+          },
+          "intake_temp_c": {
+            "value": 25,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          },
+          "coolant_temp_c": {
+            "value": 80,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          }
+        }
+      },
+      "metrics": {
+        "brake_thermal_efficiency_pct": 34.1,
+        "lambda": 1,
+        "engine_speed_rpm": 3000
+      }
+    },
+    {
+      "id": "ecu-study-replicate-2",
+      "domain": "ecu",
+      "protocol": {
+        "id": "ecu-steady-state-study-case/1",
+        "mode": "steady_state",
+        "stabilizationMinutes": 5
+      },
+      "operatingPointId": "3000-rpm-full-load",
+      "operatingPoint": {
+        "rpm": 3000,
+        "loadPct": 100
+      },
+      "operatingConditions": {
+        "schema": "operating-conditions/1",
+        "updatedAt": "2026-11-20T12:00:00.000Z",
+        "fields": {
+          "calibration_id": {
+            "value": "ITA 28 BTDC / lambda 1.0",
+            "status": "measured",
+            "source": "Motec M130 calibration sheet",
+            "note": "Study design reference"
+          },
+          "fuel": {
+            "value": "gasoline",
+            "status": "reported",
+            "source": "published study description",
+            "note": "Fuel specification not independently authenticated"
+          },
+          "intake_temp_c": {
+            "value": 25,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          },
+          "coolant_temp_c": {
+            "value": 80,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          }
+        }
+      },
+      "metrics": {
+        "brake_thermal_efficiency_pct": 34.2,
+        "lambda": 1,
+        "engine_speed_rpm": 3000
+      }
+    },
+    {
+      "id": "ecu-study-replicate-3",
+      "domain": "ecu",
+      "protocol": {
+        "id": "ecu-steady-state-study-case/1",
+        "mode": "steady_state",
+        "stabilizationMinutes": 5
+      },
+      "operatingPointId": "3000-rpm-full-load",
+      "operatingPoint": {
+        "rpm": 3000,
+        "loadPct": 100
+      },
+      "operatingConditions": {
+        "schema": "operating-conditions/1",
+        "updatedAt": "2026-11-20T12:00:00.000Z",
+        "fields": {
+          "calibration_id": {
+            "value": "ITA 28 BTDC / lambda 1.0",
+            "status": "measured",
+            "source": "Motec M130 calibration sheet",
+            "note": "Study design reference"
+          },
+          "fuel": {
+            "value": "gasoline",
+            "status": "reported",
+            "source": "published study description",
+            "note": "Fuel specification not independently authenticated"
+          },
+          "intake_temp_c": {
+            "value": 25,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          },
+          "coolant_temp_c": {
+            "value": 80,
+            "status": "measured",
+            "source": "test cell sensor",
+            "note": "Illustrative synthetic fixture"
+          }
+        }
+      },
+      "metrics": {
+        "brake_thermal_efficiency_pct": 34.3,
+        "lambda": 1,
+        "engine_speed_rpm": 3000
+      }
+    }
+  ]
+}
