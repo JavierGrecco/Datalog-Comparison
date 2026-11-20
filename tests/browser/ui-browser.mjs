@@ -561,6 +561,29 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   assert.match(derived, /2400–2600/);
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
+
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("Almacenamiento local disponible"),
+  );
+  await page.locator("#dossierName").fill("Dyno · artefacto de prueba");
+  await page.locator("#dossierCreateButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierActiveSelect")?.selectedOptions[0]?.textContent.includes("Dyno"),
+  );
+  assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
+  await page.locator("#dossierSaveDerivedButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierArtifactList")?.textContent.includes("dyno_rpm_sweep_curve"),
+  );
+  const backupDownloadPromise = page.waitForEvent("download");
+  await page.locator("#dossierExportBackupButton").click();
+  const backupDownload = await backupDownloadPromise;
+  const backupText = await readFile(await backupDownload.path(), "utf8");
+  const backup = JSON.parse(backupText);
+  assert.equal(backup.derivedArtifacts.length, 1);
+  assert.equal(backup.derivedArtifacts[0].kind, "dyno_rpm_sweep_curve");
+  assert.equal(backup.derivedArtifacts[0].payload.curves.length, 2);
+  assert.equal(backup.sourceArchives.contentIncluded, false);
   assert.equal(await page.locator("#charts svg").count(), 2);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
@@ -643,6 +666,66 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   assert.ok(importedReport.channels.some(channel => channel.key === "speed_kmh"));
   assert.doesNotMatch(reportText, /"samples"\\s*:|originalCells|0,1800,40|0,1900,45/);
   assert.match(await page.locator("#csvComparisonExportStatus").innerText(), /Informe JSON generado localmente/i);
+
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("Almacenamiento local disponible"),
+  );
+  await page.locator("#dossierName").fill("Falcon · comparación motor");
+  await page.locator("#dossierVehicleLabel").fill("Ford Falcon · 221");
+  await page.locator("#dossierNotes").fill("Caso de prueba de persistencia local");
+  await page.locator("#dossierCreateButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierActiveSelect")?.selectedOptions[0]?.textContent.includes("Falcon"),
+  );
+  assert.equal(await page.locator("#dossierArchiveOriginals").isEnabled(), true,
+    "los dos CSV deben estar disponibles para archivado consentido");
+  await page.locator("#dossierArchiveOriginals").check();
+  await page.locator("#dossierSaveReportButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("archivaron 2 CSV originales"),
+  );
+  assert.match(await page.locator("#dossierReportList").innerText(), /2 CSV original\(es\) archivado\(s\)/);
+
+  const originalDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Descargar CSV referencia" }).click();
+  const originalDownload = await originalDownloadPromise;
+  const originalPath = await originalDownload.path();
+  assert.ok(originalPath);
+  assert.equal(await readFile(originalPath, "utf8"), referenceCsv,
+    "el CSV archivado debe conservar los bytes de origen sin alteraciones");
+
+  const backupDownloadPromise = page.waitForEvent("download");
+  await page.locator("#dossierExportBackupButton").click();
+  const backupDownload = await backupDownloadPromise;
+  const backupPath = await backupDownload.path();
+  assert.ok(backupPath);
+  const backupText = await readFile(backupPath, "utf8");
+  const backup = JSON.parse(backupText);
+  assert.equal(backup.schema, "datalog-local-dossier-backup/1");
+  assert.equal(backup.reports.length, 1);
+  assert.equal(backup.sourceArchives.contentIncluded, false);
+  assert.equal(backup.sourceArchives.archivedFileCount, 2);
+  assert.doesNotMatch(backupText, /"blob"\s*:|"samples"\s*:|0,1800,40|0,1900,45/);
+
+  await page.locator("#dossierBackupFile").setInputFiles({
+    name: "falcon-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backupText, "utf8"),
+  });
+  await page.locator("#dossierRestoreButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("Respaldo restaurado como expediente nuevo"),
+  );
+  assert.equal(await page.locator("#dossierCardList .dossier-card").count(), 2);
+  assert.match(await page.locator("#dossierReportList").innerText(), /Solo informe y referencias SHA-256/);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("Almacenamiento local disponible"),
+  );
+  assert.equal(await page.locator("#dossierCardList .dossier-card").count(), 2,
+    "los expedientes deben sobrevivir a una recarga en el mismo perfil del navegador");
+
   assert.equal(await page.locator("#charts svg").count(), 2);
   const layout = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
