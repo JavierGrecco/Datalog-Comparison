@@ -38,7 +38,6 @@ function assessRequiredConditions(runs, requiredFields) {
     if (errors.length) {
       findings.push({ code: "invalid_conditions_contract", runId: run?.id ?? null,
         message: "El registro " + (index + 1) + " tiene un contrato de condiciones inválido: " + errors[0] });
-      continue;
     }
     for (const key of requiredFields) {
       const entry = getCondition(run, key);
