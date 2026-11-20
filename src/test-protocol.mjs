@@ -249,12 +249,6 @@ export function assessTestProtocol(runs, {
   if (repeatability.status === "review_required") {
     findings.push({ code: "repeatability_limit_exceeded", message: "Al menos una métrica supera el límite de CV definido por el usuario." });
   }
-  const blocked = findings.some(item => [
-    "mixed_or_unknown_domain", "unsupported_protocol_mode", "dyno_type_unknown",
-    "protocol_mismatch", "protocol_configuration_mismatch", "operating_point_mismatch",
-    "dyno_type_mismatch", "dyno_measurement_basis_unknown",
-    "dyno_measurement_basis_mismatch", "dyno_measurement_basis_incompatible",
-  ].includes(item.code));
   if (!repeatability.metrics.length) {
     findings.push({ code: "no_repeatability_metrics", message: "No hay métricas numéricas para evaluar repetibilidad." });
   }
@@ -294,6 +288,12 @@ export function assessTestProtocol(runs, {
       })) {
     findings.push({ code: "operating_point_incomplete", message: "Un punto estacionario de dinamómetro debe declarar RPM y carga." });
   }
+  const blocked = findings.some(item => [
+    "mixed_or_unknown_domain", "unsupported_protocol_mode", "dyno_type_unknown",
+    "protocol_mismatch", "protocol_configuration_mismatch", "operating_point_mismatch",
+    "dyno_type_mismatch", "dyno_measurement_basis_unknown",
+    "dyno_measurement_basis_mismatch", "dyno_measurement_basis_incompatible",
+  ].includes(item.code));
   const status = blocked ? "blocked" : findings.length ? "review_required" : "supported";
   return {
     schema: TEST_PROTOCOL_SCHEMA,
