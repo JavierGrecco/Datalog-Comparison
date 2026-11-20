@@ -149,6 +149,37 @@ function renderDossierSelector() {
   updateActions();
 }
 
+function renderDossierEvolution(reports) {
+  const host = $("#dossierEvolutionList");
+  host.replaceChildren();
+  const evolution = buildDossierEvolution(reports);
+  if (!evolution.channels.length) {
+    host.append(makeElement("p", "csv-preview-meta",
+      "Todavía no hay historial suficiente de comparaciones compatibles para mostrar una evolución."));
+    return;
+  }
+  host.append(makeElement("p", "dossier-card-meta",
+    "Vista descriptiva de medianas de candidatas. No alinea ensayos ni demuestra causalidad."));
+  for (const series of evolution.channels) {
+    const card = makeElement("article", "dossier-history-card");
+    card.append(makeElement("h4", "", series.key + " · " + series.unit));
+    card.append(makeElement("p", "dossier-card-meta",
+      (series.domain === "dyno" ? "Dinamómetro" : "ECU/logger") +
+      (series.measurementBasis ? " · base " + series.measurementBasis : "")));
+    for (const point of series.points) {
+      card.append(makeElement("p", "dossier-card-meta",
+        formatDate(point.date) + " · " + point.candidateName +
+        " · mediana candidata: " + new Intl.NumberFormat("es-AR", { maximumFractionDigits: 3 }).format(point.candidateMedian) +
+        " " + series.unit +
+        " · diferencia vs referencia: " +
+        (Number.isFinite(point.deltaMedian)
+          ? new Intl.NumberFormat("es-AR", { maximumFractionDigits: 3 }).format(point.deltaMedian) + " " + series.unit
+          : "no disponible")));
+    }
+    host.append(card);
+  }
+}
+
 async function renderDossierContents() {
   const reportHost = $("#dossierReportList");
   const artifactHost = $("#dossierArtifactList");
@@ -164,6 +195,7 @@ async function renderDossierContents() {
     repository.listReports(activeDossierId),
     repository.listDerivedArtifacts(activeDossierId),
   ]);
+  renderDossierEvolution(reports);
   if (!reports.length) {
     reportHost.append(makeElement("p", "csv-preview-meta", "Este expediente todavía no tiene informes."));
   }
