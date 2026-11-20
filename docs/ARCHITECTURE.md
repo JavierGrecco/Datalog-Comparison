@@ -33,6 +33,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | src/signal-processing.mjs | Señales derivadas: decimación temporal FIR para señales continuas, retención para discretas y curvas de dinamómetro por barridos y bandas RPM. |
 | src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
 | src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
+| src/imported-comparison-report.mjs | Serialización versionada del expediente importado con lista permitida de metadatos; excluye muestras, celdas y rutas locales. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
 
@@ -53,7 +54,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 - El comparador de distribuciones resume cada registro por separado; excluye y explica canales incompatibles, unilaterales o con cobertura insuficiente. No alinea relojes ni empareja puntos.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
 - El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
-- El informe sintético no exporta muestras completas ni rutas locales.
+- Los informes sintético e importado no exportan muestras completas ni rutas locales. El segundo conserva metadatos permitidos, estadísticas y controles; su SHA-256 identifica bytes iguales, no autentica el origen.
 
 ## Ejecución y dependencias
 

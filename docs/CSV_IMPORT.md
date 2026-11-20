@@ -121,6 +121,12 @@ Dynojet Data Center permite configurar por separado el paso de exportación por 
 
 El mapeo genérico crea un registro exploratorio con muestras en orden de origen, valores canónicos, celdas textuales originales de los canales mapeados, faltantes, unidades, versión del parser, codificación detectada cuando se leyó desde bytes, asignaciones, metadatos y advertencias. Los adaptadores específicos preservan su procedencia según el punto de conversión de cada perfil y no declaran valores transformados como celdas originales. Las columnas no mapeadas quedan enumeradas en importMetadata.unmappedHeaders, no se incorporan al modelo semántico. El estado sin alertas estructurales no autentica origen, sensor, unidades, sincronización, método ni condiciones físicas.
 
+## Informe portable de comparación importada
+
+Después de ejecutar la comparación de referencia y candidata, la interfaz permite descargar un JSON versionado (`datalog-imported-run-comparison/1`). Incluye estado, método, umbral de cobertura, identificadores y nombres de archivo, huellas SHA-256, dominio y base declarados, unidades, perfil resumido de importación, conversiones explícitas, estadísticas por canal, exclusiones, puertas de revisión, advertencias y próximos pasos.
+
+El informe usa una lista permitida de metadatos. No exporta muestras, celdas originales, filas CSV, texto del archivo, rutas locales ni metadatos completos del adaptador. Los nombres de archivo y encabezados de canal sí se conservan como etiquetas para interpretar el resumen. La huella SHA-256 permite reconocer bytes idénticos, pero no autentica procedencia, sensores ni mediciones. La descarga se genera en el navegador y no envía los archivos a un servidor.
+
 Fuera de alcance:
 
 - Comparación sincronizada o punto a punto de dos archivos importados. La versión actual resume medianas, medias y rangos de cada registro por separado, solo en canales con unidades y bases físicas compatibles.

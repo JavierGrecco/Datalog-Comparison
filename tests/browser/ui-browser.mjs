@@ -629,6 +629,20 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   assert.match(exclusions, /missing_in_reference/i);
   assert.match(exclusions, /no existe una base compartida/i);
   assert.match(await page.locator("#csvComparisonResultSummary").innerText(), /referencia temporal común verificada/i);
+  const reportDownloadPromise = page.waitForEvent("download");
+  await page.locator("#csvExportComparisonReport").click();
+  const reportDownload = await reportDownloadPromise;
+  const reportPath = await reportDownload.path();
+  assert.ok(reportPath, "el navegador debe completar la descarga del informe importado");
+  const reportText = await readFile(reportPath, "utf8");
+  const importedReport = JSON.parse(reportText);
+  assert.equal(importedReport.schema, "datalog-imported-run-comparison/1");
+  assert.equal(importedReport.reference.name, "reference-run.csv");
+  assert.equal(importedReport.candidate.name, "candidate-run.csv");
+  assert.equal(importedReport.timeAlignment.performed, false);
+  assert.ok(importedReport.channels.some(channel => channel.key === "speed_kmh"));
+  assert.doesNotMatch(reportText, /"samples"\\s*:|originalCells|0,1800,40|0,1900,45/);
+  assert.match(await page.locator("#csvComparisonExportStatus").innerText(), /Informe JSON generado localmente/i);
   assert.equal(await page.locator("#charts svg").count(), 2);
   const layout = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,

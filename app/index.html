@@ -206,9 +206,11 @@
         </div>
         <div class="csv-comparison-actions">
           <button type="button" class="primary-button" id="csvCompareButton" disabled>Comparar registros importados</button>
+          <button type="button" class="secondary-button" id="csvExportComparisonReport" disabled>Exportar informe JSON</button>
           <button type="button" class="secondary-button" id="csvClearComparison">Vaciar expediente</button>
         </div>
         <p id="csvComparisonStatus" class="csv-status" role="status" aria-live="polite">Expediente vacío.</p>
+        <p id="csvComparisonExportStatus" class="button-status" role="status" aria-live="polite">El informe se genera localmente y no incluye muestras ni contenido del CSV.</p>
         <section id="csvComparisonResult" class="csv-comparison-result" aria-label="Resultado de comparación" hidden>
           <div id="csvComparisonResultSummary"></div>
           <div id="csvComparisonGates" class="csv-comparison-block"></div>

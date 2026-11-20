@@ -11,6 +11,7 @@ import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltec
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 import { compareRunDistributions } from "../src/distribution-comparison.mjs";
+import { buildImportedComparisonReport } from "../src/imported-comparison-report.mjs";
 import { DEFAULT_PREVIEW_SAMPLE_LIMIT, selectPreviewSamples } from "../src/sample-selection.mjs";
 import { DEFAULT_CONTINUOUS_CHANNELS, buildRpmSweepCurves, resampleTimeBasedSignals } from "../src/signal-processing.mjs";
 
@@ -73,6 +74,7 @@ function updateComparisonWorkspace() {
     $(buttonSelector).disabled = !state.run || !state.fileSha256;
   }
   $("#csvCompareButton").disabled = !(state.comparisonRuns.reference && state.comparisonRuns.candidate);
+  $("#csvExportComparisonReport").disabled = !state.comparisonResult;
 }
 
 function assignComparisonRun(role) {
@@ -89,6 +91,8 @@ function assignComparisonRun(role) {
   state.comparisonRuns[role] = structuredClone(state.run);
   state.comparisonResult = null;
   $("#csvComparisonResult").hidden = true;
+  $("#csvExportComparisonReport").disabled = true;
+  $("#csvComparisonExportStatus").textContent = "El informe se genera localmente y no incluye muestras ni contenido del CSV."; 
   $("#csvComparisonResultSummary").replaceChildren();
   $("#csvComparisonGates").replaceChildren();
   $("#csvComparisonChannels").replaceChildren();
@@ -208,6 +212,32 @@ function renderDistributionComparison() {
   renderComparisonList($("#csvComparisonWarnings"), "Advertencias y próximos pasos",
     [...result.warnings, ...result.nextActions]);
   $("#csvComparisonResult").hidden = false;
+  $("#csvExportComparisonReport").disabled = false;
+  $("#csvComparisonExportStatus").textContent = "Informe disponible. Incluye estadísticas, procedencia resumida y controles; no incluye filas ni celdas originales.";
+}
+
+function exportImportedComparisonReport() {
+  const referenceRun = state.comparisonRuns.reference;
+  const candidateRun = state.comparisonRuns.candidate;
+  if (!referenceRun || !candidateRun || !state.comparisonResult) {
+    $("#csvComparisonExportStatus").textContent = "Primero ejecutá una comparación para generar el informe.";
+    return;
+  }
+
+  try {
+    const report = buildImportedComparisonReport({ referenceRun, candidateRun, result: state.comparisonResult });
+    const json = JSON.stringify(report, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = "datalog-comparison-imported-" + report.exportedAt.replace(/[:.]/g, "-") + ".json";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    $("#csvComparisonExportStatus").textContent = "Informe JSON generado localmente. SHA-256 identifica bytes, pero no autentica el origen.";
+  } catch (error) {
+    $("#csvComparisonExportStatus").textContent = "No se pudo generar el informe: " + (error?.message ?? "error inesperado.");
+  }
 }
 
 function clearComparisonWorkspace() {
@@ -909,6 +939,7 @@ export function initializeCsvInspector() {
   $("#csvSetReference").addEventListener("click", () => assignComparisonRun("reference"));
   $("#csvSetCandidate").addEventListener("click", () => assignComparisonRun("candidate"));
   $("#csvCompareButton").addEventListener("click", renderDistributionComparison);
+  $("#csvExportComparisonReport").addEventListener("click", exportImportedComparisonReport);
   $("#csvClearComparison").addEventListener("click", clearComparisonWorkspace);
   $("#csvTimeDecimationFactor").addEventListener("change", updateTimeRatePreview);
   $("#csvTimeDeriveButton").addEventListener("click", handleTimeDerivedProcessing);
