@@ -17,6 +17,11 @@ Esta demo tiene una implementación acotada propia. Las referencias siguientes s
 - [AllDataLogs — formatos y semántica](https://www.alldatalogs.com/help/formats/): referencia secundaria sobre la semántica lambda de los valores AFR en ciertas exportaciones Haltech NSP. La implementación adopta una excepción acotada al nombre exacto `Wideband O2 Overall` en el layout de bloques, no una conversión global de todos los canales AFR.
 - [NSP Dyno — parser comunitario de exportaciones NSP](https://github.com/ImMrTea/NSP_Dyno/blob/main/server/parser.js): referencia adicional para reconocer variantes con líneas Channel separadas. Sus heurísticas no se reutilizan como reglas de conversión.
 
+## TunerStudio / MegaSquirt (texto MSL/CSV)
+
+- [Log2Dyno — README y formatos de log](https://github.com/nshobe/Log2Dyno): referencia comunitaria con licencia MIT que enumera preámbulos MS1/MS2/MS3, CSV/TSV, filas de unidades y formatos binarios separados. Se inspeccionaron sus fixtures para comprender la estructura, pero no se copiaron sus muestras ni su código.
+- [Speeduino — referencia de datalog](https://github.com/speeduino/speeduino/blob/master/reference/speeduino.ini): referencia del proyecto para los nombres de canales configurables como Time, RPM, MAP, TPS, AFR, IAT/CLT y estados de adquisición. El código upstream está bajo GPL-2.0; este proyecto usa únicamente nombres y conceptos de canal descritos públicamente, sin copiar código.
+
 ## Dynojet PowerCore / WinPEP
 
 - [Dynojet — PowerCore Software](https://www.dynojet.com/powercore-software/): documentación del fabricante sobre WinPEP 8 Data Center, logs CSV y fuentes de terceros.

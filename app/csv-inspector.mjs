@@ -9,6 +9,7 @@ import {
 import { suggestColumnMappings } from "../src/channel-resolver.mjs";
 import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltech-nsp.mjs";
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
+import { detectTunerStudioMsl, importTunerStudioMsl, parseTunerStudioMsl } from "../src/adapters/tunerstudio-msl.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 import { compareRunDistributions } from "../src/distribution-comparison.mjs";
 import { buildImportedComparisonReport } from "../src/imported-comparison-report.mjs";
@@ -839,13 +840,15 @@ function showGenericMapping(parsed, profile) {
   $("#csvInspectButton").disabled = false;
   $("#csvInspectButton").textContent = profile === "dynojet"
     ? "Inspeccionar CSV Dynojet" : "Inspeccionar CSV";
-  setProfileControls({ dynojet: profile === "dynojet" });
+  setProfileControls({ dynojet: profile === "dynojet", ecu: profile === "tunerstudio" });
   const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
   const hashText = state.fileSha256 ? "" :
     " No se pudo calcular SHA-256 en este navegador; no se habilitará la asociación para comparar.";
   const profileText = profile === "dynojet"
     ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarará la base de medición."
-    : "Asigná tiempo y RPM antes de inspeccionarlo.";
+    : profile === "tunerstudio"
+      ? "Perfil TunerStudio/MSL seleccionado: se reconocieron el preámbulo, el delimitador y la posible fila de unidades; revisá MAP y Boost manualmente."
+      : "Asigná tiempo y RPM antes de inspeccionarlo.";
   setStatus("Archivo leído localmente (" + sourceEncodingLabel(state.textEncoding) + "): " +
     parsed.headers.length + " columnas y " + parsed.rows.length + " filas de datos. " +
     profileText + warningText + hashText,
@@ -861,7 +864,7 @@ function parseLoadedText() {
 
   const selectedProfile = $("#csvFormatProfile").value;
   const profile = selectedProfile === "auto"
-    ? (detectHaltechNspCsv(state.text) ? "haltech" : "generic")
+    ? (detectHaltechNspCsv(state.text) ? "haltech" : detectTunerStudioMsl(state.text) ? "tunerstudio" : "generic")
     : selectedProfile;
 
   try {
@@ -892,6 +895,13 @@ function parseLoadedText() {
     if (profile === "dynojet") {
       $("#csvSourceDomain").value = "dyno";
       setProfileControls({ dynojet: true });
+    }
+    if (profile === "tunerstudio") {
+      $("#csvSourceDomain").value = "ecu";
+      setProfileControls({ ecu: true });
+      const parsed = parseTunerStudioMsl(state.text);
+      showGenericMapping(parsed, profile);
+      return;
     }
     const parsed = parseCsvText(state.text, { delimiter: selectedDelimiter() });
     showGenericMapping(parsed, profile);
@@ -971,7 +981,7 @@ function handleImport(event) {
     if (input.value.trim()) units[input.dataset.unitKey] = input.value.trim();
   }
 
-  const sourceDomain = state.profile === "dynojet" ? "dyno" : $("#csvSourceDomain").value;
+  const sourceDomain = state.profile === "dynojet" ? "dyno" : state.profile === "tunerstudio" ? "ecu" : $("#csvSourceDomain").value;
   const measurementBasis = sourceDomain === "dyno" ? $("#csvMeasurementBasis").value : null;
   const options = {
     id: "csv-local-" + Date.now(),
@@ -988,7 +998,9 @@ function handleImport(event) {
   try {
     const run = state.profile === "dynojet"
       ? importDynojetPowerCoreCsv(state.parsed, options)
-      : mapCsvToRun(state.parsed, options);
+      : state.profile === "tunerstudio"
+        ? importTunerStudioMsl(state.parsed, options)
+        : mapCsvToRun(state.parsed, options);
     attachSourceHash(run);
     const quality = assessRunDataQuality(run);
     state.run = run;
@@ -1057,8 +1069,7 @@ export function initializeCsvInspector() {
       [...$("#csvMappingFields").querySelectorAll("input[data-unit-key]")]
         .map(input => [input.dataset.unitKey, input.value]),
     );
-    const sourceDomain = state.profile === "dynojet"
-      ? "dyno" : ($("#csvSourceDomain").value || "unknown");
+    const sourceDomain = state.profile === "dynojet" ? "dyno" : state.profile === "tunerstudio" ? "ecu" : ($("#csvSourceDomain").value || "unknown");
     renderMappingFields(state.parsed, sourceDomain);
     for (const select of $("#csvMappingFields").querySelectorAll("select[data-channel-key]")) {
       const key = select.dataset.channelKey;

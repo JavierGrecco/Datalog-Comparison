@@ -75,6 +75,16 @@ Los canales sin semántica implementada quedan enumerados como no soportados y n
 
 La especificación consultada declara que parte de su detalle procede de análisis e ingeniería inversa de archivos exportados. Es una referencia comunitaria de interoperabilidad, no documentación oficial ni garantía de compatibilidad. Antes de interpretar un archivo, contrastar sus valores con la exportación original y el software NSP.
 
+## Perfil TunerStudio / MegaSquirt CSV y MSL (experimental)
+
+El adaptador `src/adapters/tunerstudio-msl.mjs` admite exportaciones de texto con preámbulo `MS1 Format`, `MS2 Format` o `MS3 Format`, además de CSV tabulados o separados por coma con encabezados reconocibles. El preámbulo puede estar ausente cuando se fuerza el perfil desde la interfaz. Los archivos binarios `.mlg` y `.ms3` no se leen: deben exportarse previamente desde el software de origen a texto.
+
+La fila de unidades es opcional. Cuando existe, se valida por coincidencia de unidades reconocidas y se retira de las muestras antes del mapeo. Los encabezados habituales se normalizan de forma conservadora (`SecL`/ `Time`, `RPM`, `TPS`, `Lambda 1`, `MAT`, `CLT`, `Spark Advance`, `VSS1`). El adaptador conserva los encabezados y la fila original de unidades en los metadatos de importación.
+
+**MAP y Boost no se asignan por descarte.** La etiqueta MAP no demuestra por sí sola si el valor es absoluto o relativo; Boost puede ser actual o consigna. Esas señales requieren confirmación manual de nombre, unidad y referencia. Los canales de corrección, knock, marcha y otros valores específicos que no tengan un contrato explícito permanecen sin asignar.
+
+El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es un archivo nuevo y sintético creado para probar el preámbulo, las comillas, tabulaciones, unidades y secuencia de muestras. No es una captura real ni garantiza compatibilidad con todas las versiones de TunerStudio/MegaLogViewer. El adaptador no convierte valores por su magnitud ni interpreta unidades desconocidas.
+
 ## Perfil Dynojet PowerCore / WinPEP (guiado)
 
 La documentación del fabricante confirma que WinPEP 8 Data Center puede trabajar con logs CSV y fuentes de terceros. La guía del POD-300 describe selección de canales registrados, frecuencia de muestreo configurable y exportación de logs a CSV.
