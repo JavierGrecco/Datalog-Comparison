@@ -578,7 +578,7 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
     "0,1800,40",
     "0.1,2000,45",
     "0.2,2200,50",
-  ].join("\\n");
+  ].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "reference-run.csv", mimeType: "text/csv", buffer: Buffer.from(referenceCsv, "utf8"),
   });
@@ -593,14 +593,14 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   await page.locator("#csvSetReference").click();
-  assert.match(await page.locator("#csvReferenceSlotStatus").innerText(), /reference-run\\.csv/);
+  assert.match(await page.locator("#csvReferenceSlotStatus").innerText(), /reference-run\.csv/);
 
   const candidateCsv = [
     "Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h),Throttle Position (%)",
     "0,1900,45,20",
     "0.15,2100,52,40",
     "0.30,2300,60,65",
-  ].join("\\n");
+  ].join("\n");
   await page.locator("#csvFile").setInputFiles({
     name: "candidate-run.csv", mimeType: "text/csv", buffer: Buffer.from(candidateCsv, "utf8"),
   });
@@ -623,7 +623,7 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   assert.match(await page.locator("#csvComparisonStatus").innerText(), /requiere revisión/i);
   const channels = await page.locator("#csvComparisonChannels").innerText();
   assert.match(channels, /Velocidad del vehículo/i);
-  assert.match(channels, /Mediana ref\\./i);
+  assert.match(channels, /Mediana ref\./i);
   const exclusions = await page.locator("#csvComparisonExclusions").innerText();
   assert.match(exclusions, /Acelerador/i);
   assert.match(exclusions, /missing_in_reference/i);
@@ -645,7 +645,7 @@ test("bloquea dos importaciones cuyos bytes de origen tienen el mismo SHA-256", 
     "0,1800",
     "0.1,2000",
     "0.2,2200",
-  ].join("\\n");
+  ].join("\n");
 
   const upload = async name => {
     await page.locator("#csvFile").setInputFiles({
