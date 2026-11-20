@@ -476,5 +476,5 @@ test("tolera una configuración numérica por el rango completo y no por referen
   const finding = result.findings.find(item =>
     item.code === "setup_mismatch" && item.field === "ambient_pressure_kpa");
   assert.ok(finding);
-  assert.equal(finding.maxDifference, 0.4);
+  assert.ok(Math.abs(finding.maxDifference - 0.4) < 1e-9);
 });

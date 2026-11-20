@@ -85,7 +85,7 @@ function normalizeMetricCvLimits(maximumCvPctByMetric) {
   const normalized = {};
   for (const [key, limit] of entries) {
     if (!METRIC_KEY_PATTERN.test(key)) {
-      throw new TypeError("La clave de límite CV por métrica no tiene un formato técnico válido.");
+      throw new TypeError("La clave técnica del límite CV por métrica no tiene un formato válido.");
     }
     if (!Number.isFinite(limit) || limit < 0) {
       throw new RangeError("El límite CV de " + key + " debe ser finito y no negativo.");
