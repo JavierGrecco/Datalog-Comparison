@@ -73,7 +73,7 @@ El formato de exportación de comparaciones importadas tiene un [JSON Schema Dra
 
 ## Ejecutar la aplicación
 
-La demo no necesita una ECU, servicios externos ni dependencias de ejecución. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
+La demo no necesita una ECU, servicios externos ni instalar dependencias de ejecución: los recursos gráficos necesarios ya están incluidos localmente. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
 
 ```bash
 git clone https://github.com/JavierGrecco/Datalog-Comparison.git
@@ -166,6 +166,8 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── data-quality.mjs
 │   ├── source-policy.mjs
 │   ├── operating-conditions.mjs
+│   ├── test-protocol.mjs
+│   ├── signal-processing.mjs
 │   └── run-manifest.mjs
 ├── tests/
 │   ├── fixtures/         # CSV sintéticos
