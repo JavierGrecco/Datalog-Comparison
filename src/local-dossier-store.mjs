@@ -172,7 +172,7 @@ function normalizeArtifact(input, { id, dossierId, reportId, createdAt } = {}) {
     throw new RangeError("El artefacto derivado supera el límite de 8 MiB.");
   }
   return {
-    id: id ?? cleanText(input.id, 80, "ID del artefacto") || null,
+    id: id ?? (cleanText(input.id, 80, "ID del artefacto") || null),
     dossierId: dossierId ?? input.dossierId,
     reportId: reportId ?? input.reportId ?? null,
     kind: cleanText(input.kind, 80, "Tipo de artefacto", { required: true }),
@@ -522,7 +522,7 @@ export function createLocalDossierRepository({
       storedAt: record.storedAt,
       contentIncluded: false,
     }));
-    return {
+    const backup = {
       schema: LOCAL_DOSSIER_BACKUP_SCHEMA,
       createdAt: nowIso(),
       dossier: {
@@ -562,12 +562,26 @@ export function createLocalDossierRepository({
         "Los informes no contienen muestras crudas ni series temporales originales.",
       ],
     };
+    const backupBytes = new TextEncoder().encode(JSON.stringify(backup)).byteLength;
+    if (backupBytes > LOCAL_DOSSIER_LIMITS.maxBackupBytes) {
+      throw new RangeError("El respaldo supera el límite de 30 MiB.");
+    }
+    return backup;
   }
 
   async function restoreBackup(backup, { validateReport } = {}) {
     if (!backup || typeof backup !== "object" || Array.isArray(backup) ||
         backup.schema !== LOCAL_DOSSIER_BACKUP_SCHEMA) {
       throw new TypeError("El respaldo no corresponde al contrato local de expedientes.");
+    }
+    let backupBytes;
+    try {
+      backupBytes = new TextEncoder().encode(JSON.stringify(backup)).byteLength;
+    } catch {
+      throw new TypeError("El respaldo no se puede procesar como JSON.");
+    }
+    if (backupBytes > LOCAL_DOSSIER_LIMITS.maxBackupBytes) {
+      throw new RangeError("El respaldo supera el límite de 30 MiB.");
     }
     if (typeof validateReport !== "function") {
       throw new TypeError("Se requiere un validador de informes antes de restaurar el respaldo.");

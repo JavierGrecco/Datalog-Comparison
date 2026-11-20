@@ -4,7 +4,6 @@ import importedComparisonSchema from "../schemas/imported-run-comparison-1.schem
 const MAX_REPORT_BYTES = 10 * 1024 * 1024;
 const $ = selector => document.querySelector(selector);
 
-let schemaPromise = null;
 let loadSequence = 0;
 
 function makeElement(tag, className, text) {
@@ -124,6 +123,26 @@ function renderRunCard(run, role) {
   return article;
 }
 
+function emitReportEvent(name, detail = {}) {
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+export function openSavedImportedReport(report, fileName = "informe.json") {
+  const errors = validateImportedComparisonReport(report, importedComparisonSchema, { maxErrors: 50 });
+  if (errors.length) {
+    throw new Error("El informe no cumple el contrato: " + errors.slice(0, 8).join(" · "));
+  }
+  renderReport(report, fileName);
+  $("#savedReportCloseButton").disabled = false;
+  setStatus(
+    "Informe validado y abierto correctamente. Se muestran " + report.channels.length +
+    " canal(es) comparables y " + report.excludedChannels.length + " excluido(s).",
+    report.status === "blocked" ? "error" : report.status === "review_required" ? "warning" : "success",
+  );
+  emitReportEvent("datalog:report-ready", { report, fileName, sourceFiles: [] });
+  return report;
+}
+
 function renderReport(report, fileName) {
   const result = $("#savedReportResult");
   const overview = $("#savedReportOverview");
@@ -222,20 +241,7 @@ async function handleOpenReport(event) {
   try {
     const report = await readReportFile(file);
     if (sequence !== loadSequence) return;
-    const errors = validateImportedComparisonReport(report, importedComparisonSchema, { maxErrors: 50 });
-    if (errors.length) {
-      const summary = errors.slice(0, 8).join(" · ");
-      const remainder = errors.length > 8 ? " · y " + (errors.length - 8) + " problema(s) más" : "";
-      throw new Error("El informe no cumple el contrato: " + summary + remainder);
-    }
-
-    renderReport(report, file.name);
-    $("#savedReportCloseButton").disabled = false;
-    setStatus(
-      "Informe validado y abierto correctamente. Se muestran " + report.channels.length +
-      " canal(es) comparables y " + report.excludedChannels.length + " excluido(s).",
-      report.status === "blocked" ? "error" : report.status === "review_required" ? "warning" : "success",
-    );
+    openSavedImportedReport(report, file.name);
   } catch (error) {
     if (sequence !== loadSequence) return;
     $("#savedReportResult").hidden = true;
@@ -247,6 +253,7 @@ async function handleOpenReport(event) {
 
 function clearReport() {
   loadSequence += 1;
+  emitReportEvent("datalog:report-closed");
   $("#savedReportForm").reset();
   $("#savedReportResult").hidden = true;
   for (const selector of [
@@ -263,6 +270,7 @@ export function initializeImportedReportInspector() {
   if (!form) return;
   $("#savedReportFile").addEventListener("change", () => {
     loadSequence += 1;
+    emitReportEvent("datalog:report-closed");
     $("#savedReportResult").hidden = true;
     $("#savedReportCloseButton").disabled = true;
     $("#savedReportOpenButton").disabled = !$("#savedReportFile").files?.length;

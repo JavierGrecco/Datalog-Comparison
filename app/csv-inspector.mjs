@@ -51,8 +51,38 @@ function setComparisonStatus(message, kind = "neutral") {
   status.textContent = message;
 }
 
+function publishInspectorEvent(name, detail = {}) {
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+function publishDerivedArtifact(kind, result) {
+  if (!state.run) return;
+  publishInspectorEvent("datalog:derived-ready", {
+    artifact: {
+      kind,
+      algorithm: result.algorithm,
+      algorithmVersion: "1",
+      source: {
+        name: state.run.name,
+        sha256: state.run.sha256 ?? null,
+        domain: state.run.sourceDomain ?? "unknown",
+        measurementBasis: state.run.measurementBasis ?? null,
+        sampleCount: state.run.samples.length,
+        units: state.run.units,
+      },
+      metadata: {
+        resultSchema: result.schema ?? null,
+        status: result.status ?? "derived",
+        warningCount: Array.isArray(result.warnings) ? result.warnings.length : 0,
+      },
+      payload: result,
+    },
+  });
+}
+
 function attachSourceHash(run) {
   if (!state.fileSha256) return;
+  run.sourceFile = state.file ?? null;
   run.sha256 = state.fileSha256;
   run.importMetadata = {
     ...(run.importMetadata ?? {}),
@@ -90,6 +120,7 @@ function assignComparisonRun(role) {
   attachSourceHash(state.run);
   state.comparisonRuns[role] = structuredClone(state.run);
   state.comparisonResult = null;
+  publishInspectorEvent("datalog:report-closed");
   $("#csvComparisonResult").hidden = true;
   $("#csvExportComparisonReport").disabled = true;
   $("#csvComparisonExportStatus").textContent = "El informe se genera localmente y no incluye muestras ni contenido del CSV."; 
@@ -213,6 +244,16 @@ function renderDistributionComparison() {
     [...result.warnings, ...result.nextActions]);
   $("#csvComparisonResult").hidden = false;
   $("#csvExportComparisonReport").disabled = false;
+  const portableReport = buildImportedComparisonReport({ referenceRun: reference, candidateRun: candidate, result });
+  const sourceFiles = [
+    { role: "reference", file: reference.sourceFile, name: reference.name },
+    { role: "candidate", file: candidate.sourceFile, name: candidate.name },
+  ].filter(source => source.file && typeof source.file.arrayBuffer === "function");
+  publishInspectorEvent("datalog:report-ready", {
+    report: portableReport,
+    fileName: "datalog-comparison-imported-" + portableReport.exportedAt.replace(/[:.]/g, "-") + ".json",
+    sourceFiles,
+  });
   $("#csvComparisonExportStatus").textContent = "Informe disponible. Incluye estadísticas, procedencia resumida y controles; no incluye filas ni celdas originales.";
 }
 
@@ -243,6 +284,7 @@ function exportImportedComparisonReport() {
 function clearComparisonWorkspace() {
   state.comparisonRuns = { reference: null, candidate: null };
   state.comparisonResult = null;
+  publishInspectorEvent("datalog:report-closed");
   $("#csvComparisonResult").hidden = true;
   $("#csvComparisonResultSummary").replaceChildren();
   $("#csvComparisonGates").replaceChildren();
@@ -258,6 +300,7 @@ function clearPreview() {
   state.run = null;
   state.quality = null;
   state.derivedResult = null;
+  publishInspectorEvent("datalog:derived-cleared");
   $("#csvDerivedTools").hidden = true;
   $("#csvDerivedTimeControls").hidden = true;
   $("#csvDerivedDynoControls").hidden = true;
@@ -517,6 +560,7 @@ function renderDerivedProcessing(run, quality) {
   panel.hidden = !timeAvailable && !dynoAvailable;
   $("#csvDerivedResults").replaceChildren();
   state.derivedResult = null;
+  publishInspectorEvent("datalog:derived-cleared");
   setDerivedStatus("Seleccioná una operación para generar una vista derivada.");
   if (timeAvailable) updateTimeRatePreview();
   if (dynoAvailable) {
@@ -612,6 +656,7 @@ function handleTimeDerivedProcessing() {
       channels,
     });
     state.derivedResult = result;
+    publishDerivedArtifact("time_resampled_signal", result);
     renderTimeDerivedResult(result);
     setDerivedStatus(
       "Procesamiento temporal completado. Se mantuvo la fuente original y se generó un artefacto separado.",
@@ -630,6 +675,7 @@ function handleDynoDerivedProcessing() {
       rpmBinWidth: Number($("#csvDynoBinWidth").value),
     });
     state.derivedResult = result;
+    publishDerivedArtifact("dyno_rpm_sweep_curve", result);
     renderDynoDerivedResult(result);
     setDerivedStatus(
       result.curves.length
