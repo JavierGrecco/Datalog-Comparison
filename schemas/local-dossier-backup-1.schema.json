@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:datalog-comparison:local-dossier-backup:1",
+  "title": "Datalog Comparison · Local dossier backup",
+  "description": "Portable backup of one local dossier. Source CSV bytes are intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "createdAt",
+    "dossier",
+    "reports",
+    "derivedArtifacts",
+    "sourceArchives",
+    "limitations"
+  ],
+  "properties": {
+    "schema": {
+      "const": "datalog-local-dossier-backup/1"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dossier": {
+      "$ref": "#/$defs/dossier"
+    },
+    "reports": {
+      "type": "array",
+      "maxItems": 250,
+      "items": {
+        "$ref": "#/$defs/storedReport"
+      }
+    },
+    "derivedArtifacts": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/derivedArtifact"
+      }
+    },
+    "sourceArchives": {
+      "$ref": "#/$defs/sourceArchives"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 10,
+      "items": {
+        "type": "string",
+        "maxLength": 1200
+      }
+    }
+  },
+  "$defs": {
+    "dossier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "vehicleLabel",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "vehicleLabel": {
+          "type": "string",
+          "maxLength": 180
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "sourceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "name",
+        "domain",
+        "sampleCount",
+        "sha256"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "domain": {
+          "enum": [
+            "ecu",
+            "dyno",
+            "unknown"
+          ]
+        },
+        "sampleCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          ]
+        }
+      }
+    },
+    "storedReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "fileName",
+        "reportSchema",
+        "storedAt",
+        "sourceReferences",
+        "report"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "reportSchema": {
+          "const": "datalog-imported-run-comparison/1"
+        },
+        "storedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sourceReferences": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "report": {
+          "type": "object",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "const": "datalog-imported-run-comparison/1"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "derivedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reportId",
+        "kind",
+        "algorithm",
+        "algorithmVersion",
+        "source",
+        "metadata",
+        "payload",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "reportId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "algorithmVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "sourceArchiveReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "reportId",
+        "name",
+        "size",
+        "mimeType",
+        "sha256",
+        "storedAt",
+        "contentIncluded"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "reportId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 104857600
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "storedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "contentIncluded": {
+          "const": false
+        }
+      }
+    },
+    "sourceArchives": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contentIncluded",
+        "archivedFileCount",
+        "references"
+      ],
+      "properties": {
+        "contentIncluded": {
+          "const": false
+        },
+        "archivedFileCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "references": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/sourceArchiveReference"
+          }
+        }
+      }
+    }
+  }
+}

@@ -3,8 +3,9 @@ import {
   LOCAL_DOSSIER_BACKUP_SCHEMA,
   LOCAL_DOSSIER_LIMITS,
 } from "../src/local-dossier-store.mjs";
-import { validateImportedComparisonReport } from "../src/imported-comparison-report-validator.mjs";
+import { validateImportedComparisonReport, validateJsonSchemaInstance } from "../src/imported-comparison-report-validator.mjs";
 import importedComparisonSchema from "../schemas/imported-run-comparison-1.schema.json" with { type: "json" };
+import localDossierBackupSchema from "../schemas/local-dossier-backup-1.schema.json" with { type: "json" };
 import { openSavedImportedReport } from "./imported-report-inspector.mjs";
 
 const $ = selector => document.querySelector(selector);
@@ -350,6 +351,8 @@ async function exportActiveBackup() {
   if (!activeDossierId) return;
   try {
     const backup = await repository.createBackup(activeDossierId);
+    const schemaErrors = validateJsonSchemaInstance(backup, localDossierBackupSchema);
+    if (schemaErrors.length) throw new Error("El respaldo no cumple su esquema: " + schemaErrors.slice(0, 6).join(" · "));
     downloadJson(backup, "datalog-dossier-backup-" + activeDossierId + ".json");
     const sourceCount = backup.sourceArchives.archivedFileCount;
     setStatus(
@@ -390,6 +393,10 @@ async function restoreBackup(event) {
   setStatus("Leyendo, validando informes y restaurando el respaldo…");
   try {
     const backup = await readBackup(file);
+    const schemaErrors = validateJsonSchemaInstance(backup, localDossierBackupSchema);
+    if (schemaErrors.length) {
+      throw new Error("El respaldo no cumple su esquema: " + schemaErrors.slice(0, 6).join(" · "));
+    }
     const result = await repository.restoreBackup(backup, {
       validateReport: report => validateImportedComparisonReport(
         report, importedComparisonSchema, { maxErrors: 50 },
