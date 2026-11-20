@@ -65,7 +65,7 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
-El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md). El repositorio también incluye un [validador CLI](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente) para verificar informes desde archivos o tuberías. La interfaz permite además [abrir y revisar un informe guardado](docs/IMPORTED_COMPARISON_REPORT.md#abrir-un-informe-en-la-interfaz), sin volver a cargar los CSV. Los informes se pueden organizar en [expedientes locales persistentes](docs/LOCAL_DOSSIERS.md), con historial, artefactos derivados y respaldos.
+El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md). El repositorio también incluye un [validador CLI](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente) para verificar informes desde archivos o tuberías. La interfaz permite además [abrir y revisar un informe guardado](docs/IMPORTED_COMPARISON_REPORT.md#abrir-un-informe-en-la-interfaz), sin volver a cargar los CSV. Los informes se pueden organizar en [expedientes locales persistentes](docs/LOCAL_DOSSIERS.md), con historial, artefactos derivados y respaldos. El respaldo tiene su [JSON Schema versionado](schemas/local-dossier-backup-1.schema.json) y [ejemplo](examples/local-dossier-backup-1.example.json).
 
 ## Ejecutar la aplicación
 
@@ -138,6 +138,7 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── app.mjs
 │   ├── csv-inspector.mjs
 │   ├── imported-report-inspector.mjs
+│   ├── dossier-inspector.mjs
 │   └── styles.css
 ├── data/
 │   └── sources.json       # Catálogo de fuentes, licencias y procedencia
@@ -166,15 +167,18 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   │   └── simulated-telemetry.test.mjs
 │   └── browser/          # Recorrido automatizado con Chromium
 ├── schemas/
-│   └── imported-run-comparison-1.schema.json
+│   ├── imported-run-comparison-1.schema.json
+│   └── local-dossier-backup-1.schema.json
 ├── examples/
-│   └── imported-run-comparison-1.example.json
+│   ├── imported-run-comparison-1.example.json
+│   └── local-dossier-backup-1.example.json
 ├── docs/
 │   ├── PUBLIC_DATASETS.md
 │   ├── SIMULATOR.md
 │   ├── ARCHITECTURE.md
 │   ├── CSV_IMPORT.md
 │   ├── IMPORTED_COMPARISON_REPORT.md
+│   ├── LOCAL_DOSSIERS.md
 │   ├── CHANNEL_RECOGNITION.md
 │   ├── QUALITY_GATES.md
 │   ├── ENGINEERING.md

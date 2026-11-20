@@ -308,6 +308,12 @@ async function savePendingReport() {
   if (!activeDossierId || !pendingReport) return;
   const includeOriginals = $("#dossierArchiveOriginals").checked;
   try {
+    const reportErrors = validateImportedComparisonReport(
+      pendingReport, importedComparisonSchema, { maxErrors: 50 },
+    );
+    if (reportErrors.length) {
+      throw new Error("El informe ya no cumple el contrato: " + reportErrors.slice(0, 6).join(" · "));
+    }
     const sourceFiles = includeOriginals ? pendingSourceFiles : [];
     const record = await repository.saveReport({
       dossierId: activeDossierId,

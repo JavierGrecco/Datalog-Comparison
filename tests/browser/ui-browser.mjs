@@ -5,6 +5,8 @@ import { resolve, sep, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
 import { chromium } from "playwright";
+import localDossierBackupSchema from "../../schemas/local-dossier-backup-1.schema.json" with { type: "json" };
+import { validateJsonSchemaInstance } from "../../src/imported-comparison-report-validator.mjs";
 
 const PROTOTYPE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const CONTENT_TYPES = Object.freeze({
@@ -581,6 +583,7 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   const backupText = await readFile(await backupDownload.path(), "utf8");
   const backup = JSON.parse(backupText);
   assert.equal(backup.derivedArtifacts.length, 1);
+  assert.deepEqual(validateJsonSchemaInstance(backup, localDossierBackupSchema), []);
   assert.equal(backup.derivedArtifacts[0].kind, "dyno_rpm_sweep_curve");
   assert.equal(backup.derivedArtifacts[0].payload.curves.length, 2);
   assert.equal(backup.sourceArchives.contentIncluded, false);
