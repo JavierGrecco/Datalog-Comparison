@@ -362,3 +362,22 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
   .dossier-card-actions{display:grid;grid-template-columns:1fr}
   .dossier-card-actions button{width:100%}
 }
+
+.protocol-builder{display:grid;gap:14px;padding:15px;border:1px solid #354958;border-radius:11px;background:rgba(7,14,21,.34);margin-bottom:14px}
+.protocol-builder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.protocol-builder-grid [hidden]{display:none}
+.protocol-condition-section{border-top:1px solid var(--border);padding-top:13px}
+.protocol-condition-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.protocol-condition-card{min-width:0;margin:0;padding:11px;border:1px solid #2c4050;border-radius:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;background:rgba(9,16,23,.36)}
+.protocol-condition-card legend{padding:0 6px;color:#dce7ef;font-size:11px;font-weight:800}
+.protocol-condition-card .csv-control{min-width:0}
+.protocol-condition-card input,.protocol-condition-card select,.protocol-builder textarea{width:100%;min-width:0;border:1px solid #354959;border-radius:8px;background:#0c151e;color:var(--text);padding:9px;font-size:11px}
+.protocol-condition-card .protocol-condition-note{grid-column:1/-1}
+.protocol-condition-card small,.protocol-builder small{color:var(--muted);font-size:10px;line-height:1.45}
+.protocol-builder textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;line-height:1.5}
+.protocol-builder-status{color:var(--muted);font-size:10px;line-height:1.5}
+.protocol-advanced{margin:12px 0;border:1px solid var(--border);border-radius:9px;padding:11px 13px;color:var(--muted);font-size:11px}
+.protocol-advanced summary{cursor:pointer;color:#c8d5df;font-weight:750}
+.protocol-json-form{margin-top:12px}
+@media(max-width:760px){.protocol-builder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.protocol-condition-grid{grid-template-columns:1fr}}
+@media(max-width:440px){.protocol-builder-grid,.protocol-condition-card{grid-template-columns:1fr}.protocol-condition-card .protocol-condition-note{grid-column:auto}}

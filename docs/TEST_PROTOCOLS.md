@@ -43,3 +43,10 @@ npm run assess:protocol -- examples/test-protocol-ecu-steady-state.synthetic.jso
 ```
 
 El comando también admite stdin con `-`. Entrada máxima: 2 MiB. Código de salida 0 = controles configurados completados; 1 = revisión/bloqueo; 2 = error de entrada o uso. La salida JSON incluye hallazgos, campos requeridos y estadísticas por métrica.
+
+
+## Captura guiada en la interfaz
+
+La sección de protocolos permite generar un expediente sin editar JSON a mano. Selecciona dominio y modo, solicita el punto o tramo operativo, condiciones requeridas y el estado/fuente de cada una. Los campos desconocidos se mantienen como null; no se autocompletan ni se elevan a medidos. Las métricas se ingresan como arreglos numéricos con un valor por repetición y se asignan en orden.
+
+La captura guiada comparte las condiciones declaradas entre las repeticiones que se están agrupando. Si una condición cambia entre tiradas, deben crearse grupos separados o usarse expedientes individuales; no se debe forzar una condición común. El JSON generado queda visible para revisión y exportación manual. La V1 no lo guarda automáticamente en el expediente del vehículo ni modifica CSV originales.

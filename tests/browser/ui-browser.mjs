@@ -931,3 +931,32 @@ test("la evaluación de protocolos se integra en la interfaz y mantiene la evide
   assert.equal(await page.locator("#protocolResult").isVisible(), false);
   assert.equal(await page.locator("#protocolJsonInput").inputValue(), "");
 });
+
+
+test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos reportados a mediciones", async t => {
+  const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
+    await openDemo(t, { width: 390, height: 844 });
+  await page.locator("#protocolDomain").selectOption("ecu");
+  await page.locator("#protocolMode").selectOption("steady_state");
+  await page.locator("#protocolRpm").fill("3000");
+  await page.locator("#protocolLoad").fill("100");
+  await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
+  for (const [key,value] of [["calibration_id","cal-2026"],["fuel","RON 98"],["intake_temp_c","35"],["coolant_temp_c","85"]]) {
+    await page.locator('[data-condition-key="'+key+'"]').fill(value);
+    await page.locator('[data-condition-status="'+key+'"]').selectOption("measured");
+    await page.locator('[data-condition-source="'+key+'"]').fill("Sensor / registro de prueba");
+  }
+  await page.locator("#protocolBuildButton").click();
+  await page.locator("#protocolResult").waitFor({state:"visible"});
+  const json=JSON.parse(await page.locator("#protocolJsonInput").inputValue());
+  assert.equal(json.runs.length,3);
+  assert.equal(json.runs[0].operatingConditions.fields.coolant_temp_c.status,"measured");
+  assert.equal(json.runs[0].operatingConditions.fields.coolant_temp_c.source,"Sensor / registro de prueba");
+  assert.equal(json.runs[0].metrics.power_kw,100);
+  assert.equal(json.runs[2].metrics.power_kw,99);
+  assert.match(await page.locator("#protocolInputStatus").innerText(),/no certifica una norma/i);
+  assert.deepEqual(pageErrors,[]);
+  assert.deepEqual(consoleErrors,[]);
+  assert.deepEqual(httpErrors,[]);
+  assert.deepEqual(externalRequests,[]);
+});

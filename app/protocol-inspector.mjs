@@ -1,4 +1,5 @@
 import { assessTestProtocol } from "../src/test-protocol.mjs";
+import { createEmptyOperatingConditions, OPERATING_CONDITION_FIELDS } from "../src/operating-conditions.mjs";
 
 const $ = selector => document.querySelector(selector);
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
@@ -60,10 +61,196 @@ function renderResult(result) {
   host.append(findings);
 }
 
+
+const protocolModes = {
+  ecu: [
+    { value: "steady_state", label: "Estacionario" },
+    { value: "transient", label: "Transitorio" },
+  ],
+  dyno: [
+    { value: "inertia_sweep", label: "Barrido inercial" },
+    { value: "loaded_sweep", label: "Barrido con carga" },
+    { value: "steady_state", label: "Punto estacionario" },
+  ],
+};
+const ECU_FIELDS = ["calibration_id", "fuel", "intake_temp_c", "coolant_temp_c"];
+const ECU_TRANSIENT_FIELDS = ["vehicle_engine", "calibration_id", "fuel", "ambient_temp_c"];
+const DYNO_FIELDS = [
+  "vehicle_engine", "fuel", "gear", "test_method", "dyno_model", "dyno_load_mode",
+  "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting", "dyno_correction_standard",
+  "dyno_fan_setup", "instrument_calibration", "tire_size", "tire_pressure_kpa",
+  "tire_condition", "dyno_strapping", "ambient_temp_c", "ambient_pressure_kpa",
+  "relative_humidity_pct",
+];
+function renderProtocolModeOptions() {
+  const domain = $("#protocolDomain").value;
+  const mode = $("#protocolMode");
+  mode.replaceChildren();
+  for (const option of protocolModes[domain]) {
+    const item = element("option", "", option.label);
+    item.value = option.value;
+    mode.append(item);
+  }
+  renderProtocolConditionFields();
+  updateProtocolPointFields();
+}
+function protocolRequiredFields() {
+  const domain = $("#protocolDomain").value;
+  const mode = $("#protocolMode").value;
+  if (domain === "dyno") return DYNO_FIELDS;
+  return mode === "steady_state" ? ECU_FIELDS : ECU_TRANSIENT_FIELDS;
+}
+function renderProtocolConditionFields() {
+  const host = $("#protocolConditionFields");
+  if (!host) return;
+  host.replaceChildren();
+  const definitions = new Map(OPERATING_CONDITION_FIELDS.map(item => [item.key, item]));
+  for (const key of protocolRequiredFields()) {
+    const definition = definitions.get(key);
+    const card = element("fieldset", "protocol-condition-card");
+    const legend = element("legend", "", definition.label + (definition.unit ? " (" + definition.unit + ")" : ""));
+    const valueLabel = element("label", "csv-control");
+    valueLabel.append(element("span", "", "Valor"));
+    const value = element(definition.type === "number" ? "input" : "input", "protocol-condition-value");
+    value.type = definition.type === "number" ? "number" : "text";
+    value.dataset.conditionKey = key;
+    value.id = "conditionValue-" + key;
+    if (definition.min !== undefined) value.min = String(definition.min);
+    if (definition.max !== undefined) value.max = String(definition.max);
+    value.placeholder = "Sin dato";
+    valueLabel.append(value);
+    const statusLabel = element("label", "csv-control");
+    statusLabel.append(element("span", "", "Estado de evidencia"));
+    const status = element("select");
+    status.dataset.conditionStatus = key;
+    for (const [v, label] of [["unknown","Desconocido"],["reported","Informado"],["measured","Medido"],["verified","Verificado por quien carga"]]) {
+      const option = element("option", "", label); option.value = v; status.append(option);
+    }
+    statusLabel.append(status);
+    const sourceLabel = element("label", "csv-control");
+    sourceLabel.append(element("span", "", "Fuente / referencia"));
+    const source = element("input");
+    source.type = "text"; source.dataset.conditionSource = key;
+    source.maxLength = 500; source.placeholder = "Archivo, sensor, instrumento, documento…";
+    sourceLabel.append(source);
+    const noteLabel = element("label", "csv-control protocol-condition-note");
+    noteLabel.append(element("span", "", "Nota (opcional)"));
+    const note = element("input");
+    note.type = "text"; note.dataset.conditionNote = key;
+    note.maxLength = 500; note.placeholder = definition.hint ?? "";
+    noteLabel.append(note);
+    card.append(legend, valueLabel, statusLabel, sourceLabel, noteLabel);
+    host.append(card);
+  }
+}
+function updateProtocolPointFields() {
+  const domain = $("#protocolDomain").value;
+  const mode = $("#protocolMode").value;
+  const sweep = domain === "dyno" && ["inertia_sweep","loaded_sweep"].includes(mode);
+  $("#protocolRpm").closest("label").hidden = sweep;
+  $("#protocolLoad").closest("label").hidden = sweep;
+  $("#protocolRpmStart").closest("label").hidden = !sweep;
+  $("#protocolRpmEnd").closest("label").hidden = !sweep;
+  $("#protocolStabilization").closest("label").hidden = !(domain === "ecu" && mode === "steady_state");
+}
+function buildProtocolFromForm() {
+  const domain = $("#protocolDomain").value;
+  const mode = $("#protocolMode").value;
+  const count = Number($("#protocolReplicates").value);
+  if (!Number.isInteger(count) || count < 2 || count > 20) throw new RangeError("La cantidad de repeticiones debe estar entre 2 y 20.");
+  const pointId = $("#protocolPointId").value.trim();
+  if (!pointId) throw new TypeError("Indicá un identificador para el punto o tramo.");
+  const conditions = createEmptyOperatingConditions();
+  conditions.updatedAt = new Date().toISOString();
+  for (const key of protocolRequiredFields()) {
+    const valueInput = document.querySelector('[data-condition-key="' + key + '"]');
+    const status = document.querySelector('[data-condition-status="' + key + '"]').value;
+    const source = document.querySelector('[data-condition-source="' + key + '"]').value.trim();
+    const note = document.querySelector('[data-condition-note="' + key + '"]').value.trim();
+    const raw = valueInput.value.trim();
+    let value = null;
+    if (raw !== "") {
+      value = valueInput.type === "number" ? Number(raw) : raw;
+      if (valueInput.type === "number" && !Number.isFinite(value)) throw new TypeError("El valor de " + key + " no es numérico.");
+    }
+    if (status === "unknown" && value !== null) throw new TypeError("El campo " + key + " tiene un valor, pero está marcado como desconocido.");
+    if (status !== "unknown" && (value === null || !source)) throw new TypeError("El campo " + key + " necesita un valor y una fuente para el estado seleccionado.");
+    conditions.fields[key] = { value, status, source: status === "unknown" ? "" : source, note };
+  }
+  let operatingPoint = {};
+  if (domain === "ecu" && mode === "steady_state") {
+    const rpm = Number($("#protocolRpm").value), loadPct = Number($("#protocolLoad").value);
+    if (!Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
+      throw new TypeError("El punto ECU estacionario necesita RPM y carga entre 0 y 100 %.");
+    }
+    operatingPoint = { rpm, loadPct };
+  } else if (domain === "dyno" && ["inertia_sweep","loaded_sweep"].includes(mode)) {
+    const rpmStart = Number($("#protocolRpmStart").value), rpmEnd = Number($("#protocolRpmEnd").value);
+    if (!Number.isFinite(rpmStart) || !Number.isFinite(rpmEnd) || rpmStart <= 0 || rpmEnd <= rpmStart) {
+      throw new TypeError("El barrido requiere RPM inicial y final válidas, con final mayor que inicial.");
+    }
+    operatingPoint = { rpmStart, rpmEnd };
+  } else if (domain === "dyno" && mode === "steady_state") {
+    const rpm = Number($("#protocolRpm").value), loadPct = Number($("#protocolLoad").value);
+    if (!Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
+      throw new TypeError("El punto de dinamómetro estacionario necesita RPM y carga entre 0 y 100 %.");
+    }
+    operatingPoint = { rpm, loadPct };
+  }
+  const metricsInput = JSON.parse($("#protocolMetricsInput").value);
+  if (!metricsInput || typeof metricsInput !== "object" || Array.isArray(metricsInput)) throw new TypeError("Las métricas deben ser un objeto JSON con arreglos numéricos.");
+  const metricKeys = Object.keys(metricsInput);
+  if (!metricKeys.length) throw new TypeError("Ingresá al menos una métrica.");
+  for (const key of metricKeys) {
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(key) || !Array.isArray(metricsInput[key]) ||
+        metricsInput[key].length !== count || metricsInput[key].some(value => !Number.isFinite(value))) {
+      throw new TypeError("Cada métrica debe tener un nombre técnico y exactamente " + count + " valores numéricos.");
+    }
+  }
+  const stabilizationMinutes = Number($("#protocolStabilization").value);
+  const protocol = { id: domain + "-" + mode + "/1", mode };
+  if (domain === "ecu" && mode === "steady_state") {
+    if (!Number.isFinite(stabilizationMinutes) || stabilizationMinutes <= 0) throw new TypeError("Indicá un tiempo de estabilización mayor a cero.");
+    protocol.stabilizationMinutes = stabilizationMinutes;
+  }
+  const runs = Array.from({ length: count }, (_, index) => ({
+    id: "replicate-" + (index + 1),
+    domain,
+    protocol: { ...protocol },
+    operatingPointId: pointId,
+    ...(Object.keys(operatingPoint).length ? { operatingPoint: { ...operatingPoint } } : {}),
+    operatingConditions: JSON.parse(JSON.stringify(conditions)),
+    metrics: Object.fromEntries(metricKeys.map(key => [key, metricsInput[key][index]])),
+  }));
+  const options = { minimumReplicates: Math.min(3, count) };
+  const cv = $("#protocolCvLimit").value.trim();
+  if (cv !== "") {
+    const maximumCvPct = Number(cv);
+    if (!Number.isFinite(maximumCvPct) || maximumCvPct < 0) throw new TypeError("El límite CV debe ser un número igual o mayor que cero.");
+    options.maximumCvPct = maximumCvPct;
+  }
+  return { schema: "datalog-test-protocol/1", evidenceClass: "user_entered", options, runs };
+}
+
 export function initializeProtocolInspector() {
   const form = $("#protocolAssessmentForm");
   if (!form || form.dataset.initialized === "true") return;
   form.dataset.initialized = "true";
+  renderProtocolModeOptions();
+  $("#protocolDomain").addEventListener("change", renderProtocolModeOptions);
+  $("#protocolMode").addEventListener("change", () => { renderProtocolConditionFields(); updateProtocolPointFields(); });
+  $("#protocolBuildButton").addEventListener("click", () => {
+    const status = $("#protocolBuilderStatus");
+    status.textContent = "";
+    try {
+      const dossier = buildProtocolFromForm();
+      const serialized = JSON.stringify(dossier, null, 2);
+      if (new TextEncoder().encode(serialized).byteLength > MAX_INPUT_BYTES) throw new RangeError("El expediente supera el límite de 2 MiB.");
+      $("#protocolJsonInput").value = serialized;
+      status.textContent = "Expediente generado con " + dossier.runs.length + " repeticiones. Revisá el JSON si necesitás conservarlo y evaluá el resultado.";
+      form.requestSubmit();
+    } catch (error) { status.textContent = error.message; }
+  });
 
   form.addEventListener("submit", event => {
     event.preventDefault();
