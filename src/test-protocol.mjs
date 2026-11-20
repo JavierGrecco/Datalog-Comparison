@@ -178,10 +178,15 @@ export function assessTestProtocol(runs, {
       measurementBasis = [...basisValues][0];
     }
 
-    if (dynoType && measurementBasis &&
-        !((dynoType === "engine" && measurementBasis === "engine") ||
-          (dynoType === "chassis" && ["wheel", "hub", "roller"].includes(measurementBasis)))) {
-      findings.push({ code: "dyno_measurement_basis_incompatible", message: "La base de medición no corresponde al tipo de dinamómetro declarado." });
+    const hasIncompatiblePhysicalPair = runs.some(run => {
+      const typeEntry = getCondition(run, "dyno_type");
+      const basisEntry = getCondition(run, "dyno_measurement_basis");
+      if (!declared(typeEntry) || !declared(basisEntry)) return false;
+      return !((typeEntry.value === "engine" && basisEntry.value === "engine") ||
+        (typeEntry.value === "chassis" && ["wheel", "hub", "roller"].includes(basisEntry.value)));
+    });
+    if (hasIncompatiblePhysicalPair) {
+      findings.push({ code: "dyno_measurement_basis_incompatible", message: "Al menos un registro declara una base física que no corresponde al tipo de dinamómetro." });
     }
 
     requiredFields = [
