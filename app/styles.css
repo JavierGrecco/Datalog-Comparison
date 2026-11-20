@@ -243,3 +243,24 @@ h1{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.047em;line-height:1.04;marg
   html{scroll-behavior:auto}
   *,*::before,*::after{transition:none!important}
 }
+
+
+/* Expediente local para comparación descriptiva de dos CSV importados. */
+.csv-comparison-workspace{margin-top:18px;padding-top:17px;border-top:1px solid var(--border)}
+.csv-comparison-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.csv-comparison-slot{min-width:0;padding:13px;border:1px solid #304252;border-radius:10px;background:rgba(7,13,19,.28)}
+.csv-comparison-slot h4,.csv-comparison-block h4{margin:0 0 7px;color:#dce8f1;font-size:12px}
+.csv-comparison-slot p{min-height:34px;margin:0 0 11px;color:var(--muted);font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+.csv-comparison-slot button{max-width:100%}
+.csv-comparison-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0}
+.csv-comparison-actions button{min-height:38px}
+.csv-comparison-result{display:grid;gap:13px;margin-top:15px;padding-top:15px;border-top:1px solid var(--border)}
+.csv-comparison-result[hidden]{display:none}
+.csv-comparison-block{min-width:0}
+.csv-comparison-block .csv-table-wrap{margin-top:8px}
+.csv-comparison-block .csv-data-table{white-space:normal;min-width:680px}
+@media(max-width:640px){
+  .csv-comparison-slots{grid-template-columns:1fr}
+  .csv-comparison-actions{display:grid;grid-template-columns:1fr}
+  .csv-comparison-actions button{width:100%}
+}

@@ -10,13 +10,15 @@ import { suggestColumnMappings } from "../src/channel-resolver.mjs";
 import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltech-nsp.mjs";
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
+import { compareRunDistributions } from "../src/distribution-comparison.mjs";
 import { DEFAULT_PREVIEW_SAMPLE_LIMIT, selectPreviewSamples } from "../src/sample-selection.mjs";
 import { DEFAULT_CONTINUOUS_CHANNELS, buildRpmSweepCurves, resampleTimeBasedSignals } from "../src/signal-processing.mjs";
 
 const $ = selector => document.querySelector(selector);
 const state = {
-  file: null, text: null, textEncoding: null, parsed: null, run: null, quality: null, profile: "generic",
+  file: null, fileSha256: null, text: null, textEncoding: null, parsed: null, run: null, quality: null, profile: "generic",
   columnSuggestions: null, derivedResult: null,
+  comparisonRuns: { reference: null, candidate: null }, comparisonResult: null,
 };
 
 function sourceEncodingLabel(encoding) {
@@ -42,6 +44,186 @@ function setStatus(message, kind = "neutral") {
   status.textContent = message;
 }
 
+function setComparisonStatus(message, kind = "neutral") {
+  const status = $("#csvComparisonStatus");
+  status.className = "csv-status csv-status-" + kind;
+  status.textContent = message;
+}
+
+function attachSourceHash(run) {
+  if (!state.fileSha256) return;
+  run.sha256 = state.fileSha256;
+  run.importMetadata = {
+    ...(run.importMetadata ?? {}),
+    sourceFileSha256: state.fileSha256,
+  };
+}
+
+function updateComparisonWorkspace() {
+  const roles = [
+    ["reference", "#csvReferenceSlotStatus", "#csvSetReference"],
+    ["candidate", "#csvCandidateSlotStatus", "#csvSetCandidate"],
+  ];
+  for (const [role, statusSelector, buttonSelector] of roles) {
+    const saved = state.comparisonRuns[role];
+    $(statusSelector).textContent = saved
+      ? saved.name + " · " + (saved.sourceType ?? saved.sourceDomain ?? "Origen sin identificar") +
+        " · " + saved.samples.length + " muestras · SHA-256 " + saved.sha256.slice(0, 12) + "…"
+      : "Sin registro asignado.";
+    $(buttonSelector).disabled = !state.run || !state.fileSha256;
+  }
+  $("#csvCompareButton").disabled = !(state.comparisonRuns.reference && state.comparisonRuns.candidate);
+}
+
+function assignComparisonRun(role) {
+  if (!["reference", "candidate"].includes(role)) return;
+  if (!state.run) {
+    setComparisonStatus("Primero inspeccioná un CSV válido.", "warning");
+    return;
+  }
+  if (!state.fileSha256) {
+    setComparisonStatus("No se pudo calcular SHA-256 para este archivo; no se guarda en el expediente.", "error");
+    return;
+  }
+  attachSourceHash(state.run);
+  state.comparisonRuns[role] = structuredClone(state.run);
+  state.comparisonResult = null;
+  $("#csvComparisonResult").hidden = true;
+  $("#csvComparisonResultSummary").replaceChildren();
+  $("#csvComparisonGates").replaceChildren();
+  $("#csvComparisonChannels").replaceChildren();
+  $("#csvComparisonExclusions").replaceChildren();
+  $("#csvComparisonWarnings").replaceChildren();
+  $("#csvComparisonBlockedReasons").replaceChildren();
+  setComparisonStatus(
+    state.run.name + " quedó guardado como " + (role === "reference" ? "referencia" : "candidata") +
+    " en la memoria de esta página. Podés reemplazarlo asignando otro registro.",
+    "success",
+  );
+  updateComparisonWorkspace();
+}
+
+function formatComparisonNumber(value) {
+  return Number.isFinite(value) ? value.toFixed(2).replace(".", ",") : "—";
+}
+
+function appendComparisonTable(container, headers, rows) {
+  const wrapper = makeElement("div", "csv-table-wrap");
+  appendTable(wrapper, headers, rows);
+  container.append(wrapper);
+}
+
+function renderComparisonList(host, heading, items) {
+  host.replaceChildren();
+  if (!items?.length) return;
+  host.append(makeElement("h4", "", heading));
+  const list = makeElement("ul");
+  for (const item of items) list.append(makeElement("li", "", item));
+  host.append(list);
+}
+
+function renderDistributionComparison() {
+  const reference = state.comparisonRuns.reference;
+  const candidate = state.comparisonRuns.candidate;
+  if (!reference || !candidate) return;
+
+  const result = compareRunDistributions(reference, candidate);
+  state.comparisonResult = result;
+  const kind = result.status === "blocked" ? "error"
+    : result.status === "review_required" ? "warning" : "success";
+  setComparisonStatus(result.headline + ". " +
+    (result.status === "blocked"
+      ? "No se muestran estadísticas de canales."
+      : result.channels.length + " canal(es) con resumen estadístico independiente."),
+  kind);
+
+  const summary = $("#csvComparisonResultSummary");
+  summary.replaceChildren();
+  summary.append(makeElement("p", "csv-preview-meta",
+    "Referencia: " + result.reference.name + " · " + result.reference.domain +
+    " · " + result.reference.sampleCount + " muestras · SHA-256 " + (result.reference.sha256 ?? "no disponible")));
+  summary.append(makeElement("p", "csv-preview-meta",
+    "Candidata: " + result.candidate.name + " · " + result.candidate.domain +
+    " · " + result.candidate.sampleCount + " muestras · SHA-256 " + (result.candidate.sha256 ?? "no disponible")));
+  summary.append(makeElement("p", "csv-preview-meta",
+    "Método " + result.method + " · Cobertura mínima por canal " + result.minimumCoveragePct +
+    "% · " + result.timeAlignment.reason));
+  summary.append(makeElement("p", "csv-preview-meta",
+    "Las medianas, medias y rangos resumen cada archivo por separado. No representan pares de muestras, el mismo instante ni el mismo punto operativo."));
+
+  const channelLabels = new Map(CSV_CHANNEL_DEFINITIONS.map(definition => [definition.key, definition.label]));
+  const channelRows = result.channels.map(channel => [
+    channelLabels.get(channel.key) ?? channel.key,
+    channel.unit,
+    formatComparisonNumber(channel.reference.median),
+    formatComparisonNumber(channel.candidate.median),
+    formatComparisonNumber(channel.difference.median),
+    Number.isFinite(channel.difference.medianPct)
+      ? formatComparisonNumber(channel.difference.medianPct) + "%" : "—",
+    channel.reference.coveragePct.toFixed(1).replace(".", ",") + "%",
+    channel.candidate.coveragePct.toFixed(1).replace(".", ",") + "%",
+  ]);
+  const channelHost = $("#csvComparisonChannels");
+  channelHost.replaceChildren();
+  channelHost.append(makeElement("h4", "", "Canales con resumen disponible"));
+  if (channelRows.length) {
+    appendComparisonTable(channelHost,
+      ["Canal", "Unidad", "Mediana ref.", "Mediana cand.", "Δ mediana", "Δ mediana %", "Cobertura ref.", "Cobertura cand."],
+      channelRows,
+    );
+  } else {
+    channelHost.append(makeElement("p", "csv-preview-meta", "No hay canales que superen los controles de comparación."));
+  }
+
+  const exclusions = $("#csvComparisonExclusions");
+  exclusions.replaceChildren();
+  if (result.excludedChannels.length) {
+    exclusions.append(makeElement("h4", "", "Canales excluidos y motivo"));
+    appendComparisonTable(exclusions,
+      ["Canal", "Código", "Motivo", "Cobertura ref.", "Cobertura cand."],
+      result.excludedChannels.map(channel => [
+        channelLabels.get(channel.key) ?? channel.key,
+        channel.reasonCode ?? "excluded",
+        channel.reason,
+        Number.isFinite(channel.referenceCoveragePct)
+          ? channel.referenceCoveragePct.toFixed(1).replace(".", ",") + "%" : "—",
+        Number.isFinite(channel.candidateCoveragePct)
+          ? channel.candidateCoveragePct.toFixed(1).replace(".", ",") + "%" : "—",
+      ]),
+    );
+  }
+
+  const gateRows = result.readiness.gates.map(gate => [
+    gate.label,
+    gate.status,
+    gate.summary,
+    gate.findings?.length ? gate.findings.join(" · ") : "—",
+  ]);
+  const gateHost = $("#csvComparisonGates");
+  gateHost.replaceChildren();
+  gateHost.append(makeElement("h4", "", "Revisión de evidencia"));
+  appendComparisonTable(gateHost, ["Control", "Estado", "Resumen", "Hallazgos"], gateRows);
+
+  renderComparisonList($("#csvComparisonBlockedReasons"), "Bloqueos", result.blockedReasons);
+  renderComparisonList($("#csvComparisonWarnings"), "Advertencias y próximos pasos",
+    [...result.warnings, ...result.nextActions]);
+  $("#csvComparisonResult").hidden = false;
+}
+
+function clearComparisonWorkspace() {
+  state.comparisonRuns = { reference: null, candidate: null };
+  state.comparisonResult = null;
+  $("#csvComparisonResult").hidden = true;
+  $("#csvComparisonResultSummary").replaceChildren();
+  $("#csvComparisonGates").replaceChildren();
+  $("#csvComparisonChannels").replaceChildren();
+  $("#csvComparisonExclusions").replaceChildren();
+  $("#csvComparisonWarnings").replaceChildren();
+  $("#csvComparisonBlockedReasons").replaceChildren();
+  setComparisonStatus("Expediente vacío. Los registros se conservan solo mientras esta página permanece abierta.");
+  updateComparisonWorkspace();
+}
+
 function clearPreview() {
   state.run = null;
   state.quality = null;
@@ -56,6 +238,7 @@ function clearPreview() {
   $("#csvQualityTable").replaceChildren();
   $("#csvWarnings").replaceChildren();
   $("#csvSampleTable").replaceChildren();
+  updateComparisonWorkspace();
 }
 
 function setProfileControls({ ecu = false, dynojet = false } = {}) {
@@ -509,6 +692,7 @@ function renderPreview() {
   renderQuality(run, quality);
   renderSamplePreview(run);
   renderDerivedProcessing(run, quality);
+  updateComparisonWorkspace();
 }
 
 function selectedDelimiter() {
@@ -527,13 +711,15 @@ function showGenericMapping(parsed, profile) {
     ? "Inspeccionar CSV Dynojet" : "Inspeccionar CSV";
   setProfileControls({ dynojet: profile === "dynojet" });
   const warningText = parsed.warnings.length ? " Hay advertencias de estructura para revisar." : "";
+  const hashText = state.fileSha256 ? "" :
+    " No se pudo calcular SHA-256 en este navegador; no se habilitará la asociación para comparar.";
   const profileText = profile === "dynojet"
-    ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarar la base de medición."
+    ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarará la base de medición."
     : "Asigná tiempo y RPM antes de inspeccionarlo.";
   setStatus("Archivo leído localmente (" + sourceEncodingLabel(state.textEncoding) + "): " +
     parsed.headers.length + " columnas y " + parsed.rows.length + " filas de datos. " +
-    profileText + warningText,
-  parsed.warnings.length ? "warning" : "success");
+    profileText + warningText + hashText,
+  parsed.warnings.length || !state.fileSha256 ? "warning" : "success");
 }
 
 function parseLoadedText() {
@@ -561,11 +747,14 @@ function parseLoadedText() {
         sourceEncoding: state.textEncoding,
       });
       state.profile = "haltech";
+      attachSourceHash(run);
       state.run = run;
       state.quality = assessRunDataQuality(run);
       renderPreview();
-      setStatus("Se reconoció la variante Haltech NSP %DataLog% (" + sourceEncodingLabel(state.textEncoding) + "). Se normalizaron los canales soportados; revisá los canales excluidos y las reglas de conversión.",
-        state.quality.status === "no_obvious_issues" ? "success" : "warning");
+      setStatus("Se reconoció la variante Haltech NSP %DataLog% (" + sourceEncodingLabel(state.textEncoding) +
+        "). El registro está disponible para un expediente local de comparación descriptiva; revisá canales excluidos y reglas de conversión." +
+        (state.fileSha256 ? "" : " No se pudo calcular SHA-256, por lo que no se habilita su asociación."),
+        state.fileSha256 && state.quality.status === "no_obvious_issues" ? "success" : "warning");
       return;
     }
 
@@ -586,6 +775,7 @@ function parseLoadedText() {
 async function handleFileSelection() {
   clearPreview();
   state.file = null;
+  state.fileSha256 = null;
   state.text = null;
   state.textEncoding = null;
   state.parsed = null;
@@ -606,9 +796,20 @@ async function handleFileSelection() {
   }
   try {
     const bytes = await file.arrayBuffer();
+    let fileSha256 = null;
+    try {
+      if (globalThis.crypto?.subtle) {
+        const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+        fileSha256 = [...new Uint8Array(digest)]
+          .map(byte => byte.toString(16).padStart(2, "0")).join("");
+      }
+    } catch {
+      fileSha256 = null;
+    }
     if ($("#csvFile").files?.[0] !== file) return;
     const decoded = decodeCsvBytes(bytes);
     state.file = file;
+    state.fileSha256 = fileSha256;
     state.text = decoded.text;
     state.textEncoding = decoded.encoding;
     parseLoadedText();
@@ -658,12 +859,15 @@ function handleImport(event) {
     const run = state.profile === "dynojet"
       ? importDynojetPowerCoreCsv(state.parsed, options)
       : mapCsvToRun(state.parsed, options);
+    attachSourceHash(run);
     const quality = assessRunDataQuality(run);
     state.run = run;
     state.quality = quality;
     renderPreview();
-    setStatus("Inspección completada (" + sourceEncodingLabel(run.importMetadata?.sourceEncoding) + "). El archivo permanece en memoria local y no se agregó a la matriz de comparación.",
-      quality.status === "no_obvious_issues" ? "success" : "warning");
+    setStatus("Inspección completada (" + sourceEncodingLabel(run.importMetadata?.sourceEncoding) +
+      "). El registro permanece en memoria local y podés asignarlo como referencia o candidata para una comparación descriptiva." +
+      (state.fileSha256 ? "" : " No se habilita su asociación porque no se pudo calcular SHA-256."),
+      state.fileSha256 && quality.status === "no_obvious_issues" ? "success" : "warning");
   } catch (error) {
     const detail = error instanceof CsvImportError ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo inspeccionar el archivo.") + detail, "error");
@@ -672,6 +876,7 @@ function handleImport(event) {
 
 function reset() {
   state.file = null;
+  state.fileSha256 = null;
   state.text = null;
   state.textEncoding = null;
   state.parsed = null;
@@ -701,6 +906,10 @@ export function initializeCsvInspector() {
   const form = $("#csvImportForm");
   if (!form) return;
   $("#csvFile").addEventListener("change", handleFileSelection);
+  $("#csvSetReference").addEventListener("click", () => assignComparisonRun("reference"));
+  $("#csvSetCandidate").addEventListener("click", () => assignComparisonRun("candidate"));
+  $("#csvCompareButton").addEventListener("click", renderDistributionComparison);
+  $("#csvClearComparison").addEventListener("click", clearComparisonWorkspace);
   $("#csvTimeDecimationFactor").addEventListener("change", updateTimeRatePreview);
   $("#csvTimeDeriveButton").addEventListener("click", handleTimeDerivedProcessing);
   $("#csvDynoCurveButton").addEventListener("click", handleDynoDerivedProcessing);
@@ -732,5 +941,7 @@ export function initializeCsvInspector() {
   });
   form.addEventListener("submit", handleImport);
   $("#csvClearButton").addEventListener("click", reset);
+  updateComparisonWorkspace();
+  setComparisonStatus("Expediente vacío. Inspeccioná un CSV y asignalo explícitamente como referencia o candidata.");
   setStatus("Seleccioná un archivo CSV para comenzar.");
 }

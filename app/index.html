@@ -184,7 +184,40 @@
           <div id="csvDerivedResults" class="csv-derived-results"></div>
           <p class="csv-derived-note">Las curvas y series son descriptivas. No aplican corrección atmosférica, no certifican potencia y no habilitan comparaciones entre registros.</p>
         </section>
-        <p class="csv-isolation-note"><strong>Modo de inspección:</strong> este registro no se compara con los escenarios sintéticos ni con otro archivo. La integración al flujo de comparación requiere una revisión posterior de sincronización, unidades, condiciones y procedencia.</p>
+        <p class="csv-isolation-note"><strong>Modo local:</strong> la inspección no altera los escenarios sintéticos. Para comparar archivos, asigná cada importación a un rol del expediente que aparece debajo.</p>
+      </section>
+
+      <section id="csvComparisonWorkspace" class="csv-comparison-workspace" aria-labelledby="csvComparisonTitle">
+        <div class="csv-subheading">
+          <h3 id="csvComparisonTitle">Expediente de comparación · registros importados</h3>
+          <p>Guardá explícitamente dos CSV inspeccionados como referencia y candidata. Se comparan distribuciones independientes de canales compatibles; no se alinean relojes, no se emparejan muestras y no se calcula un delta punto a punto.</p>
+        </div>
+        <div class="csv-comparison-slots">
+          <article class="csv-comparison-slot">
+            <h4>Referencia</h4>
+            <p id="csvReferenceSlotStatus">Sin registro asignado.</p>
+            <button type="button" class="secondary-button" id="csvSetReference" disabled>Usar CSV inspeccionado como referencia</button>
+          </article>
+          <article class="csv-comparison-slot">
+            <h4>Candidata</h4>
+            <p id="csvCandidateSlotStatus">Sin registro asignado.</p>
+            <button type="button" class="secondary-button" id="csvSetCandidate" disabled>Usar CSV inspeccionado como candidata</button>
+          </article>
+        </div>
+        <div class="csv-comparison-actions">
+          <button type="button" class="primary-button" id="csvCompareButton" disabled>Comparar registros importados</button>
+          <button type="button" class="secondary-button" id="csvClearComparison">Vaciar expediente</button>
+        </div>
+        <p id="csvComparisonStatus" class="csv-status" role="status" aria-live="polite">Expediente vacío.</p>
+        <section id="csvComparisonResult" class="csv-comparison-result" aria-label="Resultado de comparación" hidden>
+          <div id="csvComparisonResultSummary"></div>
+          <div id="csvComparisonGates" class="csv-comparison-block"></div>
+          <div id="csvComparisonChannels" class="csv-comparison-block"></div>
+          <div id="csvComparisonExclusions" class="csv-comparison-block"></div>
+          <div id="csvComparisonBlockedReasons" class="csv-warning-list"></div>
+          <div id="csvComparisonWarnings" class="csv-warning-list"></div>
+          <p class="csv-isolation-note"><strong>Límite:</strong> el resultado es descriptivo, no demuestra equivalencia física ni causalidad. Los registros y resultados permanecen en memoria local y se descartan al recargar la página o vaciar el expediente.</p>
+        </section>
       </section>
     </section>
 

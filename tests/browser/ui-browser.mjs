@@ -112,7 +112,7 @@ test("la entrada raíz es una redirección estática sin JavaScript inline", asy
   assert.equal(await page.locator("#pageTitle").innerText(), "La evidencia antes que la comparación.");
 });
 
-test("la inspección CSV es local, requiere mapeo explícito y no habilita la comparación", async t => {
+test("la inspección CSV es local, requiere mapeo explícito y no altera los escenarios sintéticos", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });
 
@@ -145,7 +145,7 @@ test("la inspección CSV es local, requiere mapeo explícito y no habilita la co
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
   assert.match(await page.locator("#csvQualityTable").innerText(), /Torque/);
-  assert.match(await page.locator("#csvImportStatus").innerText(), /no se agregó a la matriz de comparación/i);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /podés asignarlo como referencia o candidata para una comparación descriptiva/i);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     false,
@@ -218,7 +218,7 @@ test("importa CSV UTF-16LE con BOM y conserva la codificación en la procedencia
   await page.locator("#csvPreview").waitFor({ state: "visible" });
 
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /Codificación de origen: UTF-16LE con BOM/);
-  assert.match(await page.locator("#csvImportStatus").innerText(), /no se agregó a la matriz de comparación/i);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /podés asignarlo como referencia o candidata para una comparación descriptiva/i);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
@@ -562,6 +562,115 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
   assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+
+test("compara dos CSV importados por distribuciones y explica señales unilaterales", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+
+  const referenceCsv = [
+    "Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h)",
+    "0,1800,40",
+    "0.1,2000,45",
+    "0.2,2200,50",
+  ].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "reference-run.csv", mimeType: "text/csv", buffer: Buffer.from(referenceCsv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvColumnDelimiter").selectOption(",");
+  await page.locator("#csvDecimalSeparator").selectOption(".");
+  await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+  await page.locator('[data-channel-key="speed_kmh"]').selectOption("Vehicle Speed (km/h)");
+  await page.locator('[data-unit-key="speed_kmh"]').fill("km/h");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  await page.locator("#csvSetReference").click();
+  assert.match(await page.locator("#csvReferenceSlotStatus").innerText(), /reference-run\\.csv/);
+
+  const candidateCsv = [
+    "Elapsed [s],Engine speed [rpm],Vehicle Speed (km/h),Throttle Position (%)",
+    "0,1900,45,20",
+    "0.15,2100,52,40",
+    "0.30,2300,60,65",
+  ].join("\\n");
+  await page.locator("#csvFile").setInputFiles({
+    name: "candidate-run.csv", mimeType: "text/csv", buffer: Buffer.from(candidateCsv, "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  await page.locator("#csvSourceDomain").selectOption("ecu");
+  await page.locator("#csvColumnDelimiter").selectOption(",");
+  await page.locator("#csvDecimalSeparator").selectOption(".");
+  await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+  await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+  await page.locator('[data-channel-key="speed_kmh"]').selectOption("Vehicle Speed (km/h)");
+  await page.locator('[data-unit-key="speed_kmh"]').fill("km/h");
+  await page.locator('[data-channel-key="throttle_pct"]').selectOption("Throttle Position (%)");
+  await page.locator('[data-unit-key="throttle_pct"]').fill("%");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  await page.locator("#csvSetCandidate").click();
+  await page.locator("#csvCompareButton").click();
+
+  await page.locator("#csvComparisonResult").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvComparisonStatus").innerText(), /requiere revisión/i);
+  const channels = await page.locator("#csvComparisonChannels").innerText();
+  assert.match(channels, /Velocidad del vehículo/i);
+  assert.match(channels, /Mediana ref\\./i);
+  const exclusions = await page.locator("#csvComparisonExclusions").innerText();
+  assert.match(exclusions, /Acelerador/i);
+  assert.match(exclusions, /missing_in_reference/i);
+  assert.match(exclusions, /no existe una base compartida/i);
+  assert.match(await page.locator("#csvComparisonResultSummary").innerText(), /referencia temporal común verificada/i);
+  assert.equal(await page.locator("#charts svg").count(), 2);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
+test("bloquea dos importaciones cuyos bytes de origen tienen el mismo SHA-256", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const csv = [
+    "Elapsed [s],Engine speed [rpm]",
+    "0,1800",
+    "0.1,2000",
+    "0.2,2200",
+  ].join("\\n");
+
+  const upload = async name => {
+    await page.locator("#csvFile").setInputFiles({
+      name, mimeType: "text/csv", buffer: Buffer.from(csv, "utf8"),
+    });
+    await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+    await page.locator("#csvSourceDomain").selectOption("ecu");
+    await page.locator("#csvColumnDelimiter").selectOption(",");
+    await page.locator("#csvDecimalSeparator").selectOption(".");
+    await page.locator('[data-channel-key="time_s"]').selectOption("Elapsed [s]");
+    await page.locator('[data-channel-key="rpm"]').selectOption("Engine speed [rpm]");
+    await page.locator("#csvInspectButton").click();
+    await page.locator("#csvPreview").waitFor({ state: "visible" });
+  };
+
+  await upload("same-source-reference.csv");
+  await page.locator("#csvSetReference").click();
+  await upload("same-source-copy.csv");
+  await page.locator("#csvSetCandidate").click();
+  await page.locator("#csvCompareButton").click();
+
+  await page.locator("#csvComparisonResult").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvComparisonStatus").innerText(), /Comparación bloqueada/i);
+  assert.match(await page.locator("#csvComparisonBlockedReasons").innerText(), /mismo identificador o SHA-256/i);
+  assert.match(await page.locator("#csvComparisonChannels").innerText(), /No hay canales que superen los controles/i);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
