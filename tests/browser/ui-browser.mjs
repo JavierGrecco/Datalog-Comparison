@@ -972,5 +972,13 @@ test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos
   assert.deepEqual(pageErrors,[]);
   assert.deepEqual(consoleErrors,[]);
   assert.deepEqual(httpErrors,[]);
+  assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
+  assert.match(await page.locator("#dossierPendingDerivedStatus").innerText(), /test_protocol_assessment/i);
+  await page.locator("#dossierSaveDerivedButton").click();
+  await page.waitForFunction(() => document.querySelector("#dossierArtifactList")?.textContent.includes("test_protocol_assessment"));
+  assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
+  assert.deepEqual(pageErrors,[]);
+  assert.deepEqual(consoleErrors,[]);
+  assert.deepEqual(httpErrors,[]);
   assert.deepEqual(externalRequests,[]);
 });
