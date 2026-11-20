@@ -2,7 +2,7 @@
   "schema": "datalog-test-protocol-fixture/1",
   "evidenceClass": "synthetic_test_fixture_based_on_published_protocol_design",
   "sourceReference": "Wahyudi, Putri & Ibrahim (2026), DOI 10.38038/vocatech.v8i2.359",
-  "note": "The published study reports a Motec M130, 288 steady-state operating conditions, at least 5 minutes stabilization, three acquisitions per condition, coolant 80 ± 2 °C, RON 92 fuel and Schenck Dynas3 LI 250 engine dynamometer. Values below are synthetic test inputs designed to exercise the protocol, not extracted measurements from the paper.",
+  "note": "The published study reports a Motec M130, 288 steady-state operating conditions, at least 5 minutes stabilization, three acquisitions per condition, coolant 80 ± 2 °C, RON 92 fuel and Schenck Dynas3 LI 250 engine dynamometer. Values below are synthetic test inputs designed to exercise the protocol, not extracted measurements from the paper. Conditions sourced only from the published description remain reported, not measured or independently verified; the protocol gate must therefore remain in review.",
   "options": {
     "maximumCvPct": 1,
     "minimumReplicates": 3
@@ -27,32 +27,32 @@
         "fields": {
           "calibration_id": {
             "value": "ITA 28 BTDC / lambda 1.0",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "fuel": {
             "value": "RON 92 gasoline",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "intake_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "coolant_temp_c": {
             "value": 80,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "vehicle_engine": {
             "value": "1.6L SI four-cylinder",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "gear": {
@@ -69,20 +69,20 @@
           },
           "load_pct": {
             "value": 100,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "ambient_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "test_method": {
             "value": "steady-state engine dynamometer",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           }
         }
@@ -112,32 +112,32 @@
         "fields": {
           "calibration_id": {
             "value": "ITA 28 BTDC / lambda 1.0",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "fuel": {
             "value": "RON 92 gasoline",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "intake_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "coolant_temp_c": {
             "value": 80,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "vehicle_engine": {
             "value": "1.6L SI four-cylinder",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "gear": {
@@ -154,20 +154,20 @@
           },
           "load_pct": {
             "value": 100,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "ambient_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "test_method": {
             "value": "steady-state engine dynamometer",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           }
         }
@@ -197,32 +197,32 @@
         "fields": {
           "calibration_id": {
             "value": "ITA 28 BTDC / lambda 1.0",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "fuel": {
             "value": "RON 92 gasoline",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "intake_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "coolant_temp_c": {
             "value": 80,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "vehicle_engine": {
             "value": "1.6L SI four-cylinder",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "gear": {
@@ -239,20 +239,20 @@
           },
           "load_pct": {
             "value": 100,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           },
           "ambient_temp_c": {
-            "value": 25,
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
-            "note": "Synthetic fixture values; not raw measurements from the publication."
+            "value": null,
+            "status": "unknown",
+            "source": "",
+            "note": "No se publica este valor en el caso citado."
           },
           "test_method": {
             "value": "steady-state engine dynamometer",
-            "status": "measured",
-            "source": "published study protocol; synthetic test fixture",
+            "status": "reported",
+            "source": "published study description; synthetic fixture",
             "note": "Synthetic fixture values; not raw measurements from the publication."
           }
         }
