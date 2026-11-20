@@ -77,11 +77,18 @@ test("admite CSV TunerStudio con coma y sin fila de unidades, pero no inventa un
   assert.equal(parsed.tunerStudioMetadata.unitsRowPresent, false);
   assert.deepEqual(parsed.headers, ["Time", "Engine RPM", "Throttle Position"]);
   assert.ok(parsed.warnings.some(item => /no incluye una fila de unidades/i.test(item)));
-  assert.throws(() => importTunerStudioMsl(parsed, {
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, null,
+    "el parser no debe inventar la unidad de Time");
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.RPM, null,
+    "el parser no debe inventar la unidad de RPM");
+
+  const manuallyDeclared = importTunerStudioMsl(parsed, {
     sourceDomain: "ecu",
     channelMapping: { time_s: "Time", rpm: "Engine RPM" },
-    units: { time_s: "s" },
-  }), /unidad .*no está reconocida/i);
+    units: { time_s: "s", rpm: "rpm" },
+  });
+  assert.equal(manuallyDeclared.units.time_s, "s");
+  assert.equal(manuallyDeclared.units.rpm, "RPM");
 });
 
 test("rechaza archivos demasiado grandes, fuentes mezcladas y tablas sin filas suficientes", () => {
