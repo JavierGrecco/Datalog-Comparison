@@ -155,6 +155,7 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── demo-model.mjs
 │   ├── imported-comparison-report.mjs
 │   ├── imported-comparison-report-validator.mjs
+│   ├── local-dossier-store.mjs
 │   ├── comparison-readiness.mjs
 │   ├── run-comparability.mjs
 │   ├── data-quality.mjs
@@ -218,11 +219,15 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 
 ## Datos y privacidad
 
-La aplicación web procesa ejemplos y CSV importados localmente en el navegador; no utiliza cuentas, telemetría, servicios de análisis ni solicita datos a APIs externas. La política de seguridad del contenido restringe las conexiones salientes desde la aplicación.
+La aplicación no tiene cuentas, backend, telemetría ni sincronización entre dispositivos. Los CSV se inspeccionan en el navegador y, si se crean expedientes, sus metadatos, informes y artefactos derivados pueden permanecer en IndexedDB del perfil actual.
 
-Para conocer las medidas, límites y prácticas recomendadas, consultá [Seguridad e integridad de datos](docs/SECURITY_AND_DATA_INTEGRITY.md).
+Los CSV originales **solo se archivan cuando se marca expresamente la opción de consentimiento** al guardar un informe. Se guardan separados del informe y se vuelve a verificar su SHA-256. Los respaldos JSON contienen informes y artefactos derivados, pero nunca los bytes de los CSV originales; estos deben descargarse individualmente desde el historial.
 
-Los comandos de datasets son acciones locales separadas y explícitas: `data:obd-sample` consulta Hugging Face para descargar únicamente el slice solicitado. Los archivos se guardan en `data/external/`, fuera de Git, junto a su atribución y SHA-256. El generador escribe en `data/generated/`, también excluida de Git. Ninguno de esos comandos se ejecuta al abrir la web.
+IndexedDB no es un almacén cifrado ni un mecanismo de control de acceso. Cualquier persona con acceso al mismo perfil del navegador puede acceder a los datos locales. Borrar los datos del sitio, cambiar de perfil/navegador o cambiar de dispositivo puede hacerlos desaparecer. Descargá respaldos periódicos y revisá los nombres de archivo y encabezados antes de compartir informes.
+
+Para conocer las medidas, límites y prácticas recomendadas, consultá [Seguridad e integridad de datos](docs/SECURITY_AND_DATA_INTEGRITY.md) y [Expedientes locales](docs/LOCAL_DOSSIERS.md).
+
+Los comandos de datasets son acciones de terminal separadas y explícitas: `data:obd-sample` consulta Hugging Face para descargar únicamente el slice solicitado. Los archivos se guardan en `data/external/`, fuera de Git, junto a su atribución y SHA-256. El generador escribe en `data/generated/`, también excluida de Git. Ninguno de esos comandos se ejecuta al abrir la web.
 
 ## Referencias y procedencia
 

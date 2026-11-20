@@ -8,11 +8,12 @@ La seguridad no depende de una sola función. Se apoya en varias medidas pequeñ
 
 ## Qué ocurre con los archivos importados
 
-- El navegador lee el CSV seleccionado y lo mantiene en memoria durante la sesión.
-- La aplicación no tiene backend, analítica ni llamadas de red desde la interfaz. La política CSP incluye `connect-src 'none'`.
-- Al limpiar la inspección o recargar la página, la aplicación descarta su estado local. No ofrece almacenamiento persistente de esos archivos.
-- La inspección no incorpora el CSV a los escenarios sintéticos ni habilita la comparación entre archivos.
-- La descarga de un informe sintético es una acción separada; no incluye el contenido completo de un CSV importado.
+- La inspección lee el CSV seleccionado en el navegador y mantiene el registro exploratorio en memoria mientras la página está abierta.
+- La aplicación no tiene backend, analítica ni sincronización. La política CSP restringe las conexiones salientes; los módulos del laboratorio se sirven desde el mismo origen.
+- Los expedientes, informes validados y artefactos derivados pueden persistirse en IndexedDB del perfil actual del navegador.
+- Los bytes de los CSV originales solo se copian a un almacén separado cuando la persona marca expresamente la opción de archivado. Antes de guardarlos, se vuelve a calcular SHA-256 y se compara con la huella del informe.
+- Los informes y respaldos JSON no contienen las muestras originales ni los bytes completos de los CSV. Los originales archivados se descargan por separado desde el historial.
+- El almacenamiento local no está cifrado ni protegido por una cuenta; cualquiera con acceso al mismo perfil puede consultar sus datos. Borrar datos del sitio o cambiar de navegador/perfil/dispositivo puede eliminarlos. Los respaldos periódicos son responsabilidad de quien usa la aplicación.
 
 Hay dos herramientas de terminal que el usuario ejecuta de forma explícita y que sí acceden o escriben archivos:
 
@@ -44,6 +45,12 @@ La aplicación utiliza una política CSP restrictiva: scripts y estilos propios,
 - La importación no ordena, interpola ni inventa muestras.
 - Las fuentes ECU/logger y dinamómetro siguen siendo dominios distintos.
 - Torque y potencia de dinamómetro requieren una base física declarada; no se convierten automáticamente entre motor, rueda, cubo y rodillo.
+
+### Persistencia local y respaldos
+
+Los expedientes usan IndexedDB con compartimentos separados para metadatos, informes, archivos fuente y artefactos derivados. El guardado de originales requiere consentimiento explícito y comprobación de SHA-256. El respaldo JSON restaura como expediente nuevo, valida sus informes y no incluye los bytes CSV. Esto evita que un respaldo de resumen se convierta accidentalmente en una copia de datos de clientes.
+
+IndexedDB no aporta cifrado ni control de acceso de la aplicación. Se debe usar un perfil de navegador confiable, limitar el acceso al dispositivo y descargar respaldos con regularidad. Los CSV originales archivados se deben exportar por separado antes de migrar o eliminar el perfil.
 
 ### Integridad y procedencia
 

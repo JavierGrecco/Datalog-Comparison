@@ -31,3 +31,29 @@ test("el contrato de respaldo rechaza archivos originales incrustados y campos i
   withExtraField.reports[0].rawCsv = "must never be included";
   assert.ok(validateJsonSchemaInstance(withExtraField, localDossierBackupSchema).length > 0);
 });
+
+test("el manifiesto de originales admite varias comparaciones dentro de un mismo expediente", () => {
+  const multiReportBackup = structuredClone(backup);
+  for (let index = 1; index <= 2; index += 1) {
+    const reportId = "example-report-" + (index + 1);
+    multiReportBackup.reports.push({
+      ...structuredClone(backup.reports[0]),
+      id: reportId,
+      fileName: "comparison-" + (index + 1) + ".json",
+    });
+    for (const role of ["reference", "candidate"]) {
+      multiReportBackup.sourceArchives.references.push({
+        role,
+        reportId,
+        name: reportId + "-" + role + ".csv",
+        size: 128,
+        mimeType: "text/csv",
+        sha256: (role === "reference" ? "c" : "d").repeat(64),
+        storedAt: "2026-11-20T17:40:00.000Z",
+        contentIncluded: false,
+      });
+    }
+  }
+  multiReportBackup.sourceArchives.archivedFileCount = 4;
+  assert.deepEqual(validateJsonSchemaInstance(multiReportBackup, localDossierBackupSchema), []);
+});

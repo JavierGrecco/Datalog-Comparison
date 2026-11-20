@@ -577,7 +577,7 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   await page.waitForFunction(() =>
     document.querySelector("#dossierArtifactList")?.textContent.includes("dyno_rpm_sweep_curve"),
   );
-  const backupDownloadPromise = page.waitForEvent("download");
+  const backupDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
   await page.locator("#dossierExportBackupButton").click();
   const backupDownload = await backupDownloadPromise;
   const backupText = await readFile(await backupDownload.path(), "utf8");
@@ -689,7 +689,7 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   );
   assert.match(await page.locator("#dossierReportList").innerText(), /2 CSV original\(es\) archivado\(s\)/);
 
-  const originalDownloadPromise = page.waitForEvent("download");
+  const originalDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
   await page.getByRole("button", { name: "Descargar CSV referencia" }).click();
   const originalDownload = await originalDownloadPromise;
   const originalPath = await originalDownload.path();

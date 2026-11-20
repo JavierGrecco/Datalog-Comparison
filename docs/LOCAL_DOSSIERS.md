@@ -6,6 +6,8 @@ Los expedientes permiten agrupar varios informes de comparación y artefactos de
 
 ## Modelo de datos
 
+El formato de respaldo público está versionado como `datalog-local-dossier-backup/1`. Su contrato está publicado en [JSON Schema Draft 2020-12](../schemas/local-dossier-backup-1.schema.json) y tiene un [ejemplo completo](../examples/local-dossier-backup-1.example.json).
+
 La base `datalog-comparison-local-vault` usa IndexedDB versión 1 y mantiene cuatro object stores independientes:
 
 | Store | Contenido |
