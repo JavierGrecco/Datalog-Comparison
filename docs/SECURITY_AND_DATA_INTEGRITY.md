@@ -107,3 +107,8 @@ El código no puede activar por sí solo todas las protecciones de la cuenta. El
 - exigir que la validación de CI pase antes de aceptar cambios, cuando se use una política de protección compatible con el flujo del proyecto.
 
 La configuración efectiva de protección de la rama debe verificarse desde la pestaña **Settings** del repositorio. No se debe asumir que existe solo porque el workflow de CI está presente.
+
+
+### Verificación posterior al guardado
+
+Los CSV archivados se vuelven a leer y verificar mediante SHA-256 antes de cada descarga. El expediente ofrece una auditoría manual de consistencia que comprueba las huellas declaradas, los vínculos entre informes y artefactos, y la existencia de referencias de origen. Si detecta una diferencia, no reescribe el contenido ni intenta repararlo silenciosamente: informa el problema. SHA-256 detecta cambios respecto de una huella previamente registrada, pero no prueba quién generó el archivo ni que la medición física sea auténtica.

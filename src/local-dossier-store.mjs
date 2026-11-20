@@ -1,5 +1,5 @@
 export const LOCAL_DOSSIER_DATABASE = "datalog-comparison-local-vault";
-export const LOCAL_DOSSIER_DATABASE_VERSION = 1;
+export const LOCAL_DOSSIER_DATABASE_VERSION = 2;
 export const LOCAL_DOSSIER_BACKUP_SCHEMA = "datalog-local-dossier-backup/1";
 export const LOCAL_DOSSIER_LIMITS = Object.freeze({
   maxReportBytes: 10 * 1024 * 1024,
@@ -141,11 +141,16 @@ function createDatabase(indexedDBImpl) {
       createStore("sourceFiles", { keyPath: "id" }, [
         ["dossierId", "dossierId", { unique: false }],
         ["reportId", "reportId", { unique: false }],
+        ["sha256", "sha256", { unique: false }],
       ]);
       createStore("derivedArtifacts", { keyPath: "id" }, [
         ["dossierId", "dossierId", { unique: false }],
         ["reportId", "reportId", { unique: false }],
       ]);
+      const meta = database.objectStoreNames.contains("schemaMeta")
+        ? request.transaction.objectStore("schemaMeta")
+        : database.createObjectStore("schemaMeta", { keyPath: "key" });
+      meta.put({ key: "schemaVersion", value: LOCAL_DOSSIER_DATABASE_VERSION, updatedAt: nowIso() });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("No se pudo abrir la base de expedientes locales."));
@@ -460,6 +465,103 @@ export function createLocalDossierRepository({
       request.onsuccess = () => setResult(request.result ?? []);
     });
     return records.sort((left, right) => left.role.localeCompare(right.role));
+  }
+
+  async function verifySourceFile(sourceFileId) {
+    const db = await database();
+    const record = await transactionPromise(db, ["sourceFiles"], "readonly", (tx, setResult) => {
+      const request = tx.objectStore("sourceFiles").get(sourceFileId);
+      request.onsuccess = () => setResult(request.result ?? null);
+    });
+    if (!record) throw new Error("El CSV original ya no existe en el almacén local.");
+    if (!(record.blob instanceof Blob)) throw new Error("El contenido del CSV original no está disponible.");
+    const actualHash = await sha256Blob(record.blob, cryptoImpl);
+    return {
+      id: record.id,
+      role: record.role,
+      name: record.name,
+      expectedSha256: record.sha256,
+      actualSha256: actualHash,
+      verified: actualHash === String(record.sha256 ?? "").toLowerCase(),
+      size: record.blob.size,
+    };
+  }
+
+  async function auditDossier(dossierId) {
+    const db = await database();
+    const snapshot = await transactionPromise(
+      db, ["dossiers", "reports", "sourceFiles", "derivedArtifacts"], "readonly",
+      (tx, setResult) => {
+        const values = {};
+        const requests = [
+          ["dossier", tx.objectStore("dossiers").get(dossierId)],
+          ["reports", tx.objectStore("reports").index("dossierId").getAll(dossierId)],
+          ["sourceFiles", tx.objectStore("sourceFiles").index("dossierId").getAll(dossierId)],
+          ["derivedArtifacts", tx.objectStore("derivedArtifacts").index("dossierId").getAll(dossierId)],
+        ];
+        for (const [key, request] of requests) {
+          request.onsuccess = () => {
+            values[key] = request.result ?? (key === "dossier" ? null : []);
+            if (Object.keys(values).length === requests.length) setResult(values);
+          };
+        }
+      },
+    );
+    if (!snapshot.dossier) throw new Error("El expediente no existe o fue eliminado.");
+    const findings = [];
+    const reports = new Map(snapshot.reports.map(record => [record.id, record]));
+    for (const report of snapshot.reports) {
+      if (report.reportSchema !== report.report?.schema ||
+          report.reportSchema !== "datalog-imported-run-comparison/1") {
+        findings.push({ severity: "error", code: "report_schema_mismatch", recordId: report.id,
+          message: "La versión declarada del informe no coincide con su contenido." });
+      }
+      for (const role of ["reference", "candidate"]) {
+        const reference = report.sourceReferences?.find(item => item.role === role);
+        if (!reference || reference.sha256 !== report.report?.[role]?.sha256) {
+          findings.push({ severity: "error", code: "source_reference_mismatch", recordId: report.id,
+            message: "La huella del origen " + role + " no coincide con el informe." });
+        }
+      }
+    }
+    for (const file of snapshot.sourceFiles) {
+      if (!reports.has(file.reportId)) {
+        findings.push({ severity: "error", code: "orphan_source_file", recordId: file.id,
+          message: "Hay un CSV archivado sin informe asociado." });
+        continue;
+      }
+      try {
+        const actualHash = await sha256Blob(file.blob, cryptoImpl);
+        if (actualHash !== String(file.sha256 ?? "").toLowerCase()) {
+          findings.push({ severity: "error", code: "source_hash_mismatch", recordId: file.id,
+            message: "El SHA-256 del CSV " + file.role + " no coincide con el registrado." });
+        }
+      } catch {
+        findings.push({ severity: "error", code: "source_unreadable", recordId: file.id,
+          message: "No se pudo leer o verificar el CSV " + file.role + "." });
+      }
+    }
+    for (const artifact of snapshot.derivedArtifacts) {
+      if (artifact.reportId && !reports.has(artifact.reportId)) {
+        findings.push({ severity: "error", code: "orphan_artifact", recordId: artifact.id,
+          message: "Un artefacto derivado apunta a un informe inexistente." });
+      }
+      if (artifact.dossierId !== dossierId) {
+        findings.push({ severity: "error", code: "artifact_dossier_mismatch", recordId: artifact.id,
+          message: "Un artefacto derivado pertenece a otro expediente." });
+      }
+    }
+    return Object.freeze({
+      dossierId,
+      checkedAt: nowIso(),
+      status: findings.length ? "issues_found" : "passed",
+      counts: {
+        reports: snapshot.reports.length,
+        sourceFiles: snapshot.sourceFiles.length,
+        derivedArtifacts: snapshot.derivedArtifacts.length,
+      },
+      findings,
+    });
   }
 
   async function removeReport(reportId) {
@@ -785,6 +887,8 @@ export function createLocalDossierRepository({
     listReports,
     getReport,
     listSourceFiles,
+    verifySourceFile,
+    auditDossier,
     removeReport,
     deleteDossier,
     saveDerivedArtifact,

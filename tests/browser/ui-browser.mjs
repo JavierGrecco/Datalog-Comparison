@@ -882,3 +882,26 @@ test("rechaza JSON inválido e informes manipulados sin mostrar resultados anter
   assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
 });
+
+
+test("los expedientes locales permiten crear un expediente y ejecutar una auditoría de integridad", async t => {
+  const { page, pageErrors, consoleErrors, httpErrors, externalRequests } = await openDemo(t);
+  await page.locator("#dossierName").fill("Expediente de prueba de integridad");
+  await page.locator("#dossierVehicleLabel").fill("Vehículo sintético QA");
+  await page.locator("#dossierCreateButton").click();
+  await page.locator("#dossierActiveSelect").waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const select = document.querySelector("#dossierActiveSelect");
+    return select && select.options.length === 1 &&
+      select.options[0].textContent.includes("Expediente de prueba de integridad");
+  });
+  await page.locator("#dossierAuditButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#dossierStatus")?.textContent.includes("Integridad correcta")
+  );
+  assert.match(await page.locator("#dossierStatus").innerText(), /0 informe\(s\), 0 CSV y 0 artefacto\(s\)/);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

@@ -301,7 +301,7 @@
                 <input id="dossierArchiveOriginals" type="checkbox" disabled>
                 <span id="dossierArchiveOriginalsLabel">CSV originales no disponibles para este informe</span>
               </label>
-              <p class="dossier-privacy-note">Solo se archivan si marcás la casilla. Se guardan aparte del informe, se verifica su SHA-256 y permanecen en este navegador. No se incluyen en el respaldo JSON.</p>
+              <p class="dossier-privacy-note">Solo se archivan si marcás la casilla. Se guardan aparte del informe, se verifica su SHA-256 al guardar y nuevamente antes de cada descarga. Permanecen en este navegador y no se incluyen en el respaldo JSON.</p>
             </article>
 
             <article class="dossier-save-card">
@@ -317,7 +317,10 @@
               <h4>Respaldo y restauración</h4>
               <p class="dossier-privacy-note">El respaldo JSON incluye metadatos, informes y artefactos derivados. No incluye los bytes de los CSV originales archivados localmente.</p>
             </div>
-            <button type="button" class="secondary-button" id="dossierExportBackupButton" disabled>Descargar respaldo JSON</button>
+            <div class="dossier-card-actions">
+              <button type="button" class="secondary-button" id="dossierAuditButton" disabled>Verificar integridad del expediente</button>
+              <button type="button" class="secondary-button" id="dossierExportBackupButton" disabled>Descargar respaldo JSON</button>
+            </div>
             <form id="dossierRestoreForm" class="dossier-restore-form">
               <label class="csv-control" for="dossierBackupFile">
                 <span>Restaurar respaldo JSON</span>

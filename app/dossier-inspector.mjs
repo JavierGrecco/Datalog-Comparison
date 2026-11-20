@@ -200,10 +200,14 @@ async function renderDossierContents() {
       downloadButton.type = "button";
       downloadButton.addEventListener("click", async () => {
         try {
+          const verification = await repository.verifySourceFile(source.id);
+          if (!verification.verified) {
+            throw new Error("El SHA-256 del CSV " + verification.role + " no coincide. Se bloqueó la descarga para evitar entregar un original alterado.");
+          }
           const current = (await repository.listSourceFiles(record.id)).find(item => item.id === source.id);
           if (!current?.blob) throw new Error("El CSV original no está disponible en el almacén local.");
           downloadBlob(current.blob, current.name);
-          setStatus("Se preparó la descarga del CSV original " + current.role + ".");
+          setStatus("Integridad verificada (SHA-256). Se preparó la descarga del CSV original " + current.role + ".", "success");
         } catch (error) {
           setStatus(error?.message ?? "No se pudo descargar el CSV original.", "error");
         }
@@ -495,6 +499,27 @@ export function initializeDossierInspector() {
   $("#dossierSaveReportButton").addEventListener("click", savePendingReport);
   $("#dossierSaveDerivedButton").addEventListener("click", savePendingDerivedArtifact);
   $("#dossierExportBackupButton").addEventListener("click", exportActiveBackup);
+  $("#dossierAuditButton").addEventListener("click", async () => {
+    const button = $("#dossierAuditButton");
+    button.disabled = true;
+    setStatus("Verificando informes, referencias, CSV originales y artefactos…");
+    try {
+      const result = await repository.auditDossier(activeDossierId);
+      const errors = result.findings.filter(item => item.severity === "error");
+      if (errors.length) {
+        setStatus("Verificación finalizada: " + errors.length + " problema(s). " +
+          errors.slice(0, 3).map(item => item.message).join(" "), "error");
+      } else {
+        setStatus("Integridad correcta. " + result.counts.reports + " informe(s), " +
+          result.counts.sourceFiles + " CSV y " + result.counts.derivedArtifacts +
+          " artefacto(s) verificados. No se detectaron inconsistencias.", "success");
+      }
+    } catch (error) {
+      setStatus(error?.message ?? "No se pudo verificar el expediente.", "error");
+    } finally {
+      button.disabled = !activeDossierId;
+    }
+  });
   $("#dossierBackupFile").addEventListener("change", () => {
     $("#dossierRestoreButton").disabled = !$("#dossierBackupFile").files?.length;
   });
@@ -516,7 +541,7 @@ export function initializeDossierInspector() {
     } catch (error) {
       setStatus(error?.message ?? "El almacenamiento local no está disponible.", "error");
       for (const selector of [
-        "#dossierCreateButton", "#dossierActiveSelect", "#dossierSaveReportButton",
+        "#dossierCreateButton", "#dossierActiveSelect", "#dossierSaveReportButton", "#dossierAuditButton",
         "#dossierSaveDerivedButton", "#dossierExportBackupButton", "#dossierRestoreButton",
       ]) {
         const control = $(selector);

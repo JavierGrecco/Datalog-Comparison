@@ -8,7 +8,7 @@ Los expedientes permiten agrupar varios informes de comparación y artefactos de
 
 El formato de respaldo público está versionado como `datalog-local-dossier-backup/1`. Su contrato está publicado en [JSON Schema Draft 2020-12](../schemas/local-dossier-backup-1.schema.json) y tiene un [ejemplo completo](../examples/local-dossier-backup-1.example.json).
 
-La base `datalog-comparison-local-vault` usa IndexedDB versión 1 y mantiene cuatro object stores independientes:
+La base `datalog-comparison-local-vault` usa IndexedDB versión 2 y mantiene cuatro object stores independientes:
 
 | Store | Contenido |
 | --- | --- |
@@ -55,3 +55,12 @@ Los datos locales pueden desaparecer al borrar los datos del sitio, cambiar de p
 Eliminar un expediente elimina sus informes, originales archivados y artefactos derivados vinculados. Eliminar un informe elimina sus CSV archivados y los artefactos asociados.
 
 El almacenamiento persistente es una herramienta de organización y trazabilidad, no una copia forense certificada, una autenticación de sensor ni una validación de las condiciones físicas del ensayo.
+
+
+## Migración de almacenamiento e integridad
+
+La versión 2 de IndexedDB es una migración aditiva desde la versión 1: conserva los cuatro almacenes existentes, agrega un índice no único por SHA-256 a los CSV y registra la versión de esquema en un almacén técnico separado. No elimina ni reescribe informes, archivos o artefactos existentes. Si otra pestaña mantiene abierta una versión anterior, el navegador puede bloquear la actualización; cerrá esa pestaña y reintentá.
+
+La acción **Verificar integridad del expediente** revisa las versiones de los informes, las referencias de origen, los SHA-256 de los CSV archivados y las relaciones entre artefactos e informes. Es una comprobación local de consistencia, no una firma digital ni una certificación de autenticidad. Antes de cada descarga de CSV se vuelve a calcular SHA-256; si no coincide, la descarga se bloquea.
+
+La verificación puede requerir leer nuevamente los archivos completos y, por eso, tardar según su tamaño. No modifica ni repara automáticamente datos inconsistentes: informa los hallazgos para evitar ocultar una alteración.
