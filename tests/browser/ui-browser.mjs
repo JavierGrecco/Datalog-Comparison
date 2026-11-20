@@ -903,11 +903,6 @@ test("los expedientes locales permiten crear un expediente y ejecutar una audito
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
-  assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
-  assert.match(await page.locator("#dossierPendingDerivedStatus").innerText(), /test_protocol_assessment/i);
-  await page.locator("#dossierSaveDerivedButton").click();
-  await page.waitForFunction(() => document.querySelector("#dossierArtifactList")?.textContent.includes("test_protocol_assessment"));
-  assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
@@ -968,7 +963,7 @@ test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos
   assert.equal(json.runs[0].operatingConditions.fields.coolant_temp_c.source,"Sensor / registro de prueba");
   assert.equal(json.runs[0].metrics.power_kw,100);
   assert.equal(json.runs[2].metrics.power_kw,99);
-  assert.match(await page.locator("#protocolInputStatus").innerText(),/no certifica una norma/i);
+  assert.match(await page.locator("#protocolBuilderStatus").innerText(),/no certifica una norma/i);
   assert.deepEqual(pageErrors,[]);
   assert.deepEqual(consoleErrors,[]);
   assert.deepEqual(httpErrors,[]);
@@ -980,5 +975,10 @@ test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos
   assert.deepEqual(pageErrors,[]);
   assert.deepEqual(consoleErrors,[]);
   assert.deepEqual(httpErrors,[]);
+  assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
+  assert.match(await page.locator("#dossierPendingDerivedStatus").innerText(), /test_protocol_assessment/i);
+  await page.locator("#dossierSaveDerivedButton").click();
+  await page.waitForFunction(() => document.querySelector("#dossierArtifactList")?.textContent.includes("test_protocol_assessment"));
+  assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
   assert.deepEqual(externalRequests,[]);
 });
