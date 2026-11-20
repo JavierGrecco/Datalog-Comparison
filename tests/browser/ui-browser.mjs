@@ -723,9 +723,9 @@ test("abre un informe JSON guardado, valida el contrato y renderiza texto no con
   });
   assert.equal(await page.locator("#savedReportOpenButton").isEnabled(), true);
   await page.locator("#savedReportOpenButton").click();
-  await page.locator("#savedReportResult").waitFor({ state: "visible" });
-
+  await page.waitForFunction(() => document.querySelector("#savedReportStatus")?.textContent.includes("Informe validado y abierto correctamente"), null, { timeout: 5000 });
   assert.match(await page.locator("#savedReportStatus").innerText(), /Informe validado y abierto correctamente/i);
+  await page.locator("#savedReportResult").waitFor({ state: "visible" });
   assert.match(await page.locator("#savedReportOverview").innerText(), /Requiere revisión/i);
   assert.match(await page.locator("#savedReportRuns").innerText(), /window.__reportXss=true/);
   assert.equal(await page.locator("#savedReportResult img").count(), 0,
@@ -762,6 +762,7 @@ test("rechaza JSON inválido e informes manipulados sin mostrar resultados anter
     buffer: Buffer.from("{", "utf8"),
   });
   await page.locator("#savedReportOpenButton").click();
+  await page.waitForFunction(() => document.querySelector("#savedReportStatus")?.textContent.includes("no contiene JSON válido"), null, { timeout: 5000 });
   assert.match(await page.locator("#savedReportStatus").innerText(), /no contiene JSON válido/i);
   assert.equal(await page.locator("#savedReportResult").isVisible(), false);
 
@@ -775,6 +776,7 @@ test("rechaza JSON inválido e informes manipulados sin mostrar resultados anter
     buffer: Buffer.from(JSON.stringify(report), "utf8"),
   });
   await page.locator("#savedReportOpenButton").click();
+  await page.waitForFunction(() => document.querySelector("#savedReportStatus")?.textContent.includes("no coincide con candidata menos referencia"), null, { timeout: 5000 });
   assert.match(await page.locator("#savedReportStatus").innerText(), /no coincide con candidata menos referencia/i);
   assert.equal(await page.locator("#savedReportResult").isVisible(), false);
   assert.deepEqual(pageErrors, []);

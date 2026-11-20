@@ -1,7 +1,7 @@
 import { validateImportedComparisonReport } from "../src/imported-comparison-report-validator.mjs";
+import importedComparisonSchema from "../schemas/imported-run-comparison-1.schema.json" with { type: "json" };
 
 const MAX_REPORT_BYTES = 10 * 1024 * 1024;
-const SCHEMA_URL = new URL("../schemas/imported-run-comparison-1.schema.json", import.meta.url);
 const $ = selector => document.querySelector(selector);
 
 let schemaPromise = null;
@@ -40,21 +40,6 @@ function statusClass(status) {
   if (status === "blocked") return "is-blocked";
   if (status === "review_required") return "is-review";
   return "is-descriptive";
-}
-
-async function loadSchema() {
-  if (!schemaPromise) {
-    schemaPromise = fetch(SCHEMA_URL, { cache: "no-store", credentials: "same-origin" })
-      .then(async response => {
-        if (!response.ok) throw new Error("No se pudo cargar el JSON Schema local.");
-        return response.json();
-      })
-      .catch(error => {
-        schemaPromise = null;
-        throw error;
-      });
-  }
-  return schemaPromise;
 }
 
 async function readReportFile(file) {
@@ -235,9 +220,9 @@ async function handleOpenReport(event) {
   setStatus("Leyendo y validando el informe local…");
 
   try {
-    const [report, schema] = await Promise.all([readReportFile(file), loadSchema()]);
+    const report = await readReportFile(file);
     if (sequence !== loadSequence) return;
-    const errors = validateImportedComparisonReport(report, schema, { maxErrors: 50 });
+    const errors = validateImportedComparisonReport(report, importedComparisonSchema, { maxErrors: 50 });
     if (errors.length) {
       const summary = errors.slice(0, 8).join(" · ");
       const remainder = errors.length > 8 ? " · y " + (errors.length - 8) + " problema(s) más" : "";
