@@ -11,6 +11,7 @@ Este módulo convierte condiciones de ensayo y repeticiones en controles reprodu
 - `steady_state`: exige identificación de calibración y combustible, temperaturas de admisión y refrigerante con fuente, un punto objetivo explícito de RPM y carga/acelerador y tiempo de estabilización declarado.
 - `transient`: exige vehículo/motor, calibración, combustible y temperatura ambiente con fuente. La evaluación temporal y sincronización de señales permanece en las puertas de calidad existentes.
 - Dos logs ECU no son repetibles solo porque sus máximos coinciden. Deben representar el mismo protocolo y punto operativo.
+- El evaluador compara los valores efectivos de RPM y carga/acelerador en todas las repeticiones, no solo el identificador del punto. En un protocolo estacionario ECU, el tiempo de estabilización también debe coincidir.
 
 ### Dinamómetro
 
@@ -21,7 +22,9 @@ Los modos aceptados son `inertia_sweep`, `loaded_sweep` y `steady_state`. El pro
 
 Ambos perfiles requieren identificar vehículo/motor, combustible, método, modelo, modo de carga, estándar o condición de corrección, ventilación, calibración de instrumentos y condiciones ambientales: temperatura, presión barométrica y humedad relativa. Los modos de barrido requieren además rampa y suavizado; esos campos no se exigen en un punto estacionario.
 
-Una clasificación ausente, incompatible o mezclada bloquea el protocolo. No se convierten ni mezclan bases de motor, rueda, cubo o rodillo: una curva de banco de motor tampoco es intercambiable con una medición de banco de chasis.
+Una clasificación ausente, incompatible o mezclada bloquea el protocolo. El evaluador también compara el rango RPM efectivo de cada barrido y el punto RPM/carga en un ensayo estacionario, aunque se repita el mismo `operatingPointId`. Las condiciones ambientales se comparan entre tiradas; si cambian, el grupo requiere revisión y no se presenta como configuración idéntica.
+
+No se convierten ni mezclan bases de motor, rueda, cubo o rodillo: una curva de banco de motor tampoco es intercambiable con una medición de banco de chasis.
 
 ## Repetibilidad
 

@@ -30,6 +30,20 @@ const sameValue = (a, b) => typeof a === "string" && typeof b === "string"
   ? a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase()
   : Object.is(a, b);
 
+function sameStructuredValue(left, right) {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => sameStructuredValue(value, right[index]));
+  }
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every((key, index) => key === rightKeys[index] && sameStructuredValue(left[key], right[key]));
+}
+
 function getCondition(run, key) {
   return run?.operatingConditions?.fields?.[key] ?? null;
 }
@@ -201,6 +215,7 @@ export function assessTestProtocol(runs, {
       "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
       "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
       "dyno_fan_setup", "instrument_calibration",
+      "ambient_temp_c", "ambient_pressure_kpa", "relative_humidity_pct",
       ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
       ...(dynoType === "chassis" && ["wheel", "roller"].includes(measurementBasis) ? DYNO_TIRE_FIELDS : []),
       ...(dynoType === "chassis" && measurementBasis === "hub" ? DYNO_HUB_FIELDS : []),
@@ -214,8 +229,15 @@ export function assessTestProtocol(runs, {
   findings.push(...assessRequiredConditions(runs, requiredFields));
   findings.push(...assessStableSetup(runs, setupFields));
   const pointIds = new Set(runs.map(run => run?.operatingPointId).filter(Boolean));
-  if (pointIds.size !== 1 || runs.some(run => !run?.operatingPointId)) {
-    findings.push({ code: "operating_point_mismatch", message: "Cada repetición debe compartir un operatingPointId que identifique el mismo punto objetivo (RPM/carga o tramo de barrido)." });
+  const points = runs.map(run => run?.operatingPoint ?? null);
+  const pointIsRequired = (domain === "ecu" && mode === "steady_state") ||
+    (domain === "dyno" && ["inertia_sweep", "loaded_sweep", "steady_state"].includes(mode));
+  const hasAnyPoint = points.some(point => point && typeof point === "object" && !Array.isArray(point));
+  const pointValuesMismatch = (pointIsRequired || hasAnyPoint) &&
+    (points.some(point => !point || typeof point !== "object" || Array.isArray(point)) ||
+      !points.every(point => sameStructuredValue(points[0], point)));
+  if (pointIds.size !== 1 || runs.some(run => !run?.operatingPointId) || pointValuesMismatch) {
+    findings.push({ code: "operating_point_mismatch", message: "Cada repetición debe compartir el mismo identificador y los mismos valores efectivos del punto o tramo operativo; no alcanza con reutilizar un ID." });
   }
   const repeatability = assessRepeatability(runs, { minimumReplicates, maximumCvPct });
   if (repeatability.status === "insufficient_replicates") {
@@ -229,6 +251,7 @@ export function assessTestProtocol(runs, {
   }
   const blocked = findings.some(item => [
     "mixed_or_unknown_domain", "unsupported_protocol_mode", "dyno_type_unknown",
+    "protocol_mismatch", "protocol_configuration_mismatch", "operating_point_mismatch",
     "dyno_type_mismatch", "dyno_measurement_basis_unknown",
     "dyno_measurement_basis_mismatch", "dyno_measurement_basis_incompatible",
   ].includes(item.code));
@@ -236,26 +259,39 @@ export function assessTestProtocol(runs, {
     findings.push({ code: "no_repeatability_metrics", message: "No hay métricas numéricas para evaluar repetibilidad." });
   }
   if (domain === "ecu" && mode === "steady_state") {
-    const stabilization = runs[0]?.protocol?.stabilizationMinutes;
+    const stabilizationValues = runs.map(run => run?.protocol?.stabilizationMinutes);
+    const stabilization = stabilizationValues[0];
+    if (stabilizationValues.some(Number.isFinite) &&
+        !stabilizationValues.every(value => Number.isFinite(value) && value === stabilization)) {
+      findings.push({ code: "protocol_configuration_mismatch", message: "Las repeticiones declaran tiempos de estabilización distintos; no deben agruparse como un mismo protocolo." });
+    }
     if (!Number.isFinite(stabilization) || stabilization <= 0) {
       findings.push({ code: "stabilization_not_declared", message: "Declarar el tiempo de estabilización antes de adquirir cada punto estacionario." });
     } else if (stabilization < 5) {
       findings.push({ code: "stabilization_below_reference_case", message: "La estabilización es menor a 5 minutos. Un estudio publicado utilizó al menos 5 minutos; ese valor es una referencia de caso, no un mínimo universal." });
     }
   }
-  const point = runs[0]?.operatingPoint;
   if (domain === "ecu" && mode === "steady_state" &&
-      (!Number.isFinite(point?.rpm) || point.rpm <= 0 ||
-       (!Number.isFinite(point?.loadPct) && !Number.isFinite(point?.throttlePct)))) {
+      runs.some(run => {
+        const point = run?.operatingPoint;
+        return !Number.isFinite(point?.rpm) || point.rpm <= 0 ||
+          (!Number.isFinite(point?.loadPct) && !Number.isFinite(point?.throttlePct));
+      })) {
     findings.push({ code: "operating_point_incomplete", message: "Un punto ECU estacionario debe declarar RPM y carga o posición de acelerador." });
   }
   if (domain === "dyno" && ["inertia_sweep", "loaded_sweep"].includes(mode) &&
-      (!Number.isFinite(point?.rpmStart) || !Number.isFinite(point?.rpmEnd) || point.rpmEnd <= point.rpmStart)) {
+      runs.some(run => {
+        const point = run?.operatingPoint;
+        return !Number.isFinite(point?.rpmStart) || !Number.isFinite(point?.rpmEnd) || point.rpmEnd <= point.rpmStart;
+      })) {
     findings.push({ code: "sweep_range_incomplete", message: "Un barrido de dinamómetro debe declarar RPM inicial y final válidas." });
   }
   if (domain === "dyno" && mode === "steady_state" &&
-      (!Number.isFinite(point?.rpm) || point.rpm <= 0 ||
-       (!Number.isFinite(point?.loadNm) && !Number.isFinite(point?.loadPct)))) {
+      runs.some(run => {
+        const point = run?.operatingPoint;
+        return !Number.isFinite(point?.rpm) || point.rpm <= 0 ||
+          (!Number.isFinite(point?.loadNm) && !Number.isFinite(point?.loadPct));
+      })) {
     findings.push({ code: "operating_point_incomplete", message: "Un punto estacionario de dinamómetro debe declarar RPM y carga." });
   }
   const status = blocked ? "blocked" : findings.length ? "review_required" : "supported";

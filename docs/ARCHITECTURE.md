@@ -24,7 +24,7 @@ La comparación importada resume cada registro por separado. No sincroniza reloj
 
 Formulario guiado o JSON → validación de dominio y condiciones operativas → evaluación de repeticiones → artefacto derivado pendiente → guardado manual en un expediente local.
 
-Los controles distinguen ECU/logger, banco de motor y banco de chasis. Una evaluación no certifica una norma ni autentica sensores, documentos o calibraciones.
+Los controles distinguen ECU/logger, banco de motor y banco de chasis. Para agrupar repeticiones se verifica tanto el identificador como los valores efectivos de RPM/carga o tramo; también se contrastan los tiempos de estabilización y las condiciones ambientales. Una evaluación no certifica una norma ni autentica sensores, documentos o calibraciones.
 
 ## Responsabilidades por capa
 
@@ -77,7 +77,7 @@ Los controles distinguen ECU/logger, banco de motor y banco de chasis. Una evalu
 El procesamiento es independiente del motor gráfico:
 
 - **ECU/logger:** las señales continuas se filtran/remuestrean según el perfil temporal; las señales discretas se retienen. Los tramos separados por huecos se conservan como segmentos distintos.
-- **Dinamómetro:** `buildRpmSweepCurves` calcula resultados por barrido y canal, con mínimos, medianas y máximos por banda de RPM. No combina barridos diferentes.
+- **Dinamómetro:** `buildRpmSweepCurves` calcula resultados por barrido y canal, con mínimos, medianas y máximos por banda de RPM. No combina barridos diferentes. La vista gráfica reintroduce las posiciones de bandas omitidas como `null`, de modo que la curva y la envolvente se interrumpen donde no hay muestras suficientes.
 - **Gráficos sintéticos:** conservan la implementación SVG existente.
 - **Gráficos de CSV:** `app/telemetry-charts.mjs` presenta señales ECU por segmento y curvas de dinamómetro por barrido/canal usando uPlot 1.6.32. La biblioteca no calcula métricas ni completa muestras.
 

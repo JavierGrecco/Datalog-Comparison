@@ -539,7 +539,8 @@ test("la inspección ECU puede generar señales temporales derivadas sin alterar
 test("el dinamómetro muestra curvas independientes por barrido y banda RPM", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });
-  const firstSweep = Array.from({ length: 36 }, (_, index) => 2500 + index * 100);
+  const firstSweep = Array.from({ length: 36 }, (_, index) => 2500 + index * 100)
+    .filter(rpm => rpm !== 3800 && rpm !== 3900);
   const drop = [5700, 5300, 4900, 4500, 4100, 3700, 3300, 3000];
   const secondSweep = Array.from({ length: 31 }, (_, index) => 3000 + index * 100);
   const rpms = [...firstSweep, ...drop, ...secondSweep];
@@ -567,13 +568,20 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   await page.locator('[data-unit-key="power_kw"]').fill("kW");
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
-  assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /73 muestras/);
   await page.locator("#csvDerivedDynoControls").waitFor({ state: "visible" });
   await page.locator("#csvDynoBinWidth").selectOption("200");
   await page.evaluate(() => {
     const OriginalUPlot = window.uPlot;
     window.__datalogDestroyedCharts = 0;
+    window.__datalogChartSnapshots = [];
     const TrackedUPlot = function(options, data, target) {
+      window.__datalogChartSnapshots.push({
+        data: data.map(values => [...values]),
+        bands: options.bands ?? [],
+        series: options.series.map(item => ({ label: item.label, spanGaps: item.spanGaps })),
+        xLabel: options.axes?.[0]?.label ?? "",
+      });
       const chart = new OriginalUPlot(options, data, target);
       const destroy = chart.destroy.bind(chart);
       chart.destroy = () => {
@@ -598,7 +606,16 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
     "cada combinación de barrido y canal debe tener una gráfica interactiva");
   assert.equal(await page.locator("#csvDerivedResults [role=img]").count(), 4,
     "las gráficas deben tener una descripción accesible");
-  assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
+  const chartSnapshots = await page.evaluate(() => window.__datalogChartSnapshots);
+  assert.equal(chartSnapshots.length, 4);
+  assert.ok(chartSnapshots[0].data[1].includes(null),
+    "una banda RPM sin muestras debe llegar a uPlot como null y abrir un hueco");
+  assert.deepEqual(chartSnapshots[0].bands[0].series, [1, 2],
+    "la envolvente visual debe cubrir las series de mínimo y máximo observados");
+  assert.ok(chartSnapshots[0].series.every(item => item.spanGaps === false),
+    "ninguna serie debe conectar huecos explícitos");
+  assert.match(chartSnapshots[0].xLabel, /Centro de banda/);
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /73 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
 
   await page.waitForFunction(() =>

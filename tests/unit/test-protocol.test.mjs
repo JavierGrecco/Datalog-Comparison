@@ -221,3 +221,36 @@ test("un banco de chasis de rueda o rodillo sigue exigiendo neumáticos", () => 
     assert.equal(result.requiredConditions.includes("dyno_hub_fixture"), false);
   }
 });
+
+
+test("bloquea repeticiones con el mismo ID de punto pero valores reales de RPM o carga distintos", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  runs[1].operatingPoint.rpm = 3200;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "operating_point_mismatch"));
+});
+
+test("bloquea barridos de dinamómetro con el mismo ID pero rangos RPM diferentes", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[2].operatingPoint.rpmEnd = 7000;
+  const result = assessTestProtocol(runs, { maximumCvPct: 1 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "operating_point_mismatch"));
+});
+
+test("bloquea tiempos de estabilización distintos dentro del mismo grupo ECU", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  runs[2].protocol.stabilizationMinutes = 8;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "blocked");
+  assert.ok(result.findings.some(item => item.code === "protocol_configuration_mismatch"));
+});
+
+test("los cambios de presión ambiente entre tiradas exigen revisión de configuración", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[1].operatingConditions.fields.ambient_pressure_kpa.value = 100.1;
+  const result = assessTestProtocol(runs, { maximumCvPct: 1 });
+  assert.equal(result.status, "review_required");
+  assert.ok(result.findings.some(item => item.code === "setup_mismatch" && item.field === "ambient_pressure_kpa"));
+});

@@ -14,7 +14,7 @@ import { compareRunDistributions } from "../src/distribution-comparison.mjs";
 import { buildImportedComparisonReport } from "../src/imported-comparison-report.mjs";
 import { DEFAULT_PREVIEW_SAMPLE_LIMIT, selectPreviewSamples } from "../src/sample-selection.mjs";
 import { DEFAULT_CONTINUOUS_CHANNELS, buildRpmSweepCurves, resampleTimeBasedSignals } from "../src/signal-processing.mjs";
-import { disposeTelemetryCharts, renderTelemetryChart } from "./telemetry-charts.mjs";
+import { buildRpmBandChartData, disposeTelemetryCharts, renderTelemetryChart } from "./telemetry-charts.mjs";
 
 const $ = selector => document.querySelector(selector);
 const state = {
@@ -658,21 +658,27 @@ function renderDynoDerivedResult(result) {
       card.append(makeElement("h5", "", title + " · " + channel.unit));
       card.append(makeElement("p", "", peak));
       const chartHost = makeElement("div", "csv-derived-chart");
-      const graph = renderTelemetryChart(chartHost, {
+      const chartData = buildRpmBandChartData(channel.bins, result.axis.binWidth);
+      const graph = chartData.valid ? renderTelemetryChart(chartHost, {
         title: "Barrido " + curve.sweepIndex + " · " + title,
-        xLabel: "RPM",
+        xLabel: chartData.xAxisLabel,
         yLabel: channel.unit,
-        xValues: channel.bins.map(bin => bin.rpmMedian),
+        xValues: chartData.xValues,
         series: [
-          { label: "Mínimo observado", values: channel.bins.map(bin => bin.valueMin), stroke: "#8596a4", width: 1 },
-          { label: "Mediana por banda", values: channel.bins.map(bin => bin.valueMedian), stroke: "#69dabb", width: 2.5 },
-          { label: "Máximo observado", values: channel.bins.map(bin => bin.valueMax), stroke: "#b9a078", width: 1 },
+          { label: "Mínimo observado", values: chartData.minimumValues, stroke: "#8596a4", width: 1 },
+          { label: "Máximo observado", values: chartData.maximumValues, stroke: "#b9a078", width: 1 },
+          { label: "Mediana por banda", values: chartData.medianValues, stroke: "#69dabb", width: 2.5 },
         ],
-      });
+        bands: [{ series: [1, 2], fill: "rgba(105,218,187,0.14)" }],
+      }) : null;
       if (graph) {
         card.append(chartHost, makeElement("p", "csv-derived-note",
-          "Vista interactiva de las bandas observadas. Podés mover el cursor y arrastrar sobre RPM para ampliar; la tabla conserva los valores y el recuento de muestras."));
+          "El área sombreada muestra el rango mínimo–máximo observado. El eje usa el centro de cada banda; las bandas sin muestras quedan como huecos y no se interpolan."));
       } else {
+        if (!chartData.valid) {
+          chartHost.append(makeElement("p", "csv-derived-note",
+            "No se generó la gráfica: " + chartData.reason));
+        }
         card.append(chartHost);
       }
       const tableHost = makeElement("div", "csv-table-wrap");
