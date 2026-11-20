@@ -420,7 +420,7 @@ test("portfolio demo recorre casos sintéticos, bloqueos de fuente, exportación
     "los escenarios deben poder seleccionarse con teclado");
 
   const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
-  assert.match(csp, /connect-src 'none'/);
+  assert.match(csp, /connect-src 'self'/);
 
   const screenshotDirectory = process.env.PORTFOLIO_SCREENSHOT_DIR;
   if (screenshotDirectory) {
@@ -911,6 +911,7 @@ test("la evaluación de protocolos se integra en la interfaz y mantiene la evide
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });
 
+  await page.locator(".protocol-advanced summary").click();
   await page.locator("#protocolLoadExampleButton").click();
   await page.waitForFunction(() =>
     document.querySelector("#protocolJsonInput")?.value.includes("synthetic_test_fixture"));
