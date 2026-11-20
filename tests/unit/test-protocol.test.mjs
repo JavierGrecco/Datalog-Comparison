@@ -450,6 +450,17 @@ test("rechaza límites CV por métrica inválidos", () => {
   assert.throws(() => assessRepeatability([], { maximumCvPctByMetric: { lambda: -1 } }), /finito y no negativo/);
 });
 
+test("rechaza límites CV configurados para métricas inexistentes o no esperadas", () => {
+  const replicates = [
+    { metrics: { torque_nm: 99 } },
+    { metrics: { torque_nm: 100 } },
+    { metrics: { torque_nm: 101 } },
+  ];
+  assert.throws(() => assessRepeatability(replicates, {
+    maximumCvPctByMetric: { lambda: 0.5 },
+  }), /no están presentes ni declaradas como esperadas/);
+});
+
 test("calcula estadísticas estables para valores finitos muy grandes sin overflow", () => {
   const result = assessRepeatability([
     { metrics: { torque_nm: 1e308 } },

@@ -244,6 +244,14 @@ export function assessRepeatability(replicates, {
   if (metricKeys.length > 128) {
     throw new RangeError("No se pueden evaluar más de 128 métricas por grupo.");
   }
+  const unknownLimitKeys = Object.keys(normalizedMetricCvLimits)
+    .filter(key => !metricKeys.includes(key));
+  if (unknownLimitKeys.length) {
+    throw new TypeError(
+      "Hay límites CV configurados para métricas que no están presentes ni declaradas como esperadas: " +
+      unknownLimitKeys.join(", ") + ".",
+    );
+  }
   const metrics = metricKeys.map(key => {
     const values = replicates.map(item => item?.metrics?.[key]).filter(Number.isFinite);
     const missingCount = replicates.length - values.length;
