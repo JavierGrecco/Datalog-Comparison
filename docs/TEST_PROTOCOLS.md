@@ -48,6 +48,8 @@ Por defecto, las condiciones numéricas se comparan exactamente, como hasta ahor
 
 La tolerancia solo se aplica a la evaluación de igualdad de configuración entre repeticiones. No cambia los valores originales, no promedia condiciones ni altera las métricas. Una tolerancia debe justificarse según sensor, método, resolución y objetivo del ensayo. No hay valores predefinidos universales; una tolerancia no configurada sigue siendo cero. Los campos de texto y selección no admiten tolerancias. El constructor guiado permite ingresarlas como JSON en el campo de tolerancias; el evaluador valida los nombres y rechaza campos de texto, valores negativos y números no finitos.
 
+Si la media de una métrica es cero, el CV no se puede calcular. Con un límite de CV configurado, ese caso queda en revisión (`not_calculable`) y no se presenta como aprobado. Para métricas que pueden tomar valores cercanos a cero, el taller debe definir una evaluación absoluta adecuada; el sistema no inventa un umbral de reemplazo.
+
 El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
 
 ## Caso público usado para diseñar pruebas

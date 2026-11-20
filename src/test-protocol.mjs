@@ -179,6 +179,9 @@ export function assessRepeatability(replicates, {
   }
   const expectedMetricSet = new Set(expectedMetricKeys);
   const metricKeys = [...new Set([...expectedMetricKeys, ...declaredMetricKeys])].sort();
+  if (metricKeys.length > 128) {
+    throw new RangeError("No se pueden evaluar más de 128 métricas por grupo.");
+  }
   const metrics = metricKeys.map(key => {
     const values = replicates.map(item => item?.metrics?.[key]).filter(Number.isFinite);
     const missingCount = replicates.length - values.length;
@@ -201,6 +204,7 @@ export function assessRepeatability(replicates, {
   const hasNoThreshold = metrics.some(item => item.status === "threshold_not_configured");
   const hasIncomplete = metrics.some(item => item.status === "incomplete_replicates");
   const hasExceeded = metrics.some(item => item.status === "above_user_limit");
+  const hasNotCalculable = metrics.some(item => item.status === "not_calculable");
   return {
     schema: TEST_PROTOCOL_SCHEMA,
     method: "sample-standard-deviation-coefficient-of-variation/1",
@@ -210,7 +214,7 @@ export function assessRepeatability(replicates, {
     expectedMetrics: expectedMetricKeys,
     status: hasNoMetrics ? "no_metrics" : hasInsufficient ? "insufficient_replicates"
       : hasIncomplete ? "incomplete_replicates"
-        : hasExceeded ? "review_required"
+        : hasExceeded || hasNotCalculable ? "review_required"
           : hasNoThreshold ? "threshold_not_configured" : "within_user_limit",
     metrics,
     limitations: [
@@ -365,8 +369,15 @@ export function assessTestProtocol(runs, {
   if (repeatability.status === "threshold_not_configured") {
     findings.push({ code: "repeatability_limit_missing", message: "No se configuró un límite de CV específico para este equipo y método; la dispersión se informa sin aprobarla." });
   }
-  if (repeatability.status === "review_required") {
+  if (repeatability.metrics.some(metric => metric.status === "above_user_limit")) {
     findings.push({ code: "repeatability_limit_exceeded", message: "Al menos una métrica supera el límite de CV definido por el usuario." });
+  }
+  for (const metric of repeatability.metrics.filter(item => item.status === "not_calculable")) {
+    findings.push({
+      code: "repeatability_metric_not_calculable",
+      field: metric.key,
+      message: "No se puede calcular el CV de " + metric.key + " porque su media es cero; el resultado queda pendiente de un criterio absoluto definido para esa métrica.",
+    });
   }
   if (!repeatability.metrics.length) {
     findings.push({ code: "no_repeatability_metrics", message: "No hay métricas numéricas para evaluar repetibilidad." });

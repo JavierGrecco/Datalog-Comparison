@@ -384,3 +384,30 @@ test("rechaza tolerancias negativas, no finitas o asignadas a campos de texto", 
   assert.throws(() => assessTestProtocol(runs, { setupTolerances: { ambient_temp_c: Infinity } }), /no negativo/);
   assert.throws(() => assessTestProtocol(runs, { setupTolerances: { fuel: 0.1 } }), /solo se admiten campos numéricos/);
 });
+
+
+test("un CV no calculable por media cero no se presenta como aprobado", () => {
+  const result = assessRepeatability([
+    { metrics: { offset_nm: -1 } },
+    { metrics: { offset_nm: 0 } },
+    { metrics: { offset_nm: 1 } },
+  ], { maximumCvPct: 2 });
+  assert.equal(result.metrics[0].status, "not_calculable");
+  assert.equal(result.status, "review_required");
+});
+
+test("el protocolo informa cuando una métrica no permite calcular CV", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  runs[0].metrics.offset_nm = -1;
+  runs[1].metrics.offset_nm = 0;
+  runs[2].metrics.offset_nm = 1;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "review_required");
+  assert.ok(result.findings.some(item =>
+    item.code === "repeatability_metric_not_calculable" && item.field === "offset_nm"));
+});
+
+test("limita la cantidad de métricas declaradas para proteger el evaluador", () => {
+  const expectedMetrics = Array.from({ length: 129 }, (_, index) => "metric_" + index);
+  assert.throws(() => assessRepeatability([], { expectedMetrics }), /128 métricas/);
+});
