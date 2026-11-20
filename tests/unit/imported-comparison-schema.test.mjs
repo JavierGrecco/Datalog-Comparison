@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -7,7 +12,11 @@ import {
   buildImportedComparisonReport,
   IMPORTED_COMPARISON_REPORT_SCHEMA,
 } from "../../src/imported-comparison-report.mjs";
-import { validateJsonSchemaInstance } from "../helpers/json-schema-contract.mjs";
+import { validateImportedComparisonReport, validateJsonSchemaInstance } from "../../src/imported-comparison-report-validator.mjs";
+
+const REPOSITORY_ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const CLI_PATH = resolve(REPOSITORY_ROOT, "scripts/validate-comparison-report.mjs");
+const EXAMPLE_PATH = resolve(REPOSITORY_ROOT, "examples/imported-run-comparison-1.example.json");
 
 const schema = JSON.parse(await readFile(
   new URL("../../schemas/imported-run-comparison-1.schema.json", import.meta.url), "utf8",
@@ -84,4 +93,45 @@ test("el contrato rechaza roles invertidos, alineación temporal, propiedades ex
     mutate(invalid);
     assert.ok(validateJsonSchemaInstance(invalid, schema).length > 0);
   }
+});
+
+test("el validador CLI admite archivo, stdin y salida JSON para automatización", async () => {
+  const fileRun = spawnSync(process.execPath, [CLI_PATH, "--json", EXAMPLE_PATH], {
+    cwd: REPOSITORY_ROOT, encoding: "utf8",
+  });
+  assert.equal(fileRun.status, 0, fileRun.stderr);
+  assert.equal(JSON.parse(fileRun.stdout).valid, true);
+
+  const exampleText = await readFile(EXAMPLE_PATH, "utf8");
+  const stdinRun = spawnSync(process.execPath, [CLI_PATH, "--json", "-"], {
+    cwd: REPOSITORY_ROOT, input: exampleText, encoding: "utf8",
+  });
+  assert.equal(stdinRun.status, 0, stdinRun.stderr);
+  assert.equal(JSON.parse(stdinRun.stdout).reportSchema, IMPORTED_COMPARISON_REPORT_SCHEMA);
+});
+
+test("el validador CLI devuelve código 1 y detalles cuando el informe es inválido", async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), "datalog-report-validator-"));
+  const invalidPath = resolve(directory, "invalid.json");
+  try {
+    const invalid = structuredClone(example);
+    invalid.unexpectedPrivateField = "not allowed";
+    await writeFile(invalidPath, JSON.stringify(invalid), "utf8");
+    const run = spawnSync(process.execPath, [CLI_PATH, "--json", invalidPath], {
+      cwd: REPOSITORY_ROOT, encoding: "utf8",
+    });
+    assert.equal(run.status, 1);
+    const result = JSON.parse(run.stdout);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(error => /unexpectedPrivateField/.test(error)));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("el validador detecta diferencias estadísticas que no corresponden a los resúmenes", () => {
+  const invalid = structuredClone(example);
+  invalid.channels[0].difference.median = 999;
+  const errors = validateImportedComparisonReport(invalid, schema);
+  assert.ok(errors.some(error => /difference\.median/.test(error)));
 });

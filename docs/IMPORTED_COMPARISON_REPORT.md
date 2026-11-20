@@ -58,3 +58,31 @@ Las pruebas unitarias verifican que:
 4. las protecciones contra exportar muestras y contenido de origen siguen vigentes.
 
 El helper de pruebas es deliberadamente acotado a las palabras clave que utiliza este esquema; no es una implementación general de JSON Schema para otros proyectos.
+
+## Validador independiente
+
+El repositorio incluye un comando de línea de órdenes que carga el esquema publicado y verifica también invariantes del dominio (recuentos, cobertura, orden de estadísticas, unidades y fórmulas de diferencias). No necesita dependencias adicionales y funciona con Node.js 22 o posterior.
+
+Validar un archivo descargado:
+
+```bash
+npm run validate:report -- ./datalog-comparison-imported.json
+```
+
+Leer desde una tubería:
+
+```bash
+cat ./datalog-comparison-imported.json | npm run validate:report -- -
+```
+
+Salida de máquina para CI:
+
+```bash
+node scripts/validate-comparison-report.mjs --json ./datalog-comparison-imported.json
+```
+
+También se puede seleccionar otro esquema local con `--schema ruta/al/esquema.json`. Solo se resuelven referencias locales JSON Pointer (`#/...`); el validador no sigue URLs ni accede a la red. Los informes y esquemas tienen límites de tamaño de 10 MiB y 2 MiB, respectivamente.
+
+Códigos de salida: `0` válido, `1` JSON o informe inválido, `2` uso incorrecto o error de lectura/esquema.
+
+El validador implementa las palabras clave utilizadas por el esquema publicado y las invariantes específicas de este informe; no pretende sustituir una biblioteca general de JSON Schema para contratos ajenos al proyecto.
