@@ -52,6 +52,16 @@ function makeId(cryptoImpl) {
   throw new Error("El navegador no ofrece un generador de identificadores seguro.");
 }
 
+function assertAllowedKeys(value, allowed, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(label + " debe ser un objeto JSON.");
+  }
+  const unexpected = Object.keys(value).filter(key => !allowed.includes(key));
+  if (unexpected.length) {
+    throw new TypeError(label + " contiene campos no permitidos: " + unexpected.slice(0, 5).join(", "));
+  }
+}
+
 function jsonClone(value, label) {
   let serialized;
   try {
@@ -574,6 +584,40 @@ export function createLocalDossierRepository({
         backup.schema !== LOCAL_DOSSIER_BACKUP_SCHEMA) {
       throw new TypeError("El respaldo no corresponde al contrato local de expedientes.");
     }
+    assertAllowedKeys(backup,
+      ["schema", "createdAt", "dossier", "reports", "derivedArtifacts", "sourceArchives", "limitations"],
+      "El respaldo");
+    assertAllowedKeys(backup.dossier,
+      ["name", "vehicleLabel", "notes", "createdAt", "updatedAt"],
+      "Los metadatos del expediente");
+    assertAllowedKeys(backup.sourceArchives,
+      ["contentIncluded", "archivedFileCount", "references"],
+      "El manifiesto de archivos originales");
+    if (backup.sourceArchives.contentIncluded !== false ||
+        !Array.isArray(backup.sourceArchives.references) ||
+        backup.sourceArchives.archivedFileCount !== backup.sourceArchives.references.length) {
+      throw new Error("El respaldo no puede contener bytes de CSV originales; solo se aceptan referencias verificables.");
+    }
+    for (const reference of backup.sourceArchives.references) {
+      assertAllowedKeys(reference,
+        ["role", "reportId", "name", "size", "mimeType", "sha256", "storedAt", "contentIncluded"],
+        "La referencia de archivo original");
+      if (reference.contentIncluded !== false ||
+          !["reference", "candidate"].includes(reference.role) ||
+          !/^[a-f0-9]{64}$/i.test(reference.sha256 ?? "")) {
+        throw new Error("El manifiesto contiene una referencia de CSV no válida.");
+      }
+    }
+    for (const item of backup.reports ?? []) {
+      assertAllowedKeys(item,
+        ["id", "fileName", "reportSchema", "storedAt", "sourceReferences", "report"],
+        "Un informe del respaldo");
+    }
+    for (const item of backup.derivedArtifacts ?? []) {
+      assertAllowedKeys(item,
+        ["id", "reportId", "kind", "algorithm", "algorithmVersion", "source", "metadata", "payload", "createdAt"],
+        "Un artefacto derivado del respaldo");
+    }
     let backupBytes;
     try {
       backupBytes = new TextEncoder().encode(JSON.stringify(backup)).byteLength;
@@ -608,6 +652,7 @@ export function createLocalDossierRepository({
     const reports = [];
     for (const item of backup.reports) {
       if (!item || typeof item !== "object" || !item.report ||
+          typeof item.report.schema !== "string" ||
           item.reportSchema !== item.report.schema ||
           !item.report.schema.startsWith(REPORT_SCHEMA_PREFIX)) {
         throw new TypeError("El respaldo contiene un informe con versión o estructura incorrecta.");

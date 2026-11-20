@@ -489,7 +489,9 @@ export function initializeDossierInspector() {
     try {
       repository = createLocalDossierRepository();
       await refreshDossiers();
-      const estimate = await navigator.storage?.estimate?.().catch(() => null);
+      const estimate = typeof navigator.storage?.estimate === "function"
+        ? await navigator.storage.estimate().catch(() => null)
+        : null;
       const usage = estimate?.usage;
       const quota = estimate?.quota;
       const capacity = Number.isFinite(usage) && Number.isFinite(quota)
