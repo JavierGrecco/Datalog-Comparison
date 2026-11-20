@@ -612,8 +612,8 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
     "una banda RPM sin muestras debe llegar a uPlot como null y abrir un hueco");
   assert.deepEqual(chartSnapshots[0].bands[0].series, [1, 2],
     "la envolvente visual debe cubrir las series de mínimo y máximo observados");
-  assert.ok(chartSnapshots[0].series.every(item => item.spanGaps === false),
-    "ninguna serie debe conectar huecos explícitos");
+  assert.ok(chartSnapshots[0].series.slice(1).every(item => item.spanGaps === false),
+    "ninguna serie de datos debe conectar huecos explícitos");
   assert.match(chartSnapshots[0].xLabel, /Centro de banda/);
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /73 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
