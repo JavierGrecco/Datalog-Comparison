@@ -254,3 +254,40 @@ test("los cambios de presión ambiente entre tiradas exigen revisión de configu
   assert.equal(result.status, "review_required");
   assert.ok(result.findings.some(item => item.code === "setup_mismatch" && item.field === "ambient_pressure_kpa"));
 });
+
+
+test("una métrica ausente en una repetición no aprueba por calcular el CV con las restantes", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1), ecuRun("d", 0.5)];
+  delete runs[3].metrics.lambda;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  const lambda = result.repeatability.metrics.find(metric => metric.key === "lambda");
+  assert.ok(lambda);
+  assert.equal(lambda.count, 3);
+  assert.equal(lambda.missingCount, 1);
+  assert.equal(lambda.status, "incomplete_replicates");
+  assert.equal(result.repeatability.status, "incomplete_replicates");
+  assert.equal(result.status, "review_required");
+  assert.ok(result.findings.some(item =>
+    item.code === "metric_missing_replicate" && item.field === "lambda"));
+});
+
+test("si una métrica queda por debajo del mínimo, informa valores válidos y faltantes", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  delete runs[2].metrics.lambda;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  const lambda = result.repeatability.metrics.find(metric => metric.key === "lambda");
+  assert.equal(lambda.count, 2);
+  assert.equal(lambda.missingCount, 1);
+  assert.equal(lambda.status, "insufficient_replicates");
+  assert.equal(result.repeatability.status, "insufficient_replicates");
+  assert.ok(result.findings.some(item =>
+    item.code === "metric_missing_replicate" && item.field === "lambda"));
+});
+
+test("una diferencia de refrigerante entre repeticiones ECU requiere revisión", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  runs[2].operatingConditions.fields.coolant_temp_c.value = 93;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  assert.equal(result.status, "review_required");
+  assert.ok(result.findings.some(item => item.code === "setup_mismatch" && item.field === "coolant_temp_c"));
+});

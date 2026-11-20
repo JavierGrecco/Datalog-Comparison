@@ -1098,3 +1098,27 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
   assert.equal(await page.locator('[data-condition-key="dyno_hub_fixture"]').count(), 1);
   assert.equal(await page.locator('[data-condition-key="tire_pressure_kpa"]').count(), 0);
 });
+
+
+test("la interfaz informa una métrica incompleta sin presentar el CV parcial como repetibilidad completa", async t => {
+  const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
+    await openDemo(t, { width: 390, height: 844 });
+  await page.locator(".protocol-advanced summary").click();
+  const fixturePath = resolve(PROTOTYPE_ROOT, "examples/test-protocol-ecu-steady-state.synthetic.json");
+  const input = JSON.parse(await readFile(fixturePath, "utf8"));
+  input.runs.push({ ...structuredClone(input.runs[2]), id: "ecu-study-replicate-4" });
+  delete input.runs[3].metrics.lambda;
+  await page.locator("#protocolJsonInput").fill(JSON.stringify(input));
+  await page.locator("#protocolAssessmentForm button[type=submit]").click();
+  await page.locator("#protocolResult").waitFor({ state: "visible" });
+  const result = await page.locator("#protocolResult").innerText();
+  assert.match(result, /Requiere revisión/);
+  assert.match(result, /3\\/4 valores válidos · faltan 1/);
+  assert.match(result, /incomplete_replicates/);
+  assert.match(result, /metric_missing_replicate/);
+  assert.match(await page.locator("#protocolBuilderStatus").innerText(), /no certifica una norma/i);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

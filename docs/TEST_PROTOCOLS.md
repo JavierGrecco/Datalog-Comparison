@@ -11,7 +11,7 @@ Este módulo convierte condiciones de ensayo y repeticiones en controles reprodu
 - `steady_state`: exige identificación de calibración y combustible, temperaturas de admisión y refrigerante con fuente, un punto objetivo explícito de RPM y carga/acelerador y tiempo de estabilización declarado.
 - `transient`: exige vehículo/motor, calibración, combustible y temperatura ambiente con fuente. La evaluación temporal y sincronización de señales permanece en las puertas de calidad existentes.
 - Dos logs ECU no son repetibles solo porque sus máximos coinciden. Deben representar el mismo protocolo y punto operativo.
-- El evaluador compara los valores efectivos de RPM y carga/acelerador en todas las repeticiones, no solo el identificador del punto. En un protocolo estacionario ECU, el tiempo de estabilización también debe coincidir.
+- El evaluador compara los valores efectivos de RPM y carga/acelerador en todas las repeticiones, no solo el identificador del punto. En un protocolo estacionario ECU, el tiempo de estabilización y las temperaturas de admisión/refrigerante también deben coincidir para agruparse como una configuración idéntica.
 
 ### Dinamómetro
 
@@ -31,6 +31,8 @@ No se convierten ni mezclan bases de motor, rueda, cubo o rodillo: una curva de 
 La V1 calcula por métrica media, desviación estándar muestral, coeficiente de variación (CV = 100 × s / |media|) y rango relativo (100 × (máximo − mínimo) / |media|).
 
 Se requieren tres repeticiones por defecto. Es una decisión de política inicial inspirada en un caso experimental publicado, no una obligación universal. El límite `maximumCvPct` debe configurarlo el taller según métrica, instrumento, banco y método. Si no se configura, el resultado es `threshold_not_configured`: se informa la dispersión, no se aprueba.
+
+Cada métrica debe estar presente en todas las repeticiones que integran el grupo. Si falta un valor, el resultado informa cuántos valores válidos y faltantes hay; cuando el mínimo de observaciones se alcanza solo con una parte del grupo, el estado es `incomplete_replicates` y exige revisión. No se debe presentar un CV calculado con datos parciales como repetibilidad del conjunto completo.
 
 El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
 

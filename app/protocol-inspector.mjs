@@ -41,8 +41,10 @@ function renderResult(result) {
       " · Mínimo requerido: " + repeatability.minimumReplicates));
     const list = element("ul");
     for (const metric of repeatability.metrics ?? []) {
-      list.append(element("li", "", metric.key + ": media " +
-        (metric.mean === null ? "—" : metric.mean) +
+      list.append(element("li", "", metric.key + ": " +
+        metric.count + "/" + repeatability.replicateCount + " valores válidos" +
+        (metric.missingCount ? " · faltan " + metric.missingCount : "") +
+        " · media " + (metric.mean === null ? "—" : metric.mean) +
         " · CV " + (metric.cvPct === null ? "—" : metric.cvPct.toFixed(3) + "%") +
         " · " + metric.status));
     }
@@ -339,7 +341,7 @@ export function initializeProtocolInspector() {
       window.dispatchEvent(new CustomEvent("datalog:derived-ready", { detail: { artifact: {
         kind: "test_protocol_assessment",
         algorithm: "assessTestProtocol",
-        algorithmVersion: "1.0.0",
+        algorithmVersion: "1.1.0",
         source: {
           evidenceClass: typeof input.evidenceClass === "string" ? input.evidenceClass : "user_supplied",
           protocolSchema: typeof input.schema === "string" ? input.schema : "unversioned",

@@ -103,21 +103,24 @@ export function assessRepeatability(replicates, {
     Object.keys(item?.metrics ?? {}).filter(key => Number.isFinite(item.metrics[key]))))].sort();
   const metrics = metricKeys.map(key => {
     const values = replicates.map(item => item?.metrics?.[key]).filter(Number.isFinite);
+    const missingCount = replicates.length - values.length;
     const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     const cvPct = values.length >= 2 ? coefficientOfVariation(values) : null;
     const rangePct = mean !== null && mean !== 0
       ? (Math.max(...values) - Math.min(...values)) / Math.abs(mean) * 100
       : null;
     const status = values.length < minimumReplicates ? "insufficient_replicates"
-      : maximumCvPct === null ? "threshold_not_configured"
-        : cvPct === null ? "not_calculable"
-          : cvPct <= maximumCvPct ? "within_user_limit" : "above_user_limit";
-    return { key, count: values.length, mean, min: values.length ? Math.min(...values) : null,
+      : missingCount > 0 ? "incomplete_replicates"
+        : maximumCvPct === null ? "threshold_not_configured"
+          : cvPct === null ? "not_calculable"
+            : cvPct <= maximumCvPct ? "within_user_limit" : "above_user_limit";
+    return { key, count: values.length, missingCount, mean, min: values.length ? Math.min(...values) : null,
       max: values.length ? Math.max(...values) : null, cvPct, rangePct, status };
   });
   const hasNoMetrics = metrics.length === 0;
   const hasInsufficient = metrics.some(item => item.status === "insufficient_replicates");
   const hasNoThreshold = metrics.some(item => item.status === "threshold_not_configured");
+  const hasIncomplete = metrics.some(item => item.status === "incomplete_replicates");
   const hasExceeded = metrics.some(item => item.status === "above_user_limit");
   return {
     schema: TEST_PROTOCOL_SCHEMA,
@@ -126,8 +129,9 @@ export function assessRepeatability(replicates, {
     minimumReplicates,
     maximumCvPct,
     status: hasNoMetrics ? "no_metrics" : hasInsufficient ? "insufficient_replicates"
-      : hasExceeded ? "review_required"
-        : hasNoThreshold ? "threshold_not_configured" : "within_user_limit",
+      : hasIncomplete ? "incomplete_replicates"
+        : hasExceeded ? "review_required"
+          : hasNoThreshold ? "threshold_not_configured" : "within_user_limit",
     metrics,
     limitations: [
       "El CV describe la dispersión entre repeticiones; no demuestra exactitud ni ausencia de sesgo sistemático.",
@@ -166,10 +170,10 @@ export function assessTestProtocol(runs, {
   let measurementBasis = null;
   if (domain === "ecu" && mode === "steady_state") {
     requiredFields = ECU_STEADY_FIELDS;
-    setupFields = ["calibration_id", "fuel"];
+    setupFields = ["calibration_id", "fuel", "intake_temp_c", "coolant_temp_c"];
   } else if (domain === "ecu" && mode === "transient") {
     requiredFields = ECU_TRANSIENT_FIELDS;
-    setupFields = ["vehicle_engine", "calibration_id", "fuel"];
+    setupFields = ["vehicle_engine", "calibration_id", "fuel", "ambient_temp_c"];
   } else if (domain === "dyno" && ["inertia_sweep", "loaded_sweep", "steady_state"].includes(mode)) {
     const typeEntries = runs.map(run => getCondition(run, "dyno_type"));
     const basisEntries = runs.map(run => getCondition(run, "dyno_measurement_basis"));
@@ -241,7 +245,20 @@ export function assessTestProtocol(runs, {
   }
   const repeatability = assessRepeatability(runs, { minimumReplicates, maximumCvPct });
   if (repeatability.status === "insufficient_replicates") {
-    findings.push({ code: "insufficient_replicates", message: "Se requieren al menos " + minimumReplicates + " repeticiones válidas para evaluar dispersión." });
+    findings.push({ code: "insufficient_replicates", message: "Se requieren al menos " + minimumReplicates + " valores válidos por métrica para evaluar dispersión." });
+  }
+  for (const metric of repeatability.metrics) {
+    if (metric.missingCount > 0) {
+      findings.push({
+        code: "metric_missing_replicate",
+        field: metric.key,
+        message: "La métrica " + metric.key + " falta en " + metric.missingCount +
+          " de " + repeatability.replicateCount + " repeticiones; el cálculo no representa el grupo completo.",
+      });
+    }
+  }
+  if (repeatability.status === "incomplete_replicates") {
+    findings.push({ code: "incomplete_replicates", message: "Hay métricas con al menos el mínimo de valores, pero faltan datos en una o más repeticiones; no se debe presentar el grupo como completo." });
   }
   if (repeatability.status === "threshold_not_configured") {
     findings.push({ code: "repeatability_limit_missing", message: "No se configuró un límite de CV específico para este equipo y método; la dispersión se informa sin aprobarla." });
