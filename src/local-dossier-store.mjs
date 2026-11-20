@@ -195,6 +195,71 @@ function normalizeArtifact(input, { id, dossierId, reportId, createdAt } = {}) {
   };
 }
 
+export function validateDossierBackupIntegrity(backup) {
+  if (!backup || typeof backup !== "object" || Array.isArray(backup)) {
+    throw new TypeError("El respaldo debe ser un objeto.");
+  }
+  const reports = Array.isArray(backup.reports) ? backup.reports : [];
+  const artifacts = Array.isArray(backup.derivedArtifacts) ? backup.derivedArtifacts : [];
+  const archiveReferences = backup.sourceArchives?.references;
+  if (!Array.isArray(archiveReferences)) {
+    throw new TypeError("El manifiesto de originales debe ser una lista.");
+  }
+
+  const reportById = new Map();
+  for (const report of reports) {
+    if (!report || typeof report.id !== "string" || !report.id.trim() || reportById.has(report.id)) {
+      throw new Error("El respaldo contiene identificadores de informe vacíos o duplicados.");
+    }
+    if (!report.report || report.reportSchema !== report.report.schema ||
+        report.reportSchema !== "datalog-imported-run-comparison/1") {
+      throw new Error("La versión declarada de un informe no coincide con su contenido.");
+    }
+    if (!Array.isArray(report.sourceReferences) || report.sourceReferences.length !== 2) {
+      throw new Error("Cada informe debe declarar sus dos referencias de origen.");
+    }
+    const roles = new Set();
+    for (const reference of report.sourceReferences) {
+      if (!reference || !["reference", "candidate"].includes(reference.role) ||
+          roles.has(reference.role) || reference.sha256 !== report.report[reference.role]?.sha256) {
+        throw new Error("Las referencias de origen no coinciden con las huellas del informe.");
+      }
+      roles.add(reference.role);
+    }
+    if (roles.size !== 2) throw new Error("Falta la referencia o la candidata de un informe.");
+    reportById.set(report.id, report);
+  }
+
+  const archivedRoles = new Set();
+  for (const reference of archiveReferences) {
+    const report = reportById.get(reference?.reportId);
+    const key = reference?.reportId + ":" + reference?.role;
+    if (!report || !["reference", "candidate"].includes(reference.role) || archivedRoles.has(key)) {
+      throw new Error("El manifiesto contiene archivos huérfanos o roles duplicados.");
+    }
+    const source = report.sourceReferences.find(item => item.role === reference.role);
+    if (!source || source.sha256 !== reference.sha256) {
+      throw new Error("La huella del CSV archivado no coincide con la referencia del informe.");
+    }
+    archivedRoles.add(key);
+  }
+
+  const artifactIds = new Set();
+  for (const artifact of artifacts) {
+    if (!artifact || typeof artifact.id !== "string" || !artifact.id.trim() || artifactIds.has(artifact.id)) {
+      throw new Error("El respaldo contiene identificadores de artefacto vacíos o duplicados.");
+    }
+    if (artifact.reportId !== null && artifact.reportId !== undefined && !reportById.has(artifact.reportId)) {
+      throw new Error("Un artefacto derivado apunta a un informe inexistente.");
+    }
+    artifactIds.add(artifact.id);
+  }
+  if (backup.sourceArchives.archivedFileCount !== archiveReferences.length) {
+    throw new Error("La cantidad declarada de CSV archivados no coincide con el manifiesto.");
+  }
+  return true;
+}
+
 export function createLocalDossierRepository({
   indexedDBImpl = globalThis.indexedDB,
   cryptoImpl = globalThis.crypto,
@@ -618,6 +683,7 @@ export function createLocalDossierRepository({
         ["id", "reportId", "kind", "algorithm", "algorithmVersion", "source", "metadata", "payload", "createdAt"],
         "Un artefacto derivado del respaldo");
     }
+    validateDossierBackupIntegrity(backup);
     let backupBytes;
     try {
       backupBytes = new TextEncoder().encode(JSON.stringify(backup)).byteLength;

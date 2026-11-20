@@ -9,6 +9,7 @@ import {
   validateImportedComparisonReport,
   validateJsonSchemaInstance,
 } from "../../src/imported-comparison-report-validator.mjs";
+import { validateDossierBackupIntegrity } from "../../src/local-dossier-store.mjs";
 
 const backup = JSON.parse(await readFile(
   new URL("../../examples/local-dossier-backup-1.example.json", import.meta.url), "utf8",
@@ -59,4 +60,48 @@ test("el manifiesto de originales admite varias comparaciones dentro de un mismo
   }
   multiReportBackup.sourceArchives.archivedFileCount = 4;
   assert.deepEqual(validateJsonSchemaInstance(multiReportBackup, localDossierBackupSchema), []);
+});
+
+test("la integridad del respaldo vincula informes, huellas, CSV archivados y artefactos", () => {
+  assert.equal(validateDossierBackupIntegrity(backup), true);
+
+  const orphanArchive = structuredClone(backup);
+  orphanArchive.sourceArchives.references.push({
+    role: "reference",
+    reportId: "missing-report",
+    name: "orphan.csv",
+    size: 10,
+    mimeType: "text/csv",
+    sha256: "a".repeat(64),
+    storedAt: "2026-11-20T17:40:00.000Z",
+    contentIncluded: false,
+  });
+  orphanArchive.sourceArchives.archivedFileCount += 1;
+  assert.throws(() => validateDossierBackupIntegrity(orphanArchive), /huérfanos/);
+
+  const alteredHash = structuredClone(backup);
+  alteredHash.sourceArchives.references.push({
+    role: "reference",
+    reportId: alteredHash.reports[0].id,
+    name: "reference.csv",
+    size: 10,
+    mimeType: "text/csv",
+    sha256: "b".repeat(64),
+    storedAt: "2026-11-20T17:40:00.000Z",
+    contentIncluded: false,
+  });
+  alteredHash.sourceArchives.archivedFileCount = 1;
+  assert.throws(() => validateDossierBackupIntegrity(alteredHash), /huella/);
+
+  const duplicateReport = structuredClone(backup);
+  duplicateReport.reports.push(structuredClone(duplicateReport.reports[0]));
+  assert.throws(() => validateDossierBackupIntegrity(duplicateReport), /duplicados/);
+
+  const orphanArtifact = structuredClone(backup);
+  orphanArtifact.derivedArtifacts.push({
+    ...structuredClone(orphanArtifact.derivedArtifacts[0]),
+    id: "orphan-artifact",
+    reportId: "missing-report",
+  });
+  assert.throws(() => validateDossierBackupIntegrity(orphanArtifact), /inexistente/);
 });
