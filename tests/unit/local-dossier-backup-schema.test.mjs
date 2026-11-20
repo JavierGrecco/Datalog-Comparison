@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import localDossierBackupSchema from "../../schemas/local-dossier-backup-1.schema.json" with { type: "json" };
+import { LOCAL_DOSSIER_BACKUP_SCHEMA_DOCUMENT } from "../../src/report-schemas.mjs";
 import importedReportSchema from "../../schemas/imported-run-comparison-1.schema.json" with { type: "json" };
 import {
   validateImportedComparisonReport,
@@ -16,6 +17,8 @@ const backup = JSON.parse(await readFile(
 test("el ejemplo público de respaldo cumple su contrato y contiene un informe válido", () => {
   assert.equal(localDossierBackupSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
   assert.equal(localDossierBackupSchema.$id, "urn:datalog-comparison:local-dossier-backup:1");
+  assert.deepEqual(LOCAL_DOSSIER_BACKUP_SCHEMA_DOCUMENT, localDossierBackupSchema,
+    "el módulo de ejecución debe reflejar exactamente el contrato JSON publicado");
   assert.deepEqual(validateJsonSchemaInstance(backup, localDossierBackupSchema), []);
   assert.deepEqual(validateImportedComparisonReport(backup.reports[0].report, importedReportSchema), []);
   assert.equal(backup.sourceArchives.contentIncluded, false);

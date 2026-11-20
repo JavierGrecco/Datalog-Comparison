@@ -4,8 +4,10 @@ import {
   LOCAL_DOSSIER_LIMITS,
 } from "../src/local-dossier-store.mjs";
 import { validateImportedComparisonReport, validateJsonSchemaInstance } from "../src/imported-comparison-report-validator.mjs";
-import importedComparisonSchema from "../schemas/imported-run-comparison-1.schema.json" with { type: "json" };
-import localDossierBackupSchema from "../schemas/local-dossier-backup-1.schema.json" with { type: "json" };
+import {
+  IMPORTED_COMPARISON_REPORT_SCHEMA_DOCUMENT as importedComparisonSchema,
+  LOCAL_DOSSIER_BACKUP_SCHEMA_DOCUMENT as localDossierBackupSchema,
+} from "../src/report-schemas.mjs";
 import { openSavedImportedReport } from "./imported-report-inspector.mjs";
 
 const $ = selector => document.querySelector(selector);

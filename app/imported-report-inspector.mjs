@@ -1,5 +1,5 @@
 import { validateImportedComparisonReport } from "../src/imported-comparison-report-validator.mjs";
-import importedComparisonSchema from "../schemas/imported-run-comparison-1.schema.json" with { type: "json" };
+import { IMPORTED_COMPARISON_REPORT_SCHEMA_DOCUMENT as importedComparisonSchema } from "../src/report-schemas.mjs";
 
 const MAX_REPORT_BYTES = 10 * 1024 * 1024;
 const $ = selector => document.querySelector(selector);
