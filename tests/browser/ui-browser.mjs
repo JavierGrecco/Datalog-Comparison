@@ -573,6 +573,10 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   assert.match(derived, /Torque/);
   assert.match(derived, /Potencia/);
   assert.match(derived, /2400–2600/);
+  assert.equal(await page.locator("#csvDerivedResults .uplot").count(), 4,
+    "cada combinación de barrido y canal debe tener una gráfica interactiva");
+  assert.equal(await page.locator("#csvDerivedResults [role=img]").count(), 4,
+    "las gráficas deben tener una descripción accesible");
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /75 muestras/,
     "las curvas derivadas no modifican ni mezclan el registro fuente");
 
@@ -1018,6 +1022,7 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
   await page.locator("#protocolRpm").fill("3000");
   await page.locator("#protocolLoad").fill("100");
   await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
+  await page.locator("#protocolCvLimit").fill("2");
   await page.locator("#protocolBuildButton").click();
   await page.locator("#protocolResult").waitFor({ state: "visible" });
   const generated = JSON.parse(await page.locator("#protocolJsonInput").inputValue());
