@@ -52,12 +52,22 @@ function parseArguments(args) {
   return { schemaPath, jsonOutput, inputPath };
 }
 
-async function readBounded(path, maximumBytes, label) {
-  if (path === "-") {
-    const buffer = await readFile(0);
-    if (buffer.byteLength > maximumBytes) throw new RangeError(label + " supera el límite de " + maximumBytes + " bytes.");
-    return buffer.toString("utf8");
+async function readStdinBounded(maximumBytes, label) {
+  const chunks = [];
+  let totalBytes = 0;
+  for await (const chunk of process.stdin) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.byteLength;
+    if (totalBytes > maximumBytes) {
+      throw new RangeError(label + " supera el límite de " + maximumBytes + " bytes.");
+    }
+    chunks.push(buffer);
   }
+  return Buffer.concat(chunks, totalBytes).toString("utf8");
+}
+
+async function readBounded(path, maximumBytes, label) {
+  if (path === "-") return readStdinBounded(maximumBytes, label);
   const fileStat = await stat(path);
   if (!fileStat.isFile()) throw new Error(label + " no es un archivo regular.");
   if (fileStat.size > maximumBytes) throw new RangeError(label + " supera el límite de " + maximumBytes + " bytes.");
