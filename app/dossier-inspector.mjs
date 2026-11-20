@@ -73,6 +73,7 @@ function updateActions() {
   $("#dossierArchiveOriginals").disabled = !hasActive || !pendingReport || pendingSourceFiles.length === 0;
   $("#dossierSaveDerivedButton").disabled = !hasActive || !pendingDerivedArtifact;
   $("#dossierExportBackupButton").disabled = !hasActive;
+  $("#dossierAuditButton").disabled = !hasActive;
   $("#dossierDeleteButton").disabled = !hasActive;
   $("#dossierActiveSelect").disabled = dossiers.length === 0;
   const sourceCount = pendingSourceFiles.length;
