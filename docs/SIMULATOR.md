@@ -95,3 +95,29 @@ La licencia MIT de upstream corresponde al código del simulador. El README iden
 | Torque/potencia de dinamómetro medidos | No | No | No |
 
 Para validar curvas de banco necesitamos un dataset de dinamometro con estructura, unidades, eje RPM y condiciones revisadas. La fuente Mendeley listada en [PUBLIC_DATASETS.md](PUBLIC_DATASETS.md) es candidata, pero sus archivos todavía deben inspeccionarse antes de usarla como fixture.
+
+## 3. Generador de ensayos de dinamómetro
+
+El módulo `src/simulated-dyno.mjs` produce tablas reproducibles para probar las dos resoluciones de exportación documentadas por PowerCore/WinPEP:
+
+- **Graph Export:** una fila por incremento de RPM; no inventa tiempo.
+- **Time Export:** una fila cada N milisegundos; conserva el tiempo y RPM de cada muestra.
+- **repeat-pulls:** dos aceleraciones separadas por una bajada de régimen para comprobar que el analizador no mezcla tiradas.
+- **candidate:** curva candidata con una variación localizada frente a la referencia.
+- **sensor-dropout:** tramo con valores ausentes para probar cobertura.
+
+Ejemplos:
+
+```bash
+npm run simulate:dyno -- --mode graph-export --scenario reference --rpm-step 50 --seed 42
+npm run simulate:dyno -- --mode time-export --scenario reference --interval-ms 50 --duration 8 --seed 42
+npm run simulate:dyno -- --mode time-export --scenario repeat-pulls --interval-ms 50 --seed 42
+npm run simulate:dyno -- --mode graph-export --scenario candidate --rpm-step 50 --seed 42
+```
+
+El CSV y su sidecar de procedencia se escriben en `data/generated/`, carpeta excluida de Git. El sidecar registra la semilla, versión, unidades, resolución, base física y SHA-256. El modelo usa una curva genérica 2,0 L atmosférica y una escala rueda/motor ilustrativa; no está calibrado contra hardware real y no aplica corrección atmosférica.
+
+**Límite:** Dynojet documenta el incremento RPM para Graph Export y el intervalo temporal para Time Export, pero los nombres de columna son configurables. Estos archivos prueban el flujo y la resolución de muestreo; no son exportaciones nativas ni mediciones reales. Ver [la guía oficial de exportación](https://docs.dynojet.com/Support/SoftwareHelpFiles/PowerCoreHelp/en-US/2.1.0/DataCenter/DataCenter/DataCenter/To_Export_a_Run_File.htm).
+
+Los fixtures `tests/fixtures/dynojet-graph-export-synthetic.csv` y `tests/fixtures/dynojet-time-export-repeat-pulls-synthetic.csv` son generados por el proyecto y se identifican como sintéticos.
+

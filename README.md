@@ -130,7 +130,7 @@ Generá un CSV ECU uniforme para inspeccionar localmente:
 npm run simulate:telemetry -- --profile ecu --scenario road-test --duration 120 --rate 20 --seed 42
 ```
 
-También hay un perfil OBD asíncrono y un escenario con pérdidas de sensores. Los resultados se escriben en carpetas locales excluidas de Git. Para descargar una porción de hasta 100 filas del dataset Opel CC BY 4.0, utilizá `npm run data:obd-sample -- --offset 0 --length 100`; el comando conserva un sidecar de atribución y SHA-256.
+También hay un perfil OBD asíncrono y un escenario con pérdidas de sensores. El generador de dinamómetro crea archivos sintéticos para los modos Graph Export y Time Export, con referencia, candidata, dos tiradas y faltantes; no son exportaciones nativas ni mediciones reales. Los resultados ECU y OBD se escriben en carpetas locales excluidas de Git. Para ensayos de dinamómetro, ejecutá `npm run simulate:dyno -- --mode graph-export` o `--mode time-export`; ver [guía del simulador](docs/SIMULATOR.md#3-generador-de-ensayos-de-dinamómetro). Para descargar una porción de hasta 100 filas del dataset Opel CC BY 4.0, utilizá `npm run data:obd-sample -- --offset 0 --length 100`; el comando conserva un sidecar de atribución y SHA-256.
 
 La licencia de un dataset externo no concede una licencia sobre el código de este repositorio. Los logs generados por Speeduino tampoco se publican con licencia asumida: el simulador upstream tiene MIT para su código, pero el estado de licencia de sus outputs debe revisarse por separado.
 
