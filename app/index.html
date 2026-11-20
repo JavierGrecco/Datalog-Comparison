@@ -249,35 +249,6 @@
         </section>
       </section>
 
-      <section class="panel" aria-labelledby="protocolAssessmentTitle">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">04 · PROTOCOLOS Y REPETIBILIDAD</p>
-            <h2 id="protocolAssessmentTitle">Evaluar las condiciones del ensayo</h2>
-            <p class="section-intro">Revisá si un conjunto de adquisiciones declara condiciones suficientes y si sus repeticiones cumplen el límite de dispersión definido para el equipo y método.</p>
-          </div>
-          <span class="synthetic-chip">EVALUACIÓN LOCAL</span>
-        </div>
-        <div class="csv-subheading">
-          <p>El expediente debe incluir <code>runs</code> y, opcionalmente, <code>options</code>. Cada condición conserva su estado (desconocida, informada, medida o verificada) y su fuente. No se completa información faltante por inferencia.</p>
-        </div>
-        <form id="protocolAssessmentForm" class="csv-import-form">
-          <label class="csv-control" for="protocolJsonInput">
-            <span>Expediente de ensayo en JSON</span>
-            <textarea id="protocolJsonInput" rows="12" spellcheck="false" placeholder='{"runs":[...],"options":{"minimumReplicates":3,"maximumCvPct":1}}' aria-describedby="protocolInputHelp"></textarea>
-            <small id="protocolInputHelp">Máximo 2 MiB. Podés partir del ejemplo sintético y adaptarlo a un expediente propio.</small>
-          </label>
-          <div class="csv-import-actions">
-            <button type="submit" class="primary-button">Evaluar protocolo</button>
-            <button type="button" class="secondary-button" id="protocolLoadExampleButton">Cargar ejemplo ECU sintético</button>
-            <button type="button" class="secondary-button" id="protocolClearButton">Limpiar</button>
-          </div>
-          <p id="protocolInputStatus" class="csv-status" role="status" aria-live="polite">No hay ningún expediente evaluado.</p>
-        </form>
-        <section id="protocolResult" class="csv-comparison-result" aria-label="Resultado de evaluación del protocolo" hidden></section>
-        <p class="csv-derived-note">La evaluación no certifica SAE/ISO, no autentica fuentes, no calcula incertidumbre metrológica y no demuestra equivalencia física. Los límites de repetibilidad deben definirse para cada equipo y método.</p>
-      </section>
-
       <section id="dossierWorkspace" class="dossier-workspace" aria-labelledby="dossierTitle">
         <div class="csv-subheading">
           <h3 id="dossierTitle">Expedientes locales · historial del vehículo</h3>

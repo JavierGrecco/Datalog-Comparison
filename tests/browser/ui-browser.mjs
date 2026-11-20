@@ -905,3 +905,29 @@ test("los expedientes locales permiten crear un expediente y ejecutar una audito
   assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
 });
+
+
+test("la evaluación de protocolos se integra en la interfaz y mantiene la evidencia sintética", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+
+  await page.locator("#protocolLoadExampleButton").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#protocolJsonInput")?.value.includes("synthetic_test_fixture"));
+  await page.locator("#protocolAssessmentForm button[type=submit]").click();
+  await page.locator("#protocolResult").waitFor({ state: "visible" });
+
+  const result = await page.locator("#protocolResult").innerText();
+  assert.match(result, /Requiere revisión/);
+  assert.match(result, /within_user_limit/);
+  assert.match(result, /condition_not_evidenced|invalid_conditions_contract/);
+  assert.match(await page.locator("#protocolInputStatus").innerText(), /no certifica una norma/i);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+
+  await page.locator("#protocolClearButton").click();
+  assert.equal(await page.locator("#protocolResult").isVisible(), false);
+  assert.equal(await page.locator("#protocolJsonInput").inputValue(), "");
+});

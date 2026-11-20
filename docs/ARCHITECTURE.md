@@ -20,7 +20,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
 | app/imported-report-inspector.mjs | Apertura local de informes guardados, validación de esquema e invariantes y representación segura del resumen. |
-| app/dossier-inspector.mjs | Gestión de expedientes locales, historial de informes, archivado consentido de CSV, artefactos derivados y respaldos. |
+| app/dossier-inspector.mjs | Gestión de expedientes locales, historial de informes, archivado consentido de CSV, artefactos derivados y respaldos. |\n| app/protocol-inspector.mjs | Evaluación local de protocolos ECU/dinamómetro y repetibilidad desde expedientes JSON, con salida construida mediante nodos de texto. |\n| src/test-protocol.mjs | Puertas de evidencia por dominio/modo, consistencia de condiciones y estadística de repetibilidad configurable. |
 | src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |
 | src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
@@ -58,7 +58,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 - Los datos importados conservan el orden, faltantes y conversiones; el mapeo genérico conserva además las celdas de origen de los canales mapeados. Los adaptadores específicos documentan el nivel de transformación de sus valores; no se reordenan, interpolan ni imputan.
 - La importación admite eje temporal o RPM; no los sintetiza. El perfil de calidad estima intervalos observados por canal solo cuando hay un eje temporal válido.
 - El inspector crea registros exploratorios; dos pueden asignarse manualmente a un expediente local de comparación descriptiva. No se mezclan con fixtures sintéticos ni con la matriz de escenarios.
-- La matriz no calcula una puntuación opaca de confianza.
+- La matriz no calcula una puntuación opaca de confianza.\n- El evaluador de protocolos distingue condiciones informadas de las medidas o verificadas por quien carga; una estructura incompleta se señala, pero no impide informar qué condiciones requeridas carecen de evidencia.
 - El comparador de distribuciones resume cada registro por separado; excluye y explica canales incompatibles, unilaterales o con cobertura insuficiente. No alinea relojes ni empareja puntos.
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
 - El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
@@ -77,9 +77,9 @@ Python puede utilizarse como servidor HTTP estático local, pero no participa de
 
 - tests/unit/: reglas de dominio, parser genérico, adaptadores, escenarios y contratos.
 - tests/fixtures/: archivos CSV sintéticos y versionados.
-- tests/browser/: servidor efímero local y recorrido de escenarios/importadores en Chromium.
+- tests/browser/: servidor efímero local y recorrido de escenarios/importadores/protocolos en Chromium.
 - npm test: sintaxis, pruebas unitarias y pruebas de navegador.
-- npm run validate:report -- archivo.json: validación de un informe portable desde consola o tubería.
+- npm run validate:report -- archivo.json: validación de un informe portable desde consola o tubería.\n- npm run assess:protocol -- archivo.json: evaluación de condiciones y repetibilidad desde consola o tubería.
 - IndexedDB mantiene expedientes e historial local entre recargas; el respaldo JSON restaura un expediente nuevo y valida cada informe antes de escribirlo.
 
 El detalle de estados está en QUALITY_GATES.md. El contrato de importación está en CSV_IMPORT.md. Las pruebas automáticas no demuestran equivalencia física ni validan un vehículo.
