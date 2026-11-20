@@ -145,8 +145,15 @@ function assessStableSetup(runs, keys, setupTolerances = {}) {
     const minValue = allNumeric ? values.reduce((min, value) => Math.min(min, value), Infinity) : null;
     const maxValue = allNumeric ? values.reduce((max, value) => Math.max(max, value), -Infinity) : null;
     const maxDifference = allNumeric ? maxValue - minValue : null;
+    const comparisonScale = allNumeric ? Math.max(Math.abs(maxValue), Math.abs(minValue), 1) : 1;
+    const normalizedDifference = allNumeric
+      ? maxValue / comparisonScale - minValue / comparisonScale
+      : null;
+    const normalizedTolerance = allNumeric ? tolerance / comparisonScale : null;
     const matches = allNumeric
-      ? maxDifference <= tolerance
+      ? tolerance === 0
+        ? maxDifference === 0
+        : normalizedDifference <= normalizedTolerance + Number.EPSILON * 4
       : values.every(value => sameValue(referenceValue, value));
     if (!matches) {
       const unit = NUMERIC_CONDITION_UNITS.get(key) ?? "";
@@ -175,7 +182,7 @@ function calculateMetricStatistics(values) {
   const min = values.reduce((minimum, value) => Math.min(minimum, value), Infinity);
   const max = values.reduce((maximum, value) => Math.max(maximum, value), -Infinity);
   if (scale === 0) {
-    return { mean: 0, min, max, cvPct: values.length >= 2 ? null : null, rangePct: null };
+    return { mean: 0, min, max, cvPct: null, rangePct: null };
   }
 
   // Welford's method on normalized values keeps the variance calculation bounded.

@@ -489,3 +489,16 @@ test("tolera una configuración numérica por el rango completo y no por referen
   assert.ok(finding);
   assert.ok(Math.abs(finding.maxDifference - 0.4) < 1e-9);
 });
+
+
+test("acepta una diferencia decimal situada exactamente en la tolerancia declarada", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[0].operatingConditions.fields.ambient_pressure_kpa.value = 100.0;
+  runs[1].operatingConditions.fields.ambient_pressure_kpa.value = 99.8;
+  runs[2].operatingConditions.fields.ambient_pressure_kpa.value = 100.2;
+  const result = assessTestProtocol(runs, {
+    maximumCvPct: 1,
+    setupTolerances: { ambient_pressure_kpa: 0.4 },
+  });
+  assert.equal(result.status, "supported");
+});
