@@ -47,6 +47,15 @@ Fuente oficial: [MoTeC i2 — sección i2 API](https://www.motec.com.au/products
 | Exportar CSV desde i2 | Permite probar el flujo existente sin implementar un parser binario | Es una exportación derivada; puede perder contexto o alterar la base temporal | Puente manual de validación mientras se investiga el formato |
 | API oficial i2 | Acceso soportado por MoTeC a canales y metadatos del .ld | Licencia adicional, i2 Pro/COM y entorno Windows | Posible conector de escritorio/servicio local, no dependencia del frontend web |
 
+## Registros públicos adicionales y estado de sus permisos
+
+Además del paquete de práctica de High Performance Academy, se revisaron dos repositorios con archivos M1:
+
+- [Purdue Formula SAE — MoTeC](https://github.com/purduefsae/MoTeC) contiene carpetas `Logged Data` y `M1`, y pares de archivos `.ld/.ldx`. El repositorio no declara una licencia general de reutilización de los datos.
+- [i3rs](https://github.com/Friss/i3rs) mantiene `test_data/VIR_LAP.ld` y su sidecar `.ldx`, descritos por sus autores como un registro MoTeC M1. El repositorio tiene licencia MIT para su código, pero no encontramos una licencia de datos separada para esas muestras.
+
+Ambos son **candidatos para solicitar permiso**, no fixtures autorizados. No descargamos ni incorporamos esos registros. La visibilidad pública de un archivo no concede automáticamente permiso para copiarlo, procesarlo en nuestro proyecto ni redistribuirlo. Si conseguimos autorización, hay que registrar su alcance exacto (uso local, pruebas CI y redistribución son permisos diferentes), procedencia y hash antes de integrarlo.
+
 ## Por qué i3rs es el candidato prioritario
 
 El core expone:
@@ -128,6 +137,11 @@ El ejemplo es un contrato ilustrativo, no un fixture real ni una salida copiada 
 
 - La librería upstream utiliza Rust y `memmap2` para lectura nativa por archivo; en el navegador se debe usar `from_bytes`, no `open(path)`.
 - Aunque i3rs publica una build WebAssembly, eso no demuestra que el parser sea seguro ante cualquier binario malformado ni que consuma memoria acotada. Deben probarse límites de archivo y asignaciones antes de habilitar cargas grandes.
+- `read_channel_data` puede devolver menos muestras que las declaradas por el canal: limita la lectura a los bytes disponibles en el archivo. Una respuesta sin error no demuestra que la serie esté completa. El adaptador debe comparar la cantidad decodificada con `n_data`; si difiere, marcar el canal como truncado y excluirlo del análisis cuantitativo.
+- Los tipos `DataType::Unknown` no deben interpretarse ni convertirse a cero. Un tipo no soportado debe quedar como canal no decodificable.
+- La frecuencia de `ChannelMeta` ya incorpora el factor de reloj legacy que aplica i3rs. No volver a corregirla en la capa de aplicación. El conteo del encabezado tampoco sustituye el recorrido de la lista real de canales.
+- i3rs conserva posiciones inválidas como `NaN`, pero la API pública consultada no distingue esas posiciones de valores no finitos que ya vinieran en la señal. Al convertirlos a `null`, usar una causa general como `invalid_or_non_finite`; no afirmar que el logger marcó todos esos puntos como inválidos.
+- El parser `.ldx` trata los tiempos de `Marker` en microsegundos y los convierte a segundos. Otras estructuras, como `MarkerPair`, siguen otra ruta de parsing. Validar finitud, límites y orden de inicio/fin antes de usar marcadores como laps o segmentos.
 - El parser no debe ejecutarse en el hilo de interfaz si el tamaño y el tiempo de parseo pueden bloquear la página. La opción de worker se evaluará después de confirmar compatibilidad CSP y el ciclo de vida del módulo WASM.
 - No se debe confiar en nombres, comentarios, datos de vehículo o textos del archivo. Renderizarlos como texto, nunca como HTML.
 - El importador será estrictamente de solo lectura. No exponer `log_writer`, `encode_log` ni rutinas de salida del upstream.
@@ -144,7 +158,7 @@ No se habilitará el adaptador hasta completar todos estos puntos:
 3. **Contraste independiente:** comparar parser WASM y CLI nativo con exactamente los mismos bytes: metadatos, canales, unidades, frecuencias, recuentos, muestras y máscaras de validez.
 4. **Validación de ingeniería:** contrastar valores conocidos con el exportador MoTeC de origen o un registro independiente autorizado. Un parser que se ejecuta no demuestra que todas las magnitudes o escalas sean correctas.
 5. **Multi-rate:** probar canales con distintas frecuencias, muestras faltantes y períodos inválidos, asegurando que no se fabriquen marcas temporales o puntos.
-6. **Seguridad:** pruebas de tamaño, estructuras truncadas, punteros fuera de rango, contadores excesivos y XML malformado; ninguna condición debe bloquear la interfaz ni causar crecimiento descontrolado de memoria.
+6. **Seguridad:** pruebas de tamaño, estructuras truncadas, punteros fuera de rango, contadores excesivos y XML malformado; exigir que la cantidad de muestras decodificadas coincida con `n_data`, rechazar tipos desconocidos para análisis cuantitativo y validar frecuencias y rangos `.ldx`. Ninguna condición debe bloquear la interfaz ni causar crecimiento descontrolado de memoria.
 7. **Integridad:** demostrar que la carga y el análisis no modifican los bytes de origen; el SHA-256 antes y después debe coincidir.
 8. **Licencias:** conservar MIT y avisos del parser y revisar las licencias de todas las dependencias/artefactos WASM. La licencia del software no se extiende a logs de muestra.
 9. **CSP y aislamiento:** WASM y worker locales, sin CDN, telemetría ni solicitudes externas; revisar la política CSP vigente.
@@ -156,4 +170,4 @@ No se habilitará el adaptador hasta completar todos estos puntos:
 
 ## Decisión
 
-**No integrar todavía el parser en la demo.** Ya se identificó una fuente pública que ofrece registros MoTeC para práctica local, pero todavía falta descargar e inspeccionar el archivo, confirmar que fue generado por una ECU M1, formalizar el contrato multi-rate, validar los límites WASM y realizar el contraste independiente. La fuente no autoriza expresamente su redistribución. Esta decisión evita presentar una importación parcialmente probada como compatibilidad MoTeC general.
+**No integrar todavía el parser en la demo.** HPA ofrece registros para práctica local, pero el paquete no pudo descargarse desde este entorno y su origen M1 todavía debe confirmarse en i2. Purdue Formula SAE e i3rs contienen otros registros M1 públicos, pero no encontramos permisos de reutilización para sus datos. Antes de integrar faltan una muestra M1 autorizada para inspección, un contrato multi-rate formal, límites WASM, controles ante muestras truncadas y tipos desconocidos, y contraste independiente. Esta decisión evita presentar una importación parcialmente probada como compatibilidad MoTeC general.

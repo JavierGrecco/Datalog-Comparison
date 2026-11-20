@@ -216,7 +216,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - [Simulador](docs/SIMULATOR.md): generación reproducible e integración opcional con Speeduino.
 - [Protocolos de ensayo](docs/TEST_PROTOCOLS.md): perfiles y evaluación de repetibilidad.
 - [Componentes open source](docs/OPEN_SOURCE_COMPONENTS.md): criterios de integración, licencias y decisiones sobre bibliotecas y proyectos externos.
-- [Plan de adaptador MoTeC](docs/MOTEC_ADAPTER_PLAN.md): registro de práctica de HPA, parser i3rs, alternativas oficiales de MoTeC, puente CSV, canales multi-rate y criterios previos a la integración.
+- [Plan de adaptador MoTeC](docs/MOTEC_ADAPTER_PLAN.md): fuentes de práctica y permisos, revisión del parser i3rs, riesgos de muestras truncadas, alternativas oficiales de MoTeC y criterios previos a la integración.
 - [Límites de la demo](docs/LIMITATIONS.md): alcance funcional y técnico.
 - [Referencias consultadas](docs/REFERENCES.md): antecedentes revisados durante la investigación.
 
