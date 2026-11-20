@@ -79,10 +79,11 @@ const DYNO_COMMON_FIELDS = [
   "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
   "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
   "dyno_fan_setup", "instrument_calibration", "ambient_temp_c",
+  "ambient_pressure_kpa", "relative_humidity_pct",
 ];
-const DYNO_CHASSIS_FIELDS = [
-  "gear", "tire_size", "tire_pressure_kpa", "tire_condition", "dyno_strapping",
-];
+const DYNO_CHASSIS_FIELDS = ["gear", "dyno_strapping"];
+const DYNO_TIRE_FIELDS = ["tire_size", "tire_pressure_kpa", "tire_condition"];
+const DYNO_HUB_FIELDS = ["dyno_hub_fixture"];
 const DYNO_SWEEP_FIELDS = ["dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"];
 function renderProtocolModeOptions() {
   const domain = $("#protocolDomain").value;
@@ -101,9 +102,12 @@ function protocolRequiredFields() {
   const mode = $("#protocolMode").value;
   if (domain === "dyno") {
     const dynoType = document.querySelector('[data-condition-key="dyno_type"]')?.value ?? "";
+    const measurementBasis = document.querySelector('[data-condition-key="dyno_measurement_basis"]')?.value ?? "";
     return [
       ...DYNO_COMMON_FIELDS,
       ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(dynoType === "chassis" && ["wheel", "roller"].includes(measurementBasis) ? DYNO_TIRE_FIELDS : []),
+      ...(dynoType === "chassis" && measurementBasis === "hub" ? DYNO_HUB_FIELDS : []),
       ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
     ];
   }
@@ -290,7 +294,9 @@ export function initializeProtocolInspector() {
   $("#protocolDomain").addEventListener("change", renderProtocolModeOptions);
   $("#protocolMode").addEventListener("change", () => { renderProtocolConditionFields(); updateProtocolPointFields(); });
   $("#protocolConditionFields").addEventListener("change", event => {
-    if (event.target?.matches('[data-condition-key="dyno_type"]')) renderProtocolConditionFields();
+    if (event.target?.matches('[data-condition-key="dyno_type"], [data-condition-key="dyno_measurement_basis"]')) {
+      renderProtocolConditionFields();
+    }
   });
   $("#protocolBuildButton").addEventListener("click", () => {
     const status = $("#protocolBuilderStatus");

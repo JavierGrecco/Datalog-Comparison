@@ -17,10 +17,11 @@ const DYNO_COMMON_FIELDS = [
   "vehicle_engine", "fuel", "test_method", "dyno_model", "dyno_type",
   "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
   "dyno_fan_setup", "instrument_calibration", "ambient_temp_c",
+  "ambient_pressure_kpa", "relative_humidity_pct",
 ];
-const DYNO_CHASSIS_FIELDS = [
-  "gear", "tire_size", "tire_pressure_kpa", "tire_condition", "dyno_strapping",
-];
+const DYNO_CHASSIS_FIELDS = ["gear", "dyno_strapping"];
+const DYNO_TIRE_FIELDS = ["tire_size", "tire_pressure_kpa", "tire_condition"];
+const DYNO_HUB_FIELDS = ["dyno_hub_fixture"];
 const DYNO_SWEEP_FIELDS = ["dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"];
 
 const usable = entry => entry && ["measured", "verified"].includes(entry.status) &&
@@ -192,6 +193,8 @@ export function assessTestProtocol(runs, {
     requiredFields = [
       ...DYNO_COMMON_FIELDS,
       ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(dynoType === "chassis" && ["wheel", "roller"].includes(measurementBasis) ? DYNO_TIRE_FIELDS : []),
+      ...(dynoType === "chassis" && measurementBasis === "hub" ? DYNO_HUB_FIELDS : []),
       ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
     ];
     setupFields = [
@@ -199,6 +202,8 @@ export function assessTestProtocol(runs, {
       "dyno_measurement_basis", "dyno_load_mode", "dyno_correction_standard",
       "dyno_fan_setup", "instrument_calibration",
       ...(dynoType === "chassis" ? DYNO_CHASSIS_FIELDS : []),
+      ...(dynoType === "chassis" && ["wheel", "roller"].includes(measurementBasis) ? DYNO_TIRE_FIELDS : []),
+      ...(dynoType === "chassis" && measurementBasis === "hub" ? DYNO_HUB_FIELDS : []),
       ...(["inertia_sweep", "loaded_sweep"].includes(mode) ? DYNO_SWEEP_FIELDS : []),
     ];
   } else {

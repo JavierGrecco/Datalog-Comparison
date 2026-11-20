@@ -34,6 +34,7 @@ export const OPERATING_CONDITION_FIELDS = Object.freeze([
   { key: "instrument_calibration", label: "Calibración de instrumentos", type: "text", unit: "", optional: true, hint: "Identificación, fecha o estado de calibración de sensores y equipos de medición." },
   { key: "tire_condition", label: "Estado de neumáticos", type: "text", unit: "", optional: true, hint: "Tipo, estado, temperatura/condición y cambios entre tiradas." },
   { key: "dyno_strapping", label: "Sujeción del vehículo", type: "text", unit: "", optional: true, hint: "Configuración y puntos de amarre; conservar la misma configuración entre ensayos." },
+  { key: "dyno_hub_fixture", label: "Adaptadores y fijación del cubo", type: "text", unit: "", optional: true, hint: "Identificá adaptadores, patrón de fijación y montaje utilizados en el dinamómetro de cubo." },
   { key: "dyno_load_mode", label: "Modo de carga del dinamómetro", type: "text", unit: "", optional: true, hint: "Ej.: inercial, freno/eddy-current o carga de carretera. Usá la denominación del equipo; no se infiere de la curva." }
 ]);
 

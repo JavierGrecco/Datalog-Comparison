@@ -124,7 +124,7 @@ function engineDynoRun(id, torque) {
   run.operatingPoint = { rpm: 3000, loadNm: 300 };
   const fields = run.operatingConditions.fields;
   for (const key of ["gear", "tire_size", "tire_pressure_kpa", "tire_condition",
-    "dyno_strapping", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
+    "dyno_strapping", "dyno_hub_fixture", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
     fields[key] = { value: null, status: "unknown", source: "", note: "" };
   }
   fields.test_method.value = "Banco de motor estacionario";
@@ -141,7 +141,7 @@ test("un banco de motor estacionario no exige marcha, neumáticos, sujeción, ra
   assert.equal(result.domain, "dyno");
   assert.equal(result.mode, "steady_state");
   for (const key of ["gear", "tire_size", "tire_pressure_kpa", "tire_condition",
-    "dyno_strapping", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
+    "dyno_strapping", "dyno_hub_fixture", "dyno_ramp_rate_rpm_s", "dyno_smoothing_setting"]) {
     assert.equal(result.requiredConditions.includes(key), false, key + " no debe ser obligatorio en banco de motor estacionario");
   }
 });
@@ -182,4 +182,42 @@ test("los barridos requieren rampa y suavizado, pero el punto estacionario no", 
   const steadyRuns = [engineDynoRun("a", 100), engineDynoRun("b", 100.1), engineDynoRun("c", 99.9)];
   const steady = assessTestProtocol(steadyRuns, { maximumCvPct: 1 });
   assert.equal(steady.status, "supported");
+});
+
+
+function hubDynoRun(id, torque) {
+  const run = dynoRun(id, torque);
+  run.operatingConditions.fields.dyno_measurement_basis.value = "hub";
+  for (const key of ["tire_size", "tire_pressure_kpa", "tire_condition"]) {
+    run.operatingConditions.fields[key] = { value: null, status: "unknown", source: "", note: "" };
+  }
+  run.operatingConditions.fields.dyno_hub_fixture = {
+    value: "Adaptador 5x114.3; fijación documentada",
+    status: "measured",
+    source: "Ficha de montaje del banco",
+    note: "",
+  };
+  return run;
+}
+
+test("un dinamómetro de cubo exige adaptador y fijación, pero no datos de neumáticos", () => {
+  const runs = [hubDynoRun("a", 100), hubDynoRun("b", 100.1), hubDynoRun("c", 99.9)];
+  const result = assessTestProtocol(runs, { maximumCvPct: 1 });
+  assert.equal(result.status, "supported");
+  assert.ok(result.requiredConditions.includes("dyno_hub_fixture"));
+  for (const key of ["tire_size", "tire_pressure_kpa", "tire_condition"]) {
+    assert.equal(result.requiredConditions.includes(key), false, key + " no debe ser obligatorio en banco de cubo");
+  }
+});
+
+test("un banco de chasis de rueda o rodillo sigue exigiendo neumáticos", () => {
+  for (const basis of ["wheel", "roller"]) {
+    const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+    for (const run of runs) run.operatingConditions.fields.dyno_measurement_basis.value = basis;
+    const result = assessTestProtocol(runs, { maximumCvPct: 1 });
+    assert.equal(result.status, "supported");
+    assert.ok(result.requiredConditions.includes("tire_size"));
+    assert.ok(result.requiredConditions.includes("tire_pressure_kpa"));
+    assert.equal(result.requiredConditions.includes("dyno_hub_fixture"), false);
+  }
 });

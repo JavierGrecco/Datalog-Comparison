@@ -17,9 +17,9 @@ Este módulo convierte condiciones de ensayo y repeticiones en controles reprodu
 Los modos aceptados son `inertia_sweep`, `loaded_sweep` y `steady_state`. El protocolo distingue dos tipos de banco mediante `dyno_type`:
 
 - **Banco de motor**: mide en el cigüeñal o salida del motor; su base debe declararse como `engine`. No exige marcha, neumáticos, presión de neumáticos ni sujeción del vehículo.
-- **Banco de chasis**: mide a través del tren de transmisión; su base debe declararse explícitamente como `wheel`, `hub` o `roller`. Exige marcha, medida/presión/estado de neumáticos y configuración de sujeción.
+- **Banco de chasis**: mide a través del tren de transmisión; su base debe declararse explícitamente como `wheel`, `hub` o `roller`. Todas las bases requieren marcha y configuración de sujeción. Las bases `wheel` y `roller` requieren medida, presión y estado de neumáticos. La base `hub` no exige datos de neumáticos, pero sí la identificación de adaptadores y fijación del cubo.
 
-Ambos perfiles requieren identificar vehículo/motor, combustible, método, modelo, modo de carga, estándar o condición de corrección, ventilación, calibración de instrumentos y temperatura ambiente. Los modos de barrido requieren además rampa y suavizado; esos campos no se exigen en un punto estacionario. Presión barométrica y humedad relativa quedan como condiciones ambientales complementarias cuando estén disponibles.
+Ambos perfiles requieren identificar vehículo/motor, combustible, método, modelo, modo de carga, estándar o condición de corrección, ventilación, calibración de instrumentos y condiciones ambientales: temperatura, presión barométrica y humedad relativa. Los modos de barrido requieren además rampa y suavizado; esos campos no se exigen en un punto estacionario.
 
 Una clasificación ausente, incompatible o mezclada bloquea el protocolo. No se convierten ni mezclan bases de motor, rueda, cubo o rodillo: una curva de banco de motor tampoco es intercambiable con una medición de banco de chasis.
 

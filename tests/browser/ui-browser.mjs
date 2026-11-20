@@ -1024,6 +1024,8 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
     dyno_fan_setup: "Ventilación de laboratorio documentada",
     instrument_calibration: "Registro de calibración 2026",
     ambient_temp_c: "25",
+    ambient_pressure_kpa: "99.8",
+    relative_humidity_pct: "45",
   };
   for (const [key, value] of Object.entries(values)) {
     await page.locator('[data-condition-key="' + key + '"]').fill(value);
@@ -1045,10 +1047,19 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
   assert.equal(generated.runs[0].operatingConditions.fields.dyno_type.value, "engine");
   assert.equal(generated.runs[0].operatingConditions.fields.dyno_measurement_basis.value, "engine");
   assert.equal(generated.runs[0].operatingConditions.fields.tire_size.status, "unknown");
+  assert.equal(generated.runs[0].operatingConditions.fields.dyno_hub_fixture.status, "unknown");
   const required = await page.locator("#protocolResult").innerText();
   assert.match(required, /Controles configurados completos/);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
+
+  await page.locator('[data-condition-key="dyno_type"]').selectOption("chassis");
+  await page.locator('[data-condition-key="dyno_measurement_basis"]').selectOption("hub");
+  await page.waitForFunction(() =>
+    document.querySelector('[data-condition-key="dyno_hub_fixture"]') &&
+    !document.querySelector('[data-condition-key="tire_size"]'));
+  assert.equal(await page.locator('[data-condition-key="dyno_hub_fixture"]').count(), 1);
+  assert.equal(await page.locator('[data-condition-key="tire_pressure_kpa"]').count(), 0);
 });
