@@ -94,6 +94,14 @@ npx playwright install chromium
 npm test
 ```
 
+Para validar un informe JSON exportado, sin modificarlo ni enviarlo a un servicio externo:
+
+```bash
+npm run validate:report -- ./datalog-comparison-imported.json
+```
+
+El comando devuelve código de salida `0` para informes válidos, `1` para JSON/informes inválidos y `2` para errores de uso o lectura. También acepta entrada por tubería y salida JSON para CI; ver [la guía del validador](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente).
+
 El comando `npm test` ejecuta:
 
 1. **Chequeo de sintaxis:** valida los módulos JavaScript incluidos en el proyecto.
@@ -134,7 +142,8 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   └── sources.json       # Catálogo de fuentes, licencias y procedencia
 ├── scripts/
 │   ├── fetch-obd-sample.mjs
-│   └── generate-simulated-telemetry.mjs
+│   ├── generate-simulated-telemetry.mjs
+│   └── validate-comparison-report.mjs
 ├── src/
 │   ├── simulated-telemetry.mjs
 │   ├── csv-import.mjs
@@ -142,6 +151,8 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── unit-registry.mjs
 │   ├── adapters/          # Perfiles experimentales ECU/dinamómetro
 │   ├── demo-model.mjs
+│   ├── imported-comparison-report.mjs
+│   ├── imported-comparison-report-validator.mjs
 │   ├── comparison-readiness.mjs
 │   ├── run-comparability.mjs
 │   ├── data-quality.mjs
@@ -153,11 +164,16 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── unit/             # Pruebas de dominio y parser
 │   │   └── simulated-telemetry.test.mjs
 │   └── browser/          # Recorrido automatizado con Chromium
+├── schemas/
+│   └── imported-run-comparison-1.schema.json
+├── examples/
+│   └── imported-run-comparison-1.example.json
 ├── docs/
 │   ├── PUBLIC_DATASETS.md
 │   ├── SIMULATOR.md
 │   ├── ARCHITECTURE.md
 │   ├── CSV_IMPORT.md
+│   ├── IMPORTED_COMPARISON_REPORT.md
 │   ├── CHANNEL_RECOGNITION.md
 │   ├── QUALITY_GATES.md
 │   ├── ENGINEERING.md

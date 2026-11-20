@@ -19,7 +19,8 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | --- | --- |
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
-| src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |\n| src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
+| src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |
+| src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
 | src/unit-registry.mjs | Registro versionado de símbolos, dimensiones, unidades canónicas y conversiones con sensibilidad al caso. |
 | src/adapters/haltech-nsp.mjs | Perfil experimental para variante Haltech NSP con marcador y encabezados tipados. |
@@ -34,7 +35,10 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
 | src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
 | src/imported-comparison-report.mjs | Serialización versionada del expediente importado con lista permitida de metadatos; excluye muestras, celdas y rutas locales. |
+| src/imported-comparison-report-validator.mjs | Validación estructural contra el esquema publicado y comprobación de invariantes estadísticas y de unidades. |
+| scripts/validate-comparison-report.mjs | Interfaz CLI para validar informes desde archivo o stdin, con salida humana o JSON. |
 | schemas/imported-run-comparison-1.schema.json | Contrato JSON Schema Draft 2020-12 para el informe portable de comparaciones importadas. |
+| examples/imported-run-comparison-1.example.json | Ejemplo completo y versionado para consumidores externos. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
 
@@ -56,12 +60,13 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 - Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
 - El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
 - Los informes sintético e importado no exportan muestras completas ni rutas locales. El segundo conserva metadatos permitidos, estadísticas y controles; su SHA-256 identifica bytes iguales, no autentica el origen.
+- El validador CLI carga el esquema versionado y añade controles de dominio sobre recuentos, cobertura, unidades y diferencias estadísticas. Solo sigue referencias locales; no accede a la red.
 
 ## Ejecución y dependencias
 
 La interfaz usa HTML, CSS y módulos ECMAScript nativos. Los gráficos se dibujan en SVG. No hay backend, proceso de build ni dependencias JavaScript en tiempo de ejecución.
 
-Python puede utilizarse como servidor HTTP estático local, pero no participa del producto. Node.js y Playwright se reservan para las comprobaciones automatizadas.
+Python puede utilizarse como servidor HTTP estático local, pero no participa del producto. Node.js ejecuta las pruebas, la generación de datos y el validador CLI de informes; Playwright se reserva para las comprobaciones de navegador.
 
 ## Pruebas
 
@@ -69,5 +74,6 @@ Python puede utilizarse como servidor HTTP estático local, pero no participa de
 - tests/fixtures/: archivos CSV sintéticos y versionados.
 - tests/browser/: servidor efímero local y recorrido de escenarios/importadores en Chromium.
 - npm test: sintaxis, pruebas unitarias y pruebas de navegador.
+- npm run validate:report -- archivo.json: validación de un informe portable desde consola o tubería.
 
 El detalle de estados está en QUALITY_GATES.md. El contrato de importación está en CSV_IMPORT.md. Las pruebas automáticas no demuestran equivalencia física ni validan un vehículo.

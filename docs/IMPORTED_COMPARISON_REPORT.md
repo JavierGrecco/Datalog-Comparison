@@ -57,7 +57,7 @@ Las pruebas unitarias verifican que:
 3. el esquema rechaza roles invertidos, alineación temporal declarada, campos extra y fechas inválidas;
 4. las protecciones contra exportar muestras y contenido de origen siguen vigentes.
 
-El helper de pruebas es deliberadamente acotado a las palabras clave que utiliza este esquema; no es una implementación general de JSON Schema para otros proyectos.
+El motor de validación implementa las palabras clave utilizadas por este esquema y las invariantes específicas de estos informes. Es deliberadamente acotado: no es una implementación general de JSON Schema para validar contratos ajenos al proyecto.
 
 ## Validador independiente
 
