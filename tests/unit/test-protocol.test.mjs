@@ -411,3 +411,70 @@ test("limita la cantidad de métricas declaradas para proteger el evaluador", ()
   const expectedMetrics = Array.from({ length: 129 }, (_, index) => "metric_" + index);
   assert.throws(() => assessRepeatability([], { expectedMetrics }), /128 métricas/);
 });
+
+
+test("usa límites CV independientes por métrica y aplica el límite específico sobre el general", () => {
+  const result = assessRepeatability([
+    { metrics: { torque_nm: 99, lambda: 0.99 } },
+    { metrics: { torque_nm: 100, lambda: 1.00 } },
+    { metrics: { torque_nm: 101, lambda: 1.01 } },
+  ], {
+    maximumCvPct: 2,
+    maximumCvPctByMetric: { lambda: 0.5 },
+  });
+  const torque = result.metrics.find(metric => metric.key === "torque_nm");
+  const lambda = result.metrics.find(metric => metric.key === "lambda");
+  assert.equal(torque.maximumCvPct, 2);
+  assert.equal(torque.status, "within_user_limit");
+  assert.equal(lambda.maximumCvPct, 0.5);
+  assert.equal(lambda.status, "above_user_limit");
+  assert.equal(result.status, "review_required");
+});
+
+test("una métrica sin límite propio ni general queda sin aprobar aunque otra tenga límite", () => {
+  const result = assessRepeatability([
+    { metrics: { torque_nm: 99, offset_nm: 1 } },
+    { metrics: { torque_nm: 100, offset_nm: 2 } },
+    { metrics: { torque_nm: 101, offset_nm: 3 } },
+  ], {
+    maximumCvPctByMetric: { torque_nm: 2 },
+  });
+  assert.equal(result.metrics.find(metric => metric.key === "torque_nm").status, "within_user_limit");
+  assert.equal(result.metrics.find(metric => metric.key === "offset_nm").status, "threshold_not_configured");
+  assert.equal(result.status, "threshold_not_configured");
+});
+
+test("rechaza límites CV por métrica inválidos", () => {
+  assert.throws(() => assessRepeatability([], { maximumCvPctByMetric: [] }), /objeto/);
+  assert.throws(() => assessRepeatability([], { maximumCvPctByMetric: { "Lambda medida": 1 } }), /clave técnica/);
+  assert.throws(() => assessRepeatability([], { maximumCvPctByMetric: { lambda: -1 } }), /finito y no negativo/);
+});
+
+test("calcula estadísticas estables para valores finitos muy grandes sin overflow", () => {
+  const result = assessRepeatability([
+    { metrics: { torque_nm: 1e308 } },
+    { metrics: { torque_nm: 1e308 } },
+    { metrics: { torque_nm: 1e308 } },
+  ], { maximumCvPct: 0.1 });
+  const metric = result.metrics[0];
+  assert.equal(metric.mean, 1e308);
+  assert.equal(metric.cvPct, 0);
+  assert.equal(metric.rangePct, 0);
+  assert.equal(metric.status, "within_user_limit");
+});
+
+test("tolera una configuración numérica por el rango completo y no por referencia al primer ensayo", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100), dynoRun("c", 100)];
+  runs[0].operatingConditions.fields.ambient_pressure_kpa.value = 100.0;
+  runs[1].operatingConditions.fields.ambient_pressure_kpa.value = 99.8;
+  runs[2].operatingConditions.fields.ambient_pressure_kpa.value = 100.2;
+  const result = assessTestProtocol(runs, {
+    maximumCvPct: 1,
+    setupTolerances: { ambient_pressure_kpa: 0.25 },
+  });
+  assert.equal(result.status, "review_required");
+  const finding = result.findings.find(item =>
+    item.code === "setup_mismatch" && item.field === "ambient_pressure_kpa");
+  assert.ok(finding);
+  assert.equal(finding.maxDifference, 0.4);
+});

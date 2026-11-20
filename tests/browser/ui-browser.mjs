@@ -1076,6 +1076,7 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
   await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
   await page.locator("#protocolSetupTolerances").fill('{"ambient_pressure_kpa":0.2}');
   await page.locator("#protocolCvLimit").fill("2");
+  await page.locator("#protocolCvLimitsByMetric").fill('{"power_kw":1.5}');
   await page.locator("#protocolBuildButton").click();
   await page.locator("#protocolResult").waitFor({ state: "visible" });
   const generated = JSON.parse(await page.locator("#protocolJsonInput").inputValue());
@@ -1083,6 +1084,7 @@ test("el constructor guiado diferencia banco de motor y banco de chasis", async 
   assert.equal(generated.runs[0].operatingConditions.fields.dyno_type.value, "engine");
   assert.equal(generated.runs[0].operatingConditions.fields.dyno_measurement_basis.value, "engine");
   assert.deepEqual(generated.options.setupTolerances, { ambient_pressure_kpa: 0.2 });
+  assert.deepEqual(generated.options.maximumCvPctByMetric, { power_kw: 1.5 });
   assert.equal(generated.runs[0].operatingConditions.fields.tire_size.status, "unknown");
   assert.equal(generated.runs[0].operatingConditions.fields.dyno_hub_fixture.status, "unknown");
   const required = await page.locator("#protocolResult").innerText();

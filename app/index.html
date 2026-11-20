@@ -275,9 +275,14 @@
             <label class="csv-control" for="protocolReplicates"><span>Cantidad de repeticiones</span>
               <input id="protocolReplicates" type="number" min="2" max="20" value="3">
             </label>
-            <label class="csv-control" for="protocolCvLimit"><span>Límite de CV (%)</span>
-              <input id="protocolCvLimit" type="number" min="0" step="0.01" placeholder="Sin límite configurado">
-              <small>Definilo según el banco, sensor, métrica y método. No hay un umbral universal.</small>
+            <label class="csv-control" for="protocolCvLimit"><span>Límite general de CV (%)</span>
+              <input id="protocolCvLimit" type="number" min="0" step="0.01" placeholder="Sin límite general">
+              <small>Se aplica como valor de respaldo. Los límites específicos por métrica tienen prioridad.</small>
+            </label>
+            <label class="csv-control" for="protocolCvLimitsByMetric">
+              <span>Límites de CV por métrica (JSON, opcional)</span>
+              <textarea id="protocolCvLimitsByMetric" rows="2" spellcheck="false" placeholder='{"torque_nm":2,"lambda":0.5}'></textarea>
+              <small>Definí un umbral independiente para cada magnitud según instrumento, método y objetivo. Las métricas sin límite quedan sin aprobar.</small>
             </label>
             <label class="csv-control protocol-point-field" for="protocolPointId"><span>Identificador del punto / tramo</span>
               <input id="protocolPointId" type="text" value="punto-ensayo-1" maxlength="100">

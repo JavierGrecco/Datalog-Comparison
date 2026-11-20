@@ -46,6 +46,7 @@ function renderResult(result) {
         (metric.missingCount ? " · faltan " + metric.missingCount : "") +
         " · media " + (metric.mean === null ? "—" : metric.mean) +
         " · CV " + (metric.cvPct === null ? "—" : metric.cvPct.toFixed(3) + "%") +
+        " · límite " + (metric.maximumCvPct === null ? "sin configurar" : metric.maximumCvPct + "%") +
         " · " + metric.status));
     }
     section.append(list);
@@ -296,6 +297,15 @@ function buildProtocolFromForm() {
     if (!Number.isFinite(maximumCvPct) || maximumCvPct < 0) throw new TypeError("El límite CV debe ser un número igual o mayor que cero.");
     options.maximumCvPct = maximumCvPct;
   }
+  const rawMetricCvLimits = $("#protocolCvLimitsByMetric").value.trim();
+  if (rawMetricCvLimits) {
+    const maximumCvPctByMetric = JSON.parse(rawMetricCvLimits);
+    if (!maximumCvPctByMetric || typeof maximumCvPctByMetric !== "object" ||
+        Array.isArray(maximumCvPctByMetric)) {
+      throw new TypeError("Los límites de CV por métrica deben ser un objeto JSON.");
+    }
+    options.maximumCvPctByMetric = maximumCvPctByMetric;
+  }
   return { schema: "datalog-test-protocol/1", evidenceClass: "user_entered", options, runs };
 }
 
@@ -358,7 +368,7 @@ export function initializeProtocolInspector() {
       window.dispatchEvent(new CustomEvent("datalog:derived-ready", { detail: { artifact: {
         kind: "test_protocol_assessment",
         algorithm: "assessTestProtocol",
-        algorithmVersion: "1.2.0",
+        algorithmVersion: "1.3.0",
         source: {
           evidenceClass: typeof input.evidenceClass === "string" ? input.evidenceClass : "user_supplied",
           protocolSchema: typeof input.schema === "string" ? input.schema : "unversioned",

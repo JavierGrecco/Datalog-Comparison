@@ -73,6 +73,28 @@ function normalizeSetupTolerances(setupTolerances) {
   return normalized;
 }
 
+function normalizeMetricCvLimits(maximumCvPctByMetric) {
+  if (!maximumCvPctByMetric || typeof maximumCvPctByMetric !== "object" ||
+      Array.isArray(maximumCvPctByMetric)) {
+    throw new TypeError("maximumCvPctByMetric debe ser un objeto con límites por métrica.");
+  }
+  const entries = Object.entries(maximumCvPctByMetric);
+  if (entries.length > 128) {
+    throw new RangeError("No se pueden configurar límites para más de 128 métricas.");
+  }
+  const normalized = {};
+  for (const [key, limit] of entries) {
+    if (!METRIC_KEY_PATTERN.test(key)) {
+      throw new TypeError("La clave de límite CV por métrica no tiene un formato técnico válido.");
+    }
+    if (!Number.isFinite(limit) || limit < 0) {
+      throw new RangeError("El límite CV de " + key + " debe ser finito y no negativo.");
+    }
+    normalized[key] = limit;
+  }
+  return normalized;
+}
+
 function sameStructuredValue(left, right) {
   if (Object.is(left, right)) return true;
   if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
@@ -117,15 +139,15 @@ function assessStableSetup(runs, keys, setupTolerances = {}) {
     const entries = runs.map(run => getCondition(run, key));
     if (entries.some(entry => !usable(entry))) continue;
     const tolerance = setupTolerances[key] ?? 0;
-    const referenceValue = entries[0].value;
-    const matches = entries.every(entry => {
-      const value = entry.value;
-      if (typeof referenceValue === "number" && typeof value === "number" &&
-          Number.isFinite(referenceValue) && Number.isFinite(value)) {
-        return Math.abs(referenceValue - value) <= tolerance;
-      }
-      return sameValue(referenceValue, value);
-    });
+    const values = entries.map(entry => entry.value);
+    const allNumeric = values.every(value => typeof value === "number" && Number.isFinite(value));
+    const referenceValue = values[0];
+    const minValue = allNumeric ? values.reduce((min, value) => Math.min(min, value), Infinity) : null;
+    const maxValue = allNumeric ? values.reduce((max, value) => Math.max(max, value), -Infinity) : null;
+    const maxDifference = allNumeric ? maxValue - minValue : null;
+    const matches = allNumeric
+      ? maxDifference <= tolerance
+      : values.every(value => sameValue(referenceValue, value));
     if (!matches) {
       const unit = NUMERIC_CONDITION_UNITS.get(key) ?? "";
       findings.push({
@@ -134,7 +156,8 @@ function assessStableSetup(runs, keys, setupTolerances = {}) {
         tolerance,
         unit,
         referenceValue,
-        values: entries.map(entry => entry.value),
+        maxDifference,
+        values,
         message: "La condición " + key + " cambia más que la tolerancia configurada" +
           (unit ? " (" + tolerance + " " + unit + ")" : "") +
           "; no deben agruparse como un mismo protocolo sin revisión.",
@@ -144,16 +167,54 @@ function assessStableSetup(runs, keys, setupTolerances = {}) {
   return findings;
 }
 
-function coefficientOfVariation(values) {
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  if (mean === 0) return null;
-  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
-  return Math.sqrt(variance) / Math.abs(mean) * 100;
+function calculateMetricStatistics(values) {
+  if (!values.length) return { mean: null, min: null, max: null, cvPct: null, rangePct: null };
+
+  // Scale first so finite inputs near Number.MAX_VALUE do not overflow while summing.
+  const scale = values.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
+  const min = values.reduce((minimum, value) => Math.min(minimum, value), Infinity);
+  const max = values.reduce((maximum, value) => Math.max(maximum, value), -Infinity);
+  if (scale === 0) {
+    return { mean: 0, min, max, cvPct: values.length >= 2 ? null : null, rangePct: null };
+  }
+
+  // Welford's method on normalized values keeps the variance calculation bounded.
+  let count = 0;
+  let meanNormalized = 0;
+  let sumSquaredDeviations = 0;
+  for (const value of values) {
+    const normalized = value / scale;
+    count += 1;
+    const delta = normalized - meanNormalized;
+    meanNormalized += delta / count;
+    const deltaAfterUpdate = normalized - meanNormalized;
+    sumSquaredDeviations += delta * deltaAfterUpdate;
+  }
+
+  const mean = meanNormalized * scale;
+  const standardDeviationNormalized = values.length >= 2
+    ? Math.sqrt(Math.max(0, sumSquaredDeviations) / (values.length - 1))
+    : null;
+  const cvRaw = values.length >= 2 && meanNormalized !== 0
+    ? standardDeviationNormalized / Math.abs(meanNormalized) * 100
+    : null;
+  const rangeRaw = meanNormalized !== 0
+    ? ((max / scale) - (min / scale)) / Math.abs(meanNormalized) * 100
+    : null;
+
+  return {
+    mean,
+    min,
+    max,
+    cvPct: Number.isFinite(cvRaw) ? cvRaw : null,
+    rangePct: Number.isFinite(rangeRaw) ? rangeRaw : null,
+  };
 }
 
 export function assessRepeatability(replicates, {
   minimumReplicates = 3,
   maximumCvPct = null,
+  maximumCvPctByMetric = {},
   expectedMetrics = [],
 } = {}) {
   if (!Array.isArray(replicates)) throw new TypeError("replicates debe ser una lista.");
@@ -163,6 +224,7 @@ export function assessRepeatability(replicates, {
   if (maximumCvPct !== null && (!Number.isFinite(maximumCvPct) || maximumCvPct < 0)) {
     throw new RangeError("maximumCvPct debe ser un número finito no negativo o null.");
   }
+  const normalizedMetricCvLimits = normalizeMetricCvLimits(maximumCvPctByMetric);
   const expectedMetricKeys = normalizeExpectedMetrics(expectedMetrics);
   const declaredMetricKeys = new Set();
   for (const [index, replicate] of replicates.entries()) {
@@ -185,19 +247,22 @@ export function assessRepeatability(replicates, {
   const metrics = metricKeys.map(key => {
     const values = replicates.map(item => item?.metrics?.[key]).filter(Number.isFinite);
     const missingCount = replicates.length - values.length;
-    const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-    const cvPct = values.length >= 2 ? coefficientOfVariation(values) : null;
-    const rangePct = mean !== null && mean !== 0
-      ? (Math.max(...values) - Math.min(...values)) / Math.abs(mean) * 100
-      : null;
+    const statistics = calculateMetricStatistics(values);
+    const metricMaximumCvPct = normalizedMetricCvLimits[key] ?? maximumCvPct;
     const status = values.length < minimumReplicates ? "insufficient_replicates"
       : missingCount > 0 ? "incomplete_replicates"
-        : maximumCvPct === null ? "threshold_not_configured"
-          : cvPct === null ? "not_calculable"
-            : cvPct <= maximumCvPct ? "within_user_limit" : "above_user_limit";
-    return { key, expected: expectedMetricSet.has(key), count: values.length, missingCount, mean,
-      min: values.length ? Math.min(...values) : null,
-      max: values.length ? Math.max(...values) : null, cvPct, rangePct, status };
+        : metricMaximumCvPct === null ? "threshold_not_configured"
+          : statistics.cvPct === null ? "not_calculable"
+            : statistics.cvPct <= metricMaximumCvPct ? "within_user_limit" : "above_user_limit";
+    return {
+      key,
+      expected: expectedMetricSet.has(key),
+      count: values.length,
+      missingCount,
+      ...statistics,
+      maximumCvPct: metricMaximumCvPct,
+      status,
+    };
   });
   const hasNoMetrics = metrics.length === 0;
   const hasInsufficient = metrics.some(item => item.status === "insufficient_replicates");
@@ -211,6 +276,7 @@ export function assessRepeatability(replicates, {
     replicateCount: replicates.length,
     minimumReplicates,
     maximumCvPct,
+    maximumCvPctByMetric: normalizedMetricCvLimits,
     expectedMetrics: expectedMetricKeys,
     status: hasNoMetrics ? "no_metrics" : hasInsufficient ? "insufficient_replicates"
       : hasIncomplete ? "incomplete_replicates"
@@ -231,6 +297,7 @@ export function assessRepeatability(replicates, {
  */
 export function assessTestProtocol(runs, {
   maximumCvPct = null,
+  maximumCvPctByMetric = {},
   minimumReplicates = 3,
   expectedMetrics = [],
   setupTolerances = {},
@@ -238,11 +305,15 @@ export function assessTestProtocol(runs, {
   if (!Array.isArray(runs) || !runs.length) throw new TypeError("Se necesita al menos un registro.");
   const normalizedExpectedMetrics = normalizeExpectedMetrics(expectedMetrics);
   const normalizedSetupTolerances = normalizeSetupTolerances(setupTolerances);
+  const normalizedMetricCvLimits = normalizeMetricCvLimits(maximumCvPctByMetric);
   const domains = new Set(runs.map(run => run?.domain));
   if (domains.size !== 1 || !["ecu", "dyno"].includes([...domains][0])) {
     return { schema: TEST_PROTOCOL_SCHEMA, status: "blocked",
       findings: [{ code: "mixed_or_unknown_domain", message: "El protocolo requiere registros del mismo dominio identificado: ECU o dinamómetro." }],
-      repeatability: assessRepeatability([], { minimumReplicates, maximumCvPct, expectedMetrics: normalizedExpectedMetrics }) };
+      repeatability: assessRepeatability([], {
+        minimumReplicates, maximumCvPct, maximumCvPctByMetric: normalizedMetricCvLimits,
+        expectedMetrics: normalizedExpectedMetrics,
+      }) };
   }
   const domain = [...domains][0];
   const modes = new Set(runs.map(run => run?.protocol?.mode));
@@ -348,7 +419,8 @@ export function assessTestProtocol(runs, {
     findings.push({ code: "operating_point_mismatch", message: "Cada repetición debe compartir el mismo identificador y los mismos valores efectivos del punto o tramo operativo; no alcanza con reutilizar un ID." });
   }
   const repeatability = assessRepeatability(runs, {
-    minimumReplicates, maximumCvPct, expectedMetrics: normalizedExpectedMetrics,
+    minimumReplicates, maximumCvPct, maximumCvPctByMetric: normalizedMetricCvLimits,
+    expectedMetrics: normalizedExpectedMetrics,
   });
   if (repeatability.status === "insufficient_replicates") {
     findings.push({ code: "insufficient_replicates", message: "Se requieren al menos " + minimumReplicates + " valores válidos por métrica para evaluar dispersión." });
@@ -366,8 +438,13 @@ export function assessTestProtocol(runs, {
   if (repeatability.status === "incomplete_replicates") {
     findings.push({ code: "incomplete_replicates", message: "Hay métricas con al menos el mínimo de valores, pero faltan datos en una o más repeticiones; no se debe presentar el grupo como completo." });
   }
-  if (repeatability.status === "threshold_not_configured") {
-    findings.push({ code: "repeatability_limit_missing", message: "No se configuró un límite de CV específico para este equipo y método; la dispersión se informa sin aprobarla." });
+  for (const metric of repeatability.metrics.filter(item => item.status === "threshold_not_configured")) {
+    findings.push({
+      code: "repeatability_limit_missing",
+      field: metric.key,
+      message: "No se configuró un límite de CV para la métrica " + metric.key +
+        "; se informa la dispersión, pero no se aprueba.",
+    });
   }
   if (repeatability.metrics.some(metric => metric.status === "above_user_limit")) {
     findings.push({ code: "repeatability_limit_exceeded", message: "Al menos una métrica supera el límite de CV definido por el usuario." });
