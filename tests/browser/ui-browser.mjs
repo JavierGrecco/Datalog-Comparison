@@ -1122,3 +1122,24 @@ test("la interfaz informa una métrica incompleta sin presentar el CV parcial co
   assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
 });
+
+
+test("el constructor guiado detecta una métrica obligatoria ausente en todas las repeticiones", async t => {
+  const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
+    await openDemo(t, { width: 390, height: 844 });
+  await page.locator("#protocolExpectedMetrics").fill("power_kw, lambda");
+  await page.locator("#protocolMetricsInput").fill('{"power_kw":[100,101,99]}');
+  await page.locator("#protocolBuildButton").click();
+  await page.locator("#protocolResult").waitFor({ state: "visible" });
+  const generated = JSON.parse(await page.locator("#protocolJsonInput").inputValue());
+  assert.deepEqual(generated.options.expectedMetrics, ["power_kw", "lambda"]);
+  const result = await page.locator("#protocolResult").innerText();
+  assert.match(result, /lambda/);
+  assert.ok(result.includes("0/3 valores válidos · faltan 3"));
+  assert.match(result, /insufficient_replicates/);
+  assert.match(result, /metric_missing_replicate/);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

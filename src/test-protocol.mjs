@@ -1,4 +1,4 @@
-import { validateOperatingConditions } from "./operating-conditions.mjs";
+import { OPERATING_CONDITION_FIELDS, validateOperatingConditions } from "./operating-conditions.mjs";
 
 /**
  * Protocolos y repetibilidad de ensayos.
@@ -29,6 +29,49 @@ const usable = entry => entry && ["measured", "verified"].includes(entry.status)
 const sameValue = (a, b) => typeof a === "string" && typeof b === "string"
   ? a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase()
   : Object.is(a, b);
+
+const METRIC_KEY_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+const NUMERIC_CONDITION_UNITS = new Map(
+  OPERATING_CONDITION_FIELDS
+    .filter(field => field.type === "number")
+    .map(field => [field.key, field.unit]),
+);
+
+function normalizeExpectedMetrics(expectedMetrics) {
+  if (!Array.isArray(expectedMetrics)) {
+    throw new TypeError("expectedMetrics debe ser una lista de claves de métricas.");
+  }
+  if (expectedMetrics.length > 128) {
+    throw new RangeError("expectedMetrics no puede declarar más de 128 métricas.");
+  }
+  const normalized = expectedMetrics.map(key => {
+    if (typeof key !== "string" || !METRIC_KEY_PATTERN.test(key)) {
+      throw new TypeError("Cada métrica esperada debe usar una clave técnica válida (snake_case).");
+    }
+    return key;
+  });
+  if (new Set(normalized).size !== normalized.length) {
+    throw new TypeError("expectedMetrics no debe contener claves duplicadas.");
+  }
+  return normalized;
+}
+
+function normalizeSetupTolerances(setupTolerances) {
+  if (!setupTolerances || typeof setupTolerances !== "object" || Array.isArray(setupTolerances)) {
+    throw new TypeError("setupTolerances debe ser un objeto con tolerancias por condición.");
+  }
+  const normalized = {};
+  for (const [key, tolerance] of Object.entries(setupTolerances)) {
+    if (!NUMERIC_CONDITION_UNITS.has(key)) {
+      throw new TypeError("No se puede aplicar tolerancia a la condición " + key + "; solo se admiten campos numéricos conocidos.");
+    }
+    if (!Number.isFinite(tolerance) || tolerance < 0) {
+      throw new RangeError("La tolerancia de " + key + " debe ser un número finito no negativo.");
+    }
+    normalized[key] = tolerance;
+  }
+  return normalized;
+}
 
 function sameStructuredValue(left, right) {
   if (Object.is(left, right)) return true;
@@ -67,15 +110,35 @@ function assessRequiredConditions(runs, requiredFields) {
   return findings;
 }
 
-function assessStableSetup(runs, keys) {
+function assessStableSetup(runs, keys, setupTolerances = {}) {
   const findings = [];
   if (runs.length < 2) return findings;
   for (const key of keys) {
     const entries = runs.map(run => getCondition(run, key));
     if (entries.some(entry => !usable(entry))) continue;
-    if (!entries.every(entry => sameValue(entries[0].value, entry.value))) {
-      findings.push({ code: "setup_mismatch", field: key,
-        message: "La condición " + key + " cambia entre repeticiones; no deben agruparse como un mismo protocolo sin revisión." });
+    const tolerance = setupTolerances[key] ?? 0;
+    const referenceValue = entries[0].value;
+    const matches = entries.every(entry => {
+      const value = entry.value;
+      if (typeof referenceValue === "number" && typeof value === "number" &&
+          Number.isFinite(referenceValue) && Number.isFinite(value)) {
+        return Math.abs(referenceValue - value) <= tolerance;
+      }
+      return sameValue(referenceValue, value);
+    });
+    if (!matches) {
+      const unit = NUMERIC_CONDITION_UNITS.get(key) ?? "";
+      findings.push({
+        code: "setup_mismatch",
+        field: key,
+        tolerance,
+        unit,
+        referenceValue,
+        values: entries.map(entry => entry.value),
+        message: "La condición " + key + " cambia más que la tolerancia configurada" +
+          (unit ? " (" + tolerance + " " + unit + ")" : "") +
+          "; no deben agruparse como un mismo protocolo sin revisión.",
+      });
     }
   }
   return findings;
@@ -91,6 +154,7 @@ function coefficientOfVariation(values) {
 export function assessRepeatability(replicates, {
   minimumReplicates = 3,
   maximumCvPct = null,
+  expectedMetrics = [],
 } = {}) {
   if (!Array.isArray(replicates)) throw new TypeError("replicates debe ser una lista.");
   if (!Number.isInteger(minimumReplicates) || minimumReplicates < 2) {
@@ -99,8 +163,22 @@ export function assessRepeatability(replicates, {
   if (maximumCvPct !== null && (!Number.isFinite(maximumCvPct) || maximumCvPct < 0)) {
     throw new RangeError("maximumCvPct debe ser un número finito no negativo o null.");
   }
-  const metricKeys = [...new Set(replicates.flatMap(item =>
-    Object.keys(item?.metrics ?? {}).filter(key => Number.isFinite(item.metrics[key]))))].sort();
+  const expectedMetricKeys = normalizeExpectedMetrics(expectedMetrics);
+  const declaredMetricKeys = new Set();
+  for (const [index, replicate] of replicates.entries()) {
+    const sourceMetrics = replicate?.metrics ?? {};
+    if (typeof sourceMetrics !== "object" || Array.isArray(sourceMetrics)) {
+      throw new TypeError("metrics de la repetición " + (index + 1) + " debe ser un objeto.");
+    }
+    for (const key of Object.keys(sourceMetrics)) {
+      if (!METRIC_KEY_PATTERN.test(key)) {
+        throw new TypeError("La clave de métrica " + key + " no tiene un formato técnico válido.");
+      }
+      declaredMetricKeys.add(key);
+    }
+  }
+  const expectedMetricSet = new Set(expectedMetricKeys);
+  const metricKeys = [...new Set([...expectedMetricKeys, ...declaredMetricKeys])].sort();
   const metrics = metricKeys.map(key => {
     const values = replicates.map(item => item?.metrics?.[key]).filter(Number.isFinite);
     const missingCount = replicates.length - values.length;
@@ -114,7 +192,8 @@ export function assessRepeatability(replicates, {
         : maximumCvPct === null ? "threshold_not_configured"
           : cvPct === null ? "not_calculable"
             : cvPct <= maximumCvPct ? "within_user_limit" : "above_user_limit";
-    return { key, count: values.length, missingCount, mean, min: values.length ? Math.min(...values) : null,
+    return { key, expected: expectedMetricSet.has(key), count: values.length, missingCount, mean,
+      min: values.length ? Math.min(...values) : null,
       max: values.length ? Math.max(...values) : null, cvPct, rangePct, status };
   });
   const hasNoMetrics = metrics.length === 0;
@@ -128,6 +207,7 @@ export function assessRepeatability(replicates, {
     replicateCount: replicates.length,
     minimumReplicates,
     maximumCvPct,
+    expectedMetrics: expectedMetricKeys,
     status: hasNoMetrics ? "no_metrics" : hasInsufficient ? "insufficient_replicates"
       : hasIncomplete ? "incomplete_replicates"
         : hasExceeded ? "review_required"
@@ -148,13 +228,17 @@ export function assessRepeatability(replicates, {
 export function assessTestProtocol(runs, {
   maximumCvPct = null,
   minimumReplicates = 3,
+  expectedMetrics = [],
+  setupTolerances = {},
 } = {}) {
   if (!Array.isArray(runs) || !runs.length) throw new TypeError("Se necesita al menos un registro.");
+  const normalizedExpectedMetrics = normalizeExpectedMetrics(expectedMetrics);
+  const normalizedSetupTolerances = normalizeSetupTolerances(setupTolerances);
   const domains = new Set(runs.map(run => run?.domain));
   if (domains.size !== 1 || !["ecu", "dyno"].includes([...domains][0])) {
     return { schema: TEST_PROTOCOL_SCHEMA, status: "blocked",
       findings: [{ code: "mixed_or_unknown_domain", message: "El protocolo requiere registros del mismo dominio identificado: ECU o dinamómetro." }],
-      repeatability: assessRepeatability([], { minimumReplicates, maximumCvPct }) };
+      repeatability: assessRepeatability([], { minimumReplicates, maximumCvPct, expectedMetrics: normalizedExpectedMetrics }) };
   }
   const domain = [...domains][0];
   const modes = new Set(runs.map(run => run?.protocol?.mode));
@@ -247,7 +331,7 @@ export function assessTestProtocol(runs, {
     setupFields = [];
   }
   findings.push(...assessRequiredConditions(runs, requiredFields));
-  findings.push(...assessStableSetup(runs, setupFields));
+  findings.push(...assessStableSetup(runs, setupFields, normalizedSetupTolerances));
   const pointIds = new Set(runs.map(run => run?.operatingPointId).filter(Boolean));
   const points = runs.map(run => run?.operatingPoint ?? null);
   const pointIsRequired = (domain === "ecu" && mode === "steady_state") ||
@@ -259,7 +343,9 @@ export function assessTestProtocol(runs, {
   if (pointIds.size !== 1 || runs.some(run => !run?.operatingPointId) || pointValuesMismatch) {
     findings.push({ code: "operating_point_mismatch", message: "Cada repetición debe compartir el mismo identificador y los mismos valores efectivos del punto o tramo operativo; no alcanza con reutilizar un ID." });
   }
-  const repeatability = assessRepeatability(runs, { minimumReplicates, maximumCvPct });
+  const repeatability = assessRepeatability(runs, {
+    minimumReplicates, maximumCvPct, expectedMetrics: normalizedExpectedMetrics,
+  });
   if (repeatability.status === "insufficient_replicates") {
     findings.push({ code: "insufficient_replicates", message: "Se requieren al menos " + minimumReplicates + " valores válidos por métrica para evaluar dispersión." });
   }
@@ -338,6 +424,7 @@ export function assessTestProtocol(runs, {
     status,
     findings,
     requiredConditions: requiredFields,
+    setupTolerances: normalizedSetupTolerances,
     repeatability,
     interpretation: "supported significa que se completaron los controles configurados; no equivale a certificación de norma, calibración trazable ni validación física.",
   };

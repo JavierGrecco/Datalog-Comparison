@@ -302,7 +302,12 @@
             <div class="csv-subheading"><h3>Condiciones y evidencia</h3><p>Para cada condición, elegí su estado. Si no la conocés, dejala como desconocida. Los estados informado, medido y verificado requieren fuente.</p></div>
             <div id="protocolConditionFields" class="protocol-condition-grid"></div>
           </div>
-          <label class="csv-control" for="protocolMetricsInput">
+          <label class="csv-control" for="protocolExpectedMetrics">
+              <span>Métricas obligatorias para este ensayo (opcional)</span>
+              <input id="protocolExpectedMetrics" type="text" maxlength="1000" placeholder="Ej.: power_kw, torque_nm, lambda">
+              <small>Declaralas aunque falten en todas las repeticiones. Así el evaluador puede detectar una señal ausente en todo el grupo.</small>
+            </label>
+            <label class="csv-control" "protocolMetricsInput">
             <span>Métricas por repetición (JSON)</span>
             <textarea id="protocolMetricsInput" rows="4" spellcheck="false">{"power_kw":[100,101,99]}</textarea>
             <small>Usá un arreglo numérico por métrica, con un valor por repetición y en el mismo orden. Ej.: {"power_kw":[100,101,99],"torque_nm":[250,251,249]}. No mezcles unidades ni bases de medición.</small>

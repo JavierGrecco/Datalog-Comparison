@@ -314,3 +314,73 @@ test("los IDs de adquisición se comparan después de quitar espacios externos",
   assert.equal(result.status, "blocked");
   assert.ok(result.findings.some(item => item.code === "duplicate_run_id"));
 });
+
+
+test("detecta una métrica esperada que falta en todas las repeticiones", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  for (const run of runs) delete run.metrics.lambda;
+  const result = assessTestProtocol(runs, {
+    maximumCvPct: 2,
+    expectedMetrics: ["torque_nm", "lambda"],
+  });
+  const lambda = result.repeatability.metrics.find(metric => metric.key === "lambda");
+  assert.ok(lambda);
+  assert.equal(lambda.expected, true);
+  assert.equal(lambda.count, 0);
+  assert.equal(lambda.missingCount, 3);
+  assert.equal(lambda.status, "insufficient_replicates");
+  assert.equal(result.status, "review_required");
+  assert.ok(result.findings.some(item =>
+    item.code === "metric_missing_replicate" && item.field === "lambda"));
+});
+
+test("una clave explícita con valores null se considera una métrica faltante", () => {
+  const runs = [ecuRun("a", 0), ecuRun("b", 1), ecuRun("c", -1)];
+  for (const run of runs) run.metrics.lambda = null;
+  const result = assessTestProtocol(runs, { maximumCvPct: 2 });
+  const lambda = result.repeatability.metrics.find(metric => metric.key === "lambda");
+  assert.equal(lambda.count, 0);
+  assert.equal(lambda.missingCount, 3);
+  assert.equal(result.repeatability.status, "insufficient_replicates");
+});
+
+test("rechaza listas de métricas esperadas inválidas o duplicadas", () => {
+  assert.throws(() => assessRepeatability([], { expectedMetrics: "lambda" }), /lista/);
+  assert.throws(() => assessRepeatability([], { expectedMetrics: ["lambda", "lambda"] }), /duplicadas/);
+  assert.throws(() => assessRepeatability([], { expectedMetrics: ["Lambda medida"] }), /clave técnica/);
+});
+
+test("permite tolerancias numéricas explícitas en las condiciones del ensayo", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[1].operatingConditions.fields.ambient_pressure_kpa.value = 99.9;
+  const exact = assessTestProtocol(runs, { maximumCvPct: 1 });
+  assert.equal(exact.status, "review_required");
+  const tolerant = assessTestProtocol(runs, {
+    maximumCvPct: 1,
+    setupTolerances: { ambient_pressure_kpa: 0.2 },
+  });
+  assert.equal(tolerant.status, "supported");
+  assert.equal(tolerant.setupTolerances.ambient_pressure_kpa, 0.2);
+});
+
+test("una diferencia superior a la tolerancia explícita sigue exigiendo revisión", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  runs[1].operatingConditions.fields.ambient_pressure_kpa.value = 100.2;
+  const result = assessTestProtocol(runs, {
+    maximumCvPct: 1,
+    setupTolerances: { ambient_pressure_kpa: 0.1 },
+  });
+  assert.equal(result.status, "review_required");
+  const finding = result.findings.find(item =>
+    item.code === "setup_mismatch" && item.field === "ambient_pressure_kpa");
+  assert.ok(finding);
+  assert.equal(finding.tolerance, 0.1);
+  assert.equal(finding.unit, "kPa");
+});
+
+test("rechaza tolerancias negativas, no finitas o asignadas a campos de texto", () => {
+  const runs = [dynoRun("a", 100), dynoRun("b", 100.1), dynoRun("c", 99.9)];
+  assert.throws(() => assessTestProtocol(runs, { setupTolerances: { ambient_temp_c: -0.1 } }), /no negativo/);
+  assert.throws(() => assessTestProtocol(runs, { setupTolerances: { ambient_temp_c: Infinity } }), /no negativo/);
+  assert.throws(() => assessTestProtocol(runs, { setupTolerances: { fuel: 0.1 } }), /solo se admiten campos numéricos/);
+});

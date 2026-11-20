@@ -250,7 +250,15 @@ function buildProtocolFromForm() {
   const metricsInput = JSON.parse($("#protocolMetricsInput").value);
   if (!metricsInput || typeof metricsInput !== "object" || Array.isArray(metricsInput)) throw new TypeError("Las métricas deben ser un objeto JSON con arreglos numéricos.");
   const metricKeys = Object.keys(metricsInput);
-  if (!metricKeys.length) throw new TypeError("Ingresá al menos una métrica.");
+  const expectedMetrics = $("#protocolExpectedMetrics").value
+    .split(",").map(value => value.trim()).filter(Boolean);
+  if (!metricKeys.length && !expectedMetrics.length) {
+    throw new TypeError("Ingresá métricas medidas o declaralas como obligatorias para detectar faltantes.");
+  }
+  if (new Set(expectedMetrics).size !== expectedMetrics.length ||
+      expectedMetrics.some(key => !/^[a-z][a-z0-9_]{0,63}$/.test(key))) {
+    throw new TypeError("Las métricas obligatorias deben ser claves técnicas únicas separadas por comas.");
+  }
   for (const key of metricKeys) {
     if (!/^[a-z][a-z0-9_]{0,63}$/.test(key) || !Array.isArray(metricsInput[key]) ||
         metricsInput[key].length !== count || metricsInput[key].some(value => !Number.isFinite(value))) {
@@ -273,6 +281,7 @@ function buildProtocolFromForm() {
     metrics: Object.fromEntries(metricKeys.map(key => [key, metricsInput[key][index]])),
   }));
   const options = { minimumReplicates: 3 };
+  if (expectedMetrics.length) options.expectedMetrics = expectedMetrics;
   const cv = $("#protocolCvLimit").value.trim();
   if (cv !== "") {
     const maximumCvPct = Number(cv);
@@ -341,7 +350,7 @@ export function initializeProtocolInspector() {
       window.dispatchEvent(new CustomEvent("datalog:derived-ready", { detail: { artifact: {
         kind: "test_protocol_assessment",
         algorithm: "assessTestProtocol",
-        algorithmVersion: "1.1.0",
+        algorithmVersion: "1.2.0",
         source: {
           evidenceClass: typeof input.evidenceClass === "string" ? input.evidenceClass : "user_supplied",
           protocolSchema: typeof input.schema === "string" ? input.schema : "unversioned",

@@ -36,6 +36,18 @@ Cada métrica debe estar presente en todas las repeticiones que integran el grup
 
 Cada adquisición debe conservar un identificador de registro propio y no vacío. El evaluador bloquea el grupo si falta un ID o si se repite: copiar una misma adquisición con otro lugar en la lista no la convierte en una repetición independiente. Los IDs se comparan después de quitar espacios externos; se conserva la distinción entre mayúsculas y minúsculas porque son identificadores opacos.
 
+### Métricas esperadas
+
+El contrato acepta `options.expectedMetrics`, una lista explícita de claves como `["power_kw", "torque_nm", "lambda"]`. Esas claves se evalúan aunque no aparezcan en ningún objeto `metrics`. Así, una métrica ausente en todas las adquisiciones se informa con cero valores válidos y un faltante por repetición; no desaparece silenciosamente del análisis.
+
+También se consideran declaradas las claves presentes con valores `null`, `undefined`, infinitos o no numéricos: no cuentan como observaciones válidas. Si no se conoce el conjunto esperado, el sistema solo puede revisar las claves que estén presentes al menos una vez. No inventa un catálogo universal de señales obligatorias: el perfil de ECU, el fabricante, los sensores instalados y el objetivo del ensayo determinan ese contrato.
+
+### Tolerancias de condiciones
+
+Por defecto, las condiciones numéricas se comparan exactamente, como hasta ahora. Se puede declarar `options.setupTolerances` con una tolerancia absoluta para campos numéricos conocidos, por ejemplo `{"ambient_pressure_kpa": 0.2, "coolant_temp_c": 1}`. La unidad es la propia del campo (`kPa`, `°C`, `%`, etc.); no se interpreta como porcentaje relativo.
+
+La tolerancia solo se aplica a la evaluación de igualdad de configuración entre repeticiones. No cambia los valores originales, no promedia condiciones ni altera las métricas. Una tolerancia debe justificarse según sensor, método, resolución y objetivo del ensayo. No hay valores predefinidos universales; una tolerancia no configurada sigue siendo cero. Los campos de texto y selección no admiten tolerancias.
+
 El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
 
 ## Caso público usado para diseñar pruebas
