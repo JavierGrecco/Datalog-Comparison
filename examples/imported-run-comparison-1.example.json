@@ -1,0 +1,208 @@
+{
+  "schema": "datalog-imported-run-comparison/1",
+  "exportedAt": "2026-11-20T12:30:00.000Z",
+  "status": "review_required",
+  "headline": "Resumen descriptivo; requiere revisión",
+  "method": "unpaired-distribution-summary/1",
+  "minimumCoveragePct": 80,
+  "reference": {
+    "role": "reference",
+    "id": "example-reference",
+    "name": "ecu-reference.csv",
+    "domain": "ecu",
+    "sourceType": "ECU/logger · origen declarado",
+    "sampleCount": 3,
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "measurementBasis": null,
+    "measurementBasisLabel": null,
+    "units": {
+      "rpm": "RPM",
+      "speed_kmh": "km/h"
+    },
+    "import": {
+      "parserId": "csv-generic/1",
+      "importFormat": "generic-csv/1",
+      "sourceEncoding": "utf-8",
+      "unitNormalizationVersion": "datalog-units/2",
+      "sourceRowCount": 4,
+      "skippedNonEmptyRowCount": 0,
+      "skippedEmptyRowCount": 0,
+      "parsedSampleCount": 3,
+      "headerRows": [
+        1
+      ],
+      "channelMapping": [
+        {
+          "channel": "rpm",
+          "sourceHeader": "Engine speed [rpm]",
+          "sourceUnit": "rpm",
+          "canonicalUnit": "RPM"
+        },
+        {
+          "channel": "speed_kmh",
+          "sourceHeader": "Vehicle Speed (km/h)",
+          "sourceUnit": "km/h",
+          "canonicalUnit": "km/h"
+        }
+      ],
+      "unitConversions": {},
+      "unmappedHeaderCount": 0
+    }
+  },
+  "candidate": {
+    "role": "candidate",
+    "id": "example-candidate",
+    "name": "ecu-candidate.csv",
+    "domain": "ecu",
+    "sourceType": "ECU/logger · origen declarado",
+    "sampleCount": 3,
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "measurementBasis": null,
+    "measurementBasisLabel": null,
+    "units": {
+      "rpm": "RPM",
+      "speed_kmh": "km/h"
+    },
+    "import": {
+      "parserId": "csv-generic/1",
+      "importFormat": "generic-csv/1",
+      "sourceEncoding": "utf-8",
+      "unitNormalizationVersion": "datalog-units/2",
+      "sourceRowCount": 4,
+      "skippedNonEmptyRowCount": 0,
+      "skippedEmptyRowCount": 0,
+      "parsedSampleCount": 3,
+      "headerRows": [
+        1
+      ],
+      "channelMapping": [
+        {
+          "channel": "rpm",
+          "sourceHeader": "Engine speed [rpm]",
+          "sourceUnit": "rpm",
+          "canonicalUnit": "RPM"
+        },
+        {
+          "channel": "speed_kmh",
+          "sourceHeader": "Vehicle Speed (km/h)",
+          "sourceUnit": "km/h",
+          "canonicalUnit": "km/h"
+        }
+      ],
+      "unitConversions": {},
+      "unmappedHeaderCount": 0
+    }
+  },
+  "timeAlignment": {
+    "performed": false,
+    "reason": "El sistema no recibió una referencia temporal común verificada. Las estadísticas resumen cada registro por separado."
+  },
+  "channels": [
+    {
+      "key": "rpm",
+      "unit": "RPM",
+      "reference": {
+        "sampleCount": 3,
+        "validCount": 3,
+        "coveragePct": 100,
+        "min": 1800,
+        "max": 2200,
+        "mean": 2000,
+        "median": 2000
+      },
+      "candidate": {
+        "sampleCount": 3,
+        "validCount": 3,
+        "coveragePct": 100,
+        "min": 1900,
+        "max": 2300,
+        "mean": 2100,
+        "median": 2100
+      },
+      "difference": {
+        "median": 100,
+        "mean": 100,
+        "medianPct": 5,
+        "min": 100,
+        "max": 100
+      }
+    }
+  ],
+  "excludedChannels": [
+    {
+      "key": "speed_kmh",
+      "reasonCode": "missing_in_reference",
+      "reason": "La señal tiene valores numéricos en la candidata pero no en la referencia; no existe una base compartida para compararla.",
+      "referenceUnit": null,
+      "candidateUnit": null,
+      "referenceMeasurementBasis": null,
+      "candidateMeasurementBasis": null,
+      "referenceCount": 0,
+      "candidateCount": 3,
+      "referenceCoveragePct": 0,
+      "candidateCoveragePct": 100
+    }
+  ],
+  "blockedReasons": [],
+  "readiness": {
+    "status": "review_required",
+    "headline": "Revisión de evidencia necesaria",
+    "gates": [
+      {
+        "id": "source",
+        "label": "Origen de datos",
+        "status": "supported",
+        "summary": "Misma familia de fuente; revisar canal, unidad y contexto.",
+        "findings": []
+      },
+      {
+        "id": "data",
+        "label": "Calidad de datos y tiempo",
+        "status": "supported",
+        "summary": "No se detectaron problemas evidentes.",
+        "findings": []
+      },
+      {
+        "id": "channels",
+        "label": "Canales, unidades y cobertura",
+        "status": "review_required",
+        "summary": "Un canal no está compartido.",
+        "findings": [
+          "Velocidad del vehículo: falta en la referencia."
+        ]
+      },
+      {
+        "id": "conditions",
+        "label": "Condiciones de ensayo",
+        "status": "review_required",
+        "summary": "Hay condiciones desconocidas o no verificadas.",
+        "findings": []
+      },
+      {
+        "id": "provenance",
+        "label": "Procedencia y roles",
+        "status": "review_required",
+        "summary": "Revisá roles, hashes y metadatos.",
+        "findings": []
+      }
+    ]
+  },
+  "warnings": [
+    "Se comparan distribuciones de muestras independientes; no se emparejaron instantes ni puntos operativos.",
+    "No se alinearon relojes, no se interpolaron datos y no se calcularon deltas muestra a muestra."
+  ],
+  "nextActions": [
+    "Revisá los canales que solo aparecen en uno de los registros y confirmá si faltan por mapeo, configuración o captura."
+  ],
+  "policy": {
+    "causalInferenceAllowed": false,
+    "sourceDataModified": false
+  },
+  "limitations": [
+    "Cada archivo se resume por separado; las estadísticas no emparejan muestras ni puntos operativos.",
+    "No se alinearon relojes, no se interpolaron señales y no se calcularon diferencias punto a punto.",
+    "Una diferencia estadística no demuestra causalidad ni equivalencia física.",
+    "El SHA-256 identifica igualdad de bytes; no autentica el archivo, su origen, sensores ni condiciones de medición.",
+    "Las unidades, el dominio y la base física provienen de la importación y requieren revisión contra la fuente original."
+  ]
+}

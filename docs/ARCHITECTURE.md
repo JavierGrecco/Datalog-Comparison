@@ -34,6 +34,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
 | src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
 | src/imported-comparison-report.mjs | Serialización versionada del expediente importado con lista permitida de metadatos; excluye muestras, celdas y rutas locales. |
+| schemas/imported-run-comparison-1.schema.json | Contrato JSON Schema Draft 2020-12 para el informe portable de comparaciones importadas. |
 | src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
 | src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
 

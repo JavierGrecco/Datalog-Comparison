@@ -65,6 +65,8 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
+El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md).
+
 ## Ejecutar la aplicación
 
 La demo no necesita una ECU, servicios externos ni dependencias de ejecución. Solo requiere servir los archivos estáticos desde un servidor local. Una opción disponible en muchos equipos es Python:
