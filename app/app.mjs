@@ -7,6 +7,7 @@ import { assessComparisonReadiness } from "../src/comparison-readiness.mjs";
 import { initializeCsvInspector } from "./csv-inspector.mjs";
 import { initializeImportedReportInspector } from "./imported-report-inspector.mjs";
 import { initializeDossierInspector } from "./dossier-inspector.mjs";
+import { initializeProtocolInspector } from "./protocol-inspector.mjs";
 import { DEFAULT_MAX_DISPLAY_POINTS, decimateSeriesForDisplay } from "../src/series-display.mjs";
 
 const state = { caseId: "complete", demoCase: null, readiness: null };
@@ -305,3 +306,4 @@ render();
 initializeCsvInspector();
 initializeImportedReportInspector();
 initializeDossierInspector();
+initializeProtocolInspector();
