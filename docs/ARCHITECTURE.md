@@ -20,6 +20,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
 | app/imported-report-inspector.mjs | Apertura local de informes guardados, validación de esquema e invariantes y representación segura del resumen. |
+| app/dossier-inspector.mjs | Gestión de expedientes locales, historial de informes, archivado consentido de CSV, artefactos derivados y respaldos. |
 | src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |
 | src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
@@ -36,6 +37,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
 | src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
 | src/imported-comparison-report.mjs | Serialización versionada del expediente importado con lista permitida de metadatos; excluye muestras, celdas y rutas locales. |
+| src/local-dossier-store.mjs | Persistencia IndexedDB con almacenes separados de expedientes, informes, CSV originales y artefactos derivados; exportación/restauración atómica de respaldos. |
 | src/imported-comparison-report-validator.mjs | Validación estructural contra el esquema publicado y comprobación de invariantes estadísticas y de unidades. |
 | scripts/validate-comparison-report.mjs | Interfaz CLI para validar informes desde archivo o stdin, con salida humana o JSON. |
 | schemas/imported-run-comparison-1.schema.json | Contrato JSON Schema Draft 2020-12 para el informe portable de comparaciones importadas. |
@@ -63,6 +65,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 - Los informes sintético e importado no exportan muestras completas ni rutas locales. El segundo conserva metadatos permitidos, estadísticas y controles; su SHA-256 identifica bytes iguales, no autentica el origen.
 - El validador CLI carga el esquema versionado y añade controles de dominio sobre recuentos, cobertura, unidades y diferencias estadísticas. Solo sigue referencias locales; no accede a la red.
 - El visor de informes carga el esquema del mismo origen y reconstruye solo el resumen exportado. No rehidrata muestras ni altera el expediente CSV actual; muestra metadatos no confiables mediante nodos de texto.
+- Los expedientes usan IndexedDB con stores separados para metadatos, informes, archivos fuente y artefactos derivados. El CSV se persiste solo con consentimiento y validación SHA-256; los respaldos no incorporan los bytes originales.
 
 ## Ejecución y dependencias
 
@@ -77,5 +80,6 @@ Python puede utilizarse como servidor HTTP estático local, pero no participa de
 - tests/browser/: servidor efímero local y recorrido de escenarios/importadores en Chromium.
 - npm test: sintaxis, pruebas unitarias y pruebas de navegador.
 - npm run validate:report -- archivo.json: validación de un informe portable desde consola o tubería.
+- IndexedDB mantiene expedientes e historial local entre recargas; el respaldo JSON restaura un expediente nuevo y valida cada informe antes de escribirlo.
 
 El detalle de estados está en QUALITY_GATES.md. El contrato de importación está en CSV_IMPORT.md. Las pruebas automáticas no demuestran equivalencia física ni validan un vehículo.

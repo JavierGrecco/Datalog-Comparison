@@ -248,6 +248,105 @@
           <div id="savedReportMessages"></div>
         </section>
       </section>
+
+      <section id="dossierWorkspace" class="dossier-workspace" aria-labelledby="dossierTitle">
+        <div class="csv-subheading">
+          <h3 id="dossierTitle">Expedientes locales · historial del vehículo</h3>
+          <p>Organizá comparaciones por vehículo y conservá informes y resultados derivados en este navegador. No se envían datos a un servidor.</p>
+        </div>
+
+        <div class="dossier-create-layout">
+          <form id="dossierCreateForm" class="dossier-form">
+            <h4>Crear expediente</h4>
+            <label class="csv-control" for="dossierName">
+              <span>Nombre del expediente</span>
+              <input id="dossierName" type="text" maxlength="100" placeholder="Ej.: Falcon 221 · puesta a punto" required>
+            </label>
+            <label class="csv-control" for="dossierVehicleLabel">
+              <span>Vehículo / identificación</span>
+              <input id="dossierVehicleLabel" type="text" maxlength="180" placeholder="Ej.: Ford Falcon · motor 221">
+            </label>
+            <label class="csv-control" for="dossierNotes">
+              <span>Notas del expediente</span>
+              <textarea id="dossierNotes" maxlength="2000" rows="2" placeholder="Configuración, objetivo o contexto declarado…"></textarea>
+            </label>
+            <button type="submit" class="primary-button" id="dossierCreateButton">Crear expediente local</button>
+          </form>
+
+          <div class="dossier-list-panel">
+            <h4>Expedientes en este navegador</h4>
+            <div id="dossierCardList" class="dossier-card-list">
+              <p class="csv-preview-meta">Cargando almacenamiento local…</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="dossier-active-panel">
+          <div class="dossier-active-heading">
+            <label class="csv-control" for="dossierActiveSelect">
+              <span>Expediente activo</span>
+              <select id="dossierActiveSelect" disabled>
+                <option value="">Cargando…</option>
+              </select>
+            </label>
+            <button type="button" class="text-button" id="dossierDeleteButton" disabled>Eliminar expediente activo</button>
+          </div>
+
+          <div class="dossier-save-grid">
+            <article class="dossier-save-card">
+              <h4>Guardar informe abierto</h4>
+              <p id="dossierPendingReportStatus" class="dossier-card-meta">Abrí o generá un informe validado para guardarlo en un expediente.</p>
+              <button type="button" class="primary-button" id="dossierSaveReportButton" disabled>Guardar informe en expediente</button>
+              <label class="dossier-consent" for="dossierArchiveOriginals">
+                <input id="dossierArchiveOriginals" type="checkbox" disabled>
+                <span id="dossierArchiveOriginalsLabel">CSV originales no disponibles para este informe</span>
+              </label>
+              <p class="dossier-privacy-note">Solo se archivan si marcás la casilla. Se guardan aparte del informe, se verifica su SHA-256 y permanecen en este navegador. No se incluyen en el respaldo JSON.</p>
+            </article>
+
+            <article class="dossier-save-card">
+              <h4>Guardar resultado derivado</h4>
+              <p id="dossierPendingDerivedStatus" class="dossier-card-meta">No hay un artefacto derivado pendiente.</p>
+              <button type="button" class="secondary-button" id="dossierSaveDerivedButton" disabled>Guardar artefacto derivado</button>
+              <p class="dossier-privacy-note">Las series derivadas se guardan en un compartimento separado. El registro fuente no se modifica.</p>
+            </article>
+          </div>
+
+          <div class="dossier-backup-panel">
+            <div>
+              <h4>Respaldo y restauración</h4>
+              <p class="dossier-privacy-note">El respaldo JSON incluye metadatos, informes y artefactos derivados. No incluye los bytes de los CSV originales archivados localmente.</p>
+            </div>
+            <button type="button" class="secondary-button" id="dossierExportBackupButton" disabled>Descargar respaldo JSON</button>
+            <form id="dossierRestoreForm" class="dossier-restore-form">
+              <label class="csv-control" for="dossierBackupFile">
+                <span>Restaurar respaldo JSON</span>
+                <input id="dossierBackupFile" type="file" accept=".json,application/json">
+              </label>
+              <button type="submit" class="secondary-button" id="dossierRestoreButton" disabled>Restaurar como expediente nuevo</button>
+            </form>
+          </div>
+
+          <p id="dossierStatus" class="csv-status" role="status" aria-live="polite">Inicializando almacenamiento local…</p>
+
+          <div class="dossier-history-layout">
+            <section class="dossier-history-panel" aria-labelledby="dossierReportsTitle">
+              <h4 id="dossierReportsTitle">Historial de informes</h4>
+              <div id="dossierReportList" class="dossier-history-list">
+                <p class="csv-preview-meta">Seleccioná un expediente.</p>
+              </div>
+            </section>
+            <section class="dossier-history-panel" aria-labelledby="dossierArtifactsTitle">
+              <h4 id="dossierArtifactsTitle">Artefactos derivados</h4>
+              <div id="dossierArtifactList" class="dossier-history-list">
+                <p class="csv-preview-meta">Seleccioná un expediente.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <p class="csv-isolation-note"><strong>Almacenamiento y privacidad:</strong> los expedientes se guardan en IndexedDB del perfil actual del navegador. Los datos pueden perderse al borrar los datos del sitio, usar otro navegador o cambiar de dispositivo; descargá respaldos periódicos. Los CSV originales solo se conservan con consentimiento explícito y no se incorporan a los respaldos JSON.</p>
+      </section>
     </section>
 
     <section class="results-grid">

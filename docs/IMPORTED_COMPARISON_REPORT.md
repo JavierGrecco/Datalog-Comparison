@@ -99,3 +99,6 @@ En el laboratorio, la sección **Abrir una comparación guardada** acepta un arc
 El informe se procesa localmente. No se guarda en almacenamiento persistente ni se envía a un backend. Cerrar la vista descarta el resumen abierto. La apertura no modifica los slots referencia/candidata ni el expediente CSV activo.
 
 La vista recupera únicamente los datos contenidos en el informe. No puede reconstruir muestras crudas, series temporales ni gráficos que no se hayan exportado. Los valores de nombres de archivo y encabezados se muestran como texto, nunca como HTML.
+
+
+La gestión persistente y el formato de respaldo de un expediente están documentados en [LOCAL_DOSSIERS.md](LOCAL_DOSSIERS.md). El informe portable sigue siendo independiente de los archivos originales y de los artefactos derivados.

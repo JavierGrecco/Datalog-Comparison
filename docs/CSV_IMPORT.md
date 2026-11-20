@@ -139,3 +139,17 @@ Fuera de alcance:
 ## Fixtures y pruebas
 
 Todos los fixtures del repositorio son sintéticos. No representan exportaciones reales de un vehículo ni archivos descargados de software comercial. Una exportación Haltech pública fue examinada manualmente para confirmar la estructura Channel/ID/Type, pero no se distribuye ni se incorpora a CI. No se encontró una exportación CSV cruda pública de Dynojet para validar de extremo a extremo el perfil guiado; el fabricante documenta que la exportación permite configurar por separado paso de RPM e intervalo temporal. Las pruebas automatizadas cubren contratos, conversiones implementadas y casos negativos; no certifican mediciones físicas.
+
+
+## Expedientes persistentes y archivo de originales
+
+El expediente de comparación en memoria puede guardarse en un expediente local de vehículo. Se almacenan por separado:
+
+- metadatos del expediente;
+- informes JSON validados;
+- CSV originales, únicamente cuando se marca explícitamente la opción de archivado;
+- resultados derivados de procesamiento temporal o curvas por barrido.
+
+Los CSV se conservan como blobs en una tienda IndexedDB separada del informe y se verifica de nuevo su SHA-256 frente a la huella del informe antes de archivarlos. El archivado está limitado a 100 MiB por archivo y 150 MiB por pareja.
+
+Los respaldos de expediente incluyen metadatos, informes y artefactos derivados, pero excluyen los bytes originales. Estos se pueden descargar individualmente desde el historial antes de mover o borrar un perfil del navegador. Un respaldo restaurado crea siempre un expediente nuevo, valida sus informes y no sobrescribe expedientes existentes.
