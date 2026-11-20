@@ -1113,7 +1113,7 @@ test("la interfaz informa una métrica incompleta sin presentar el CV parcial co
   await page.locator("#protocolResult").waitFor({ state: "visible" });
   const result = await page.locator("#protocolResult").innerText();
   assert.match(result, /Requiere revisión/);
-  assert.match(result, /3\\/4 valores válidos · faltan 1/);
+  assert.ok(result.includes("3/4 valores válidos · faltan 1"));
   assert.match(result, /incomplete_replicates/);
   assert.match(result, /metric_missing_replicate/);
   assert.match(await page.locator("#protocolBuilderStatus").innerText(), /no certifica una norma/i);
