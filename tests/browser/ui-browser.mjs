@@ -708,3 +708,77 @@ test("bloquea dos importaciones cuyos bytes de origen tienen el mismo SHA-256", 
   assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
 });
+
+test("abre un informe JSON guardado, valida el contrato y renderiza texto no confiable sin ejecutarlo", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+  const report = JSON.parse(await readFile(
+    resolve(PROTOTYPE_ROOT, "examples/imported-run-comparison-1.example.json"), "utf8",
+  ));
+  report.reference.name = '<img src=x onerror="window.__reportXss=true">';
+  await page.locator("#savedReportFile").setInputFiles({
+    name: "comparison-report.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(report), "utf8"),
+  });
+  assert.equal(await page.locator("#savedReportOpenButton").isEnabled(), true);
+  await page.locator("#savedReportOpenButton").click();
+  await page.locator("#savedReportResult").waitFor({ state: "visible" });
+
+  assert.match(await page.locator("#savedReportStatus").innerText(), /Informe validado y abierto correctamente/i);
+  assert.match(await page.locator("#savedReportOverview").innerText(), /Requiere revisión/i);
+  assert.match(await page.locator("#savedReportRuns").innerText(), /window.__reportXss=true/);
+  assert.equal(await page.locator("#savedReportResult img").count(), 0,
+    "los metadatos de texto no deben insertarse como HTML ejecutable");
+  assert.match(await page.locator("#savedReportChannels").innerText(), /rpm/i);
+  assert.match(await page.locator("#savedReportChannels").innerText(), /2.000/);
+  assert.match(await page.locator("#savedReportExclusions").innerText(), /missing_in_reference/);
+  assert.match(await page.locator("#savedReportGates").innerText(), /Origen de datos/i);
+  assert.match(await page.locator("#savedReportMessages").innerText(), /No se alinearon relojes/i);
+  assert.match(await page.locator("#csvReferenceSlotStatus").innerText(), /Sin registro asignado/i,
+    "abrir un informe no debe rellenar ni alterar el expediente CSV");
+  const layout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+  }));
+  assert.ok(layout.documentWidth <= layout.viewportWidth, "desbordamiento móvil: " + JSON.stringify(layout));
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+
+  await page.locator("#savedReportCloseButton").click();
+  assert.equal(await page.locator("#savedReportResult").isVisible(), false);
+  assert.match(await page.locator("#savedReportStatus").innerText(), /No hay ningún informe abierto/i);
+});
+
+test("rechaza JSON inválido e informes manipulados sin mostrar resultados anteriores", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 1280, height: 900 });
+
+  await page.locator("#savedReportFile").setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{", "utf8"),
+  });
+  await page.locator("#savedReportOpenButton").click();
+  assert.match(await page.locator("#savedReportStatus").innerText(), /no contiene JSON válido/i);
+  assert.equal(await page.locator("#savedReportResult").isVisible(), false);
+
+  const report = JSON.parse(await readFile(
+    resolve(PROTOTYPE_ROOT, "examples/imported-run-comparison-1.example.json"), "utf8",
+  ));
+  report.channels[0].difference.median = 999;
+  await page.locator("#savedReportFile").setInputFiles({
+    name: "tampered.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(report), "utf8"),
+  });
+  await page.locator("#savedReportOpenButton").click();
+  assert.match(await page.locator("#savedReportStatus").innerText(), /no coincide con candidata menos referencia/i);
+  assert.equal(await page.locator("#savedReportResult").isVisible(), false);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});

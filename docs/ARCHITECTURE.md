@@ -19,6 +19,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 | --- | --- |
 | app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
 | app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
+| app/imported-report-inspector.mjs | Apertura local de informes guardados, validación de esquema e invariantes y representación segura del resumen. |
 | src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |
 | src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
 | src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
@@ -61,6 +62,7 @@ El expediente importado permanece separado de la matriz y los gráficos sintéti
 - El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
 - Los informes sintético e importado no exportan muestras completas ni rutas locales. El segundo conserva metadatos permitidos, estadísticas y controles; su SHA-256 identifica bytes iguales, no autentica el origen.
 - El validador CLI carga el esquema versionado y añade controles de dominio sobre recuentos, cobertura, unidades y diferencias estadísticas. Solo sigue referencias locales; no accede a la red.
+- El visor de informes carga el esquema del mismo origen y reconstruye solo el resumen exportado. No rehidrata muestras ni altera el expediente CSV actual; muestra metadatos no confiables mediante nodos de texto.
 
 ## Ejecución y dependencias
 

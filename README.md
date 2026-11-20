@@ -65,7 +65,7 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 Consultá el [contrato y los perfiles CSV](docs/CSV_IMPORT.md) para conocer conversiones, límites, procedencia y restricciones.
 
-El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md). El repositorio también incluye un [validador CLI](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente) para verificar informes desde archivos o tuberías.
+El formato de exportación de comparaciones importadas tiene un [JSON Schema Draft 2020-12](schemas/imported-run-comparison-1.schema.json), un [ejemplo completo](examples/imported-run-comparison-1.example.json) y una [guía del contrato](docs/IMPORTED_COMPARISON_REPORT.md). El repositorio también incluye un [validador CLI](docs/IMPORTED_COMPARISON_REPORT.md#validador-independiente) para verificar informes desde archivos o tuberías. La interfaz permite además [abrir y revisar un informe guardado](docs/IMPORTED_COMPARISON_REPORT.md#abrir-un-informe-en-la-interfaz), sin volver a cargar los CSV.
 
 ## Ejecutar la aplicación
 
@@ -137,6 +137,7 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 ├── app/
 │   ├── app.mjs
 │   ├── csv-inspector.mjs
+│   ├── imported-report-inspector.mjs
 │   └── styles.css
 ├── data/
 │   └── sources.json       # Catálogo de fuentes, licencias y procedencia

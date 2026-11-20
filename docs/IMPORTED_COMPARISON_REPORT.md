@@ -86,3 +86,16 @@ También se puede seleccionar otro esquema local con `--schema ruta/al/esquema.j
 Códigos de salida: `0` válido, `1` JSON o informe inválido, `2` uso incorrecto o error de lectura/esquema.
 
 El validador implementa las palabras clave utilizadas por el esquema publicado y las invariantes específicas de este informe; no pretende sustituir una biblioteca general de JSON Schema para contratos ajenos al proyecto.
+
+## Abrir un informe en la interfaz
+
+En el laboratorio, la sección **Abrir una comparación guardada** acepta un archivo JSON exportado previamente. La aplicación:
+
+1. limita el archivo a 10 MiB y decodifica UTF-8 en modo estricto;
+2. carga el JSON Schema versionado desde el mismo origen de la aplicación;
+3. comprueba estructura, roles, coberturas, unidades y diferencias estadísticas;
+4. muestra el resumen, los dos registros, los canales comparables y excluidos, los controles y las advertencias.
+
+El informe se procesa localmente. No se guarda en almacenamiento persistente ni se envía a un backend. Cerrar la vista descarta el resumen abierto. La apertura no modifica los slots referencia/candidata ni el expediente CSV activo.
+
+La vista recupera únicamente los datos contenidos en el informe. No puede reconstruir muestras crudas, series temporales ni gráficos que no se hayan exportado. Los valores de nombres de archivo y encabezados se muestran como texto, nunca como HTML.
