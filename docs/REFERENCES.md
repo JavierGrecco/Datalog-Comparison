@@ -47,6 +47,15 @@ Esta demo tiene una implementación acotada propia. Las referencias siguientes s
 - [OpenECU Alliance — Creating Adapters](https://oecua.org/docs/creating-adapters): recomienda registrar todas las variantes observadas, unidades, rangos declarados y versiones de adaptador; respalda un registro curado por fuente en lugar de heurísticas universales.
 - [MathWorks — Multirate Signal Processing](https://www.mathworks.com/help/signal/multirate-signal-processing.html): referencia de procesamiento multirrate, interpolación, decimación y filtrado antialias. Se consulta para el diseño futuro; el importador actual no remuestrea.
 
+## MoTeC .ld/.ldx y parsers de referencia
+
+- [i3rs](https://github.com/Friss/i3rs): parser Rust de logs MoTeC M1 `.ld`, sidecar `.ldx`, canales multi-rate, máscaras de muestras inválidas y CLI estructurado JSON/CSV. Se revisó el código del crate `i3rs-core 0.4.0` y la API `LdFile::from_bytes`, que permite analizar bytes entregados por el navegador sin requerir una ruta de archivo. El repositorio declara también una build WebAssembly de su aplicación.
+- [i3rs — especificación comunitaria del formato .ld](https://github.com/Friss/i3rs/blob/main/docs/ld-file-format.md): describe cabecera, punteros, metadatos, tipos, escalado, validez y diferentes frecuencias por canal. Está verificada por sus autores contra logs M1 concretos; no debe tratarse como especificación universal de todos los dispositivos MoTeC.
+- [i3rs — pruebas de integración](https://github.com/Friss/i3rs/tree/main/crates/i3rs-core/tests): pruebas sobre fixtures del upstream. Los ficheros de datos de prueba no se incorporan aquí porque no se confirmó una licencia separada para esos datos.
+- [motec-i2](https://github.com/afonso360/motec-i2): parser/writer Rust independiente de `.ld`; el README upstream deja el parsing/escritura de `.ldx` como pendiente. Se conserva solo como posible referencia cruzada, no como dependencia.
+
+El adaptador propuesto para este repositorio permanece pendiente de validación con una muestra autorizada. Ver [plan de adaptador MoTeC](MOTEC_ADAPTER_PLAN.md).
+
 ## Criterio de uso
 
 Las referencias documentan antecedentes y límites de evidencia. Se adopta la estrategia de IDs canónicos y listas de nombres de origen de los perfiles OpenECU como guía para futuros adaptadores específicos, manteniendo el resolver genérico independiente de fabricantes. Para la capa de procesamiento ya implementada se usan las referencias de filtrado antialias, muestreo equidistante y sincronización de ASAM como criterios de diseño; no se importó código de SciPy, MATLAB/Simulink ni documentación comercial. La curva por bandas RPM es descriptiva y no equivale a una medición certificada bajo SAE J1349. La muestra Haltech se utilizó para inspección estructural manual, no como fixture ni como validación completa del parser. No se encontró una exportación CSV cruda pública de Dynojet para validar la ruta guiada; por eso permanece basada en asignación manual y no en detección automática de columnas.

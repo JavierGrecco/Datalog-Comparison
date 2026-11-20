@@ -95,7 +95,7 @@ La política de seguridad, límites de entrada y tratamiento de datos está docu
 
 La única biblioteca de visualización redistribuida actualmente es uPlot 1.6.32, de licencia MIT. Los detalles de versión, archivos y atribución se encuentran en [Componentes open source evaluados](OPEN_SOURCE_COMPONENTS.md) y `vendor/uplot/NOTICE.md`.
 
-MoTeC `.ld/.ldx` sigue siendo un candidato para un adaptador futuro. Los proyectos Rust i3rs y motec-i2 pueden orientar una herramienta local de solo lectura o una segunda implementación de validación, pero todavía no forman parte de la aplicación. Antes de integrarlos hacen falta archivos de prueba con permiso de uso, verificación cruzada de canales/unidades y una salida intermedia versionada. No se debe habilitar escritura sobre archivos originales.
+MoTeC `.ld/.ldx` sigue siendo un candidato para un adaptador futuro. i3rs es la referencia prioritaria por su API de bytes en memoria, soporte de sidecar `.ldx`, salida estructurada y build WebAssembly; motec-i2 queda como referencia cruzada secundaria para `.ld`. Todavía no forman parte de la aplicación. Antes de integrarlos hacen falta archivos de prueba con permiso de uso, verificación cruzada de canales/unidades y un contrato que conserve los canales a sus frecuencias nativas. No se debe habilitar escritura sobre archivos originales. El diseño detallado está en [MOTEC_ADAPTER_PLAN.md](MOTEC_ADAPTER_PLAN.md).
 
 Los cálculos de dinamómetro virtual también deben permanecer como estimaciones separadas de las mediciones físicas de banco.
 
