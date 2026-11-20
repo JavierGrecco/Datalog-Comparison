@@ -1,85 +1,115 @@
-# Arquitectura de la demo
+# Arquitectura de la demostración
 
 ## Objetivo
 
-La publicación es un prototipo pequeño, ejecutable en el navegador y orientado a demostrar reglas de evaluación de evidencia. La arquitectura separa la presentación de los módulos de dominio para que los controles puedan probarse sin depender del DOM.
+La aplicación es una demostración local de análisis de registros de motor. Su diseño separa la interfaz, las reglas de dominio, el procesamiento de señales, la presentación gráfica y la persistencia de expedientes.
 
-## Flujo
+La prioridad es que cada resultado pueda explicarse: de qué archivo proviene, qué reglas se aplicaron, qué transformaciones se realizaron y cuáles son sus límites. Una vista o un cálculo derivado no reemplaza el archivo original ni convierte una declaración del usuario en una medición autenticada.
 
-La interfaz muestra dos rutas independientes:
+## Recorridos principales
 
-- Escenarios sintéticos: generador de fixtures → matriz de preparación → gráficos e informe.
-- Importación local: selector de perfil → parser/adaptador → mapeo y normalización → perfil de calidad → vista de inspección → asignación explícita referencia/candidata → resumen de distribuciones sin alineación temporal.
+### Escenarios sintéticos
 
-El expediente importado permanece separado de la matriz y los gráficos sintéticos. Solo utiliza dos registros CSV aportados por quien ejecuta la demo y conserva copias en memoria de la página.
+`Fixtures` reproducibles → modelo de dominio → controles de origen y calidad → matriz de preparación → gráficos e informe sintético.
 
-## Responsabilidades
+Los escenarios se generan en memoria y se mantienen separados de los CSV que aporta quien usa la aplicación.
 
-| Módulo | Responsabilidad |
+### Importación CSV local
+
+Archivo seleccionado en el navegador → decodificación y parser → perfil/adaptador → mapeo de canales → normalización de unidades → controles de calidad → inspección y análisis derivado.
+
+La comparación importada resume cada registro por separado. No sincroniza relojes, no empareja muestras y no calcula diferencias punto a punto.
+
+### Protocolos y repetibilidad
+
+Formulario guiado o JSON → validación de dominio y condiciones operativas → evaluación de repeticiones → artefacto derivado pendiente → guardado manual en un expediente local.
+
+Los controles distinguen ECU/logger, banco de motor y banco de chasis. Una evaluación no certifica una norma ni autentica sensores, documentos o calibraciones.
+
+## Responsabilidades por capa
+
+| Capa o módulo | Responsabilidad |
 | --- | --- |
-| app/ | Presentación, escenarios, gráficos SVG e inspección CSV local. |
-| app/csv-inspector.mjs | Lectura local, selección de perfil, mapeo guiado, asignación de roles y presentación de comparaciones importadas. |
-| app/imported-report-inspector.mjs | Apertura local de informes guardados, validación de esquema e invariantes y representación segura del resumen. |
-| app/dossier-inspector.mjs | Gestión de expedientes locales, historial de informes, archivado consentido de CSV, artefactos derivados y respaldos. |\n| app/protocol-inspector.mjs | Evaluación local de protocolos ECU/dinamómetro y repetibilidad desde expedientes JSON, con salida construida mediante nodos de texto. |\n| src/test-protocol.mjs | Puertas de evidencia por dominio/modo, consistencia de condiciones y estadística de repetibilidad configurable. |
-| src/text-decoder.mjs | Decodificación estricta de UTF-8/UTF-16 con BOM; rechaza secuencias inválidas en vez de reemplazar bytes. |
-| src/csv-import.mjs | Parser genérico, límites, contrato de canales, procedencia de codificación y preservación de valores fuente mapeados. |
-| src/channel-resolver.mjs | Resolución determinista por alias, contexto, unidad y perfil numérico; propuestas difusas siempre sujetas a revisión. |
-| src/unit-registry.mjs | Registro versionado de símbolos, dimensiones, unidades canónicas y conversiones con sensibilidad al caso. |
-| src/adapters/haltech-nsp.mjs | Perfil experimental para variante Haltech NSP con marcador y encabezados tipados. |
-| src/adapters/dynojet-powercore.mjs | Perfil guiado para CSV Dynojet con mapeo manual y base de medición declarada. |
-| src/demo-model.mjs | Construcción determinista de ejemplos sintéticos y resumen portable. |
-| src/comparison-readiness.mjs | Orquestación de puertas de evidencia y próximos pasos. |
-| src/source-policy.mjs | Clasificación de fuentes y bloqueo de mezclas ECU/logger–dinamómetro. |
-| src/data-quality.mjs | Perfil de muestras, cobertura, secuencia temporal y metadatos. |
-| src/sample-selection.mjs | Selección determinista de muestras originales para vistas de inspección, sin interpolación ni mutación. |
-| src/series-display.mjs | Decimación min/max solo para SVG; conserva extremos y cortes de datos faltantes sin modificar los registros. |
-| src/signal-processing.mjs | Señales derivadas: decimación temporal FIR para señales continuas, retención para discretas y curvas de dinamómetro por barridos y bandas RPM. |
-| src/run-comparability.mjs | Inventario de señales, recuento de valores numéricos, canales no compartidos y compatibilidad de unidades/base física. |
-| src/distribution-comparison.mjs | Resumen estadístico conservador de registros independientes, con exclusiones por canal y sin alineación temporal. |
-| src/imported-comparison-report.mjs | Serialización versionada del expediente importado con lista permitida de metadatos; excluye muestras, celdas y rutas locales. |
-| src/local-dossier-store.mjs | Persistencia IndexedDB con almacenes separados de expedientes, informes, CSV originales y artefactos derivados; exportación/restauración atómica de respaldos. |
-| src/imported-comparison-report-validator.mjs | Validación estructural contra el esquema publicado y comprobación de invariantes estadísticas y de unidades. |
-| scripts/validate-comparison-report.mjs | Interfaz CLI para validar informes desde archivo o stdin, con salida humana o JSON. |
-| schemas/imported-run-comparison-1.schema.json | Contrato JSON Schema Draft 2020-12 para el informe portable de comparaciones importadas. |
-| examples/imported-run-comparison-1.example.json | Ejemplo completo y versionado para consumidores externos. |
-| src/operating-conditions.mjs | Contrato, validación y comparación de condiciones declaradas. |
-| src/run-manifest.mjs | Identidad, roles, huellas y contexto documentado. |
+| `app/app.mjs` | Inicio de la aplicación, escenarios sintéticos y coordinación de vistas. |
+| `app/csv-inspector.mjs` | Selección de archivos, importadores, mapeo guiado, resumen y vistas de análisis derivado. |
+| `app/telemetry-charts.mjs` | Presentación Canvas de series ya calculadas; valida ejes y administra el ciclo de vida de las gráficas. |
+| `app/protocol-inspector.mjs` | Captura y evaluación guiada de protocolos de ensayo. |
+| `app/dossier-inspector.mjs` | Expedientes locales, historial, artefactos derivados, consentimiento de archivado de CSV y respaldos. |
+| `app/imported-report-inspector.mjs` | Apertura local de informes guardados, validación de esquema y representación segura del resumen. |
+| `src/text-decoder.mjs` | Decodificación estricta UTF-8/UTF-16 con BOM; rechaza secuencias inválidas. |
+| `src/csv-import.mjs` | Parser genérico, límites de entrada, preservación de valores fuente y contrato de canales. |
+| `src/adapters/` | Perfiles experimentales de formatos ECU/dinamómetro; no presuponen compatibilidad universal. |
+| `src/channel-resolver.mjs` | Reconocimiento determinista por alias, contexto, unidad y perfil numérico. Las propuestas difusas requieren revisión. |
+| `src/unit-registry.mjs` | Símbolos, dimensiones, unidades canónicas y conversiones versionadas y sensibles al caso. |
+| `src/data-quality.mjs` | Faltantes, cobertura, consistencia de metadatos y calidad temporal. |
+| `src/source-policy.mjs` | Clasificación de fuentes y bloqueos ante mezclas físicamente incompatibles. |
+| `src/comparison-readiness.mjs` | Orquestación de puertas de evidencia y próximos pasos. |
+| `src/run-comparability.mjs` | Inventario de señales, cobertura y compatibilidad de unidad/base física. |
+| `src/distribution-comparison.mjs` | Estadísticas descriptivas de registros independientes, con exclusiones explicadas. |
+| `src/sample-selection.mjs` | Selección determinista de muestras originales para vistas de inspección, sin mutarlas. |
+| `src/series-display.mjs` | Reducción min/max para gráficos SVG sintéticos; preserva extremos y cortes. |
+| `src/signal-processing.mjs` | Señales derivadas: filtrado y remuestreo temporal FIR para señales continuas, retención para discretas y curvas de dinamómetro por barrido/banda RPM. |
+| `src/operating-conditions.mjs` | Catálogo, validación y comparación de condiciones operativas declaradas. |
+| `src/test-protocol.mjs` | Perfiles ECU/dinamómetro, consistencia de condiciones, repetibilidad y límites de interpretación. |
+| `src/run-manifest.mjs` | Identidad del registro, rol, huellas y contexto documentado. |
+| `src/imported-comparison-report.mjs` | Serialización versionada con lista permitida de metadatos; excluye muestras y rutas locales. |
+| `src/imported-comparison-report-validator.mjs` | Esquema e invariantes de dominio sobre unidades, recuentos y estadísticas. |
+| `src/local-dossier-store.mjs` | Persistencia IndexedDB con almacenes separados para expedientes, informes, archivos fuente y artefactos derivados. |
+| `src/dossier-evolution.mjs` | Evolución y resumen de artefactos contenidos en un expediente. |
+| `scripts/` | Utilidades de terminal para simulación, descarga explícita de muestras públicas y validación de informes/protocolos. |
 
 ## Límites entre capas
 
-- Los módulos de dominio no acceden al DOM, almacenamiento del navegador ni servicios de red.
-- El parser CSV genérico es independiente de marca; el resolver propone asignaciones trazables y no fuerza encabezados desconocidos.
-- La resolución tiene precedencia por metadatos de fabricante, alias exacto, calificadores, unidad compatible, coincidencia difusa y perfil de valores. Los dos últimos niveles solo sugieren.
-- La unidad identifica dimensión, no siempre el rol. Se separan presión MAP/boost/combustible, actual/objetivo, RPM de motor/rueda/rodillo y bases físicas de torque/potencia.
-- Las columnas no asignadas se registran y permanecen fuera de los canales canónicos; el perfil de valores solo ofrece candidatos explicables y nunca asigna una señal por rango numérico.
-- Los adaptadores específicos se versionan por perfil y documentan evidencia del formato y reglas de conversión.
-- Haltech rechaza estructuras no reconocidas y excluye tipos/canales sin semántica implementada.
-- Dynojet no auto-detecta un esquema propietario; utiliza las sugerencias genéricas y exige confirmar las columnas y la base física si se importan torque o potencia.
-- Los datos importados conservan el orden, faltantes y conversiones; el mapeo genérico conserva además las celdas de origen de los canales mapeados. Los adaptadores específicos documentan el nivel de transformación de sus valores; no se reordenan, interpolan ni imputan.
-- La importación admite eje temporal o RPM; no los sintetiza. El perfil de calidad estima intervalos observados por canal solo cuando hay un eje temporal válido.
-- El inspector crea registros exploratorios; dos pueden asignarse manualmente a un expediente local de comparación descriptiva. No se mezclan con fixtures sintéticos ni con la matriz de escenarios.
-- La matriz no calcula una puntuación opaca de confianza.\n- El evaluador de protocolos distingue condiciones informadas de las medidas o verificadas por quien carga; una estructura incompleta se señala, pero no impide informar qué condiciones requeridas carecen de evidencia.
-- El comparador de distribuciones resume cada registro por separado; excluye y explica canales incompatibles, unilaterales o con cobertura insuficiente. No alinea relojes ni empareja puntos.
-- Los gráficos consumen canales que superaron las comprobaciones de origen y unidad; faltantes interrumpen el trazo.
-- El procesamiento de señales derivadas devuelve artefactos versionados e independientes. Nunca reescribe muestras originales ni permite que las métricas de calidad lean las series reducidas.
-- Los informes sintético e importado no exportan muestras completas ni rutas locales. El segundo conserva metadatos permitidos, estadísticas y controles; su SHA-256 identifica bytes iguales, no autentica el origen.
-- El validador CLI carga el esquema versionado y añade controles de dominio sobre recuentos, cobertura, unidades y diferencias estadísticas. Solo sigue referencias locales; no accede a la red.
-- El visor de informes carga el esquema del mismo origen y reconstruye solo el resumen exportado. No rehidrata muestras ni altera el expediente CSV actual; muestra metadatos no confiables mediante nodos de texto.
-- Los expedientes usan IndexedDB con stores separados para metadatos, informes, archivos fuente y artefactos derivados. El CSV se persiste solo con consentimiento y validación SHA-256; los respaldos no incorporan los bytes originales.
+- Los módulos de dominio no acceden al DOM, a IndexedDB ni a servicios de red.
+- Los parsers y adaptadores no convierten encabezados desconocidos en canales canónicos sin evidencia suficiente.
+- Una unidad identifica una dimensión, pero no siempre el rol. Se distinguen, por ejemplo, RPM de motor/rueda/rodillo, presión MAP/boost/combustible y torque/potencia por base física.
+- Las propuestas por similitud de nombre o rango numérico no se presentan como hechos: requieren confirmación.
+- Los valores, faltantes y orden de las fuentes se conservan. No se imputan datos ni se reordenan muestras originales.
+- ECU/logger y dinamómetro son dominios diferentes. Tampoco son intercambiables banco de motor, rueda, cubo y rodillo.
+- La comparación importada describe distribuciones independientes. No alinea relojes, no interpola y no empareja muestras.
+- El procesamiento derivado produce artefactos versionados e independientes. No reescribe el CSV ni cambia las métricas de calidad del archivo fuente.
+- Las condiciones de operación conservan valor, estado de evidencia, fuente y nota. `measured` o `verified` reflejan lo declarado por quien carga; no autentican instrumentos ni documentos.
+- Los informes portables excluyen muestras completas, celdas CSV y rutas locales. El SHA-256 identifica bytes iguales; no demuestra autoría ni procedencia.
+- Los visores de informes reconstruyen únicamente el resumen exportado. El contenido externo se representa como texto, no como HTML ejecutable.
 
-## Ejecución y dependencias
+## Procesamiento y visualización
 
-La interfaz usa HTML, CSS y módulos ECMAScript nativos. Los gráficos se dibujan en SVG. No hay backend, proceso de build ni dependencias JavaScript en tiempo de ejecución.
+El procesamiento es independiente del motor gráfico:
 
-Python puede utilizarse como servidor HTTP estático local, pero no participa del producto. Node.js ejecuta las pruebas, la generación de datos y el validador CLI de informes; Playwright se reserva para las comprobaciones de navegador.
+- **ECU/logger:** las señales continuas se filtran/remuestrean según el perfil temporal; las señales discretas se retienen. Los tramos separados por huecos se conservan como segmentos distintos.
+- **Dinamómetro:** `buildRpmSweepCurves` calcula resultados por barrido y canal, con mínimos, medianas y máximos por banda de RPM. No combina barridos diferentes.
+- **Gráficos sintéticos:** conservan la implementación SVG existente.
+- **Gráficos de CSV:** `app/telemetry-charts.mjs` presenta señales ECU por segmento y curvas de dinamómetro por barrido/canal usando uPlot 1.6.32. La biblioteca no calcula métricas ni completa muestras.
 
-## Pruebas
+uPlot se distribuye localmente en `vendor/uplot/`, con licencia y aviso de origen. No se carga desde CDN. Antes de crear una gráfica se valida que el eje X sea numérico, único, estrictamente creciente y que las series estén alineadas. El módulo no ordena, interpola ni une segmentos. Si no se cumplen las condiciones, se conserva la tabla y se informa que no se puede dibujar la gráfica. Al cambiar la fuente o la vista, se desconectan los observadores y se destruyen las instancias para liberar listeners y cachés.
 
-- tests/unit/: reglas de dominio, parser genérico, adaptadores, escenarios y contratos.
-- tests/fixtures/: archivos CSV sintéticos y versionados.
-- tests/browser/: servidor efímero local y recorrido de escenarios/importadores/protocolos en Chromium.
-- npm test: sintaxis, pruebas unitarias y pruebas de navegador.
-- npm run validate:report -- archivo.json: validación de un informe portable desde consola o tubería.\n- npm run assess:protocol -- archivo.json: evaluación de condiciones y repetibilidad desde consola o tubería.
-- IndexedDB mantiene expedientes e historial local entre recargas; el respaldo JSON restaura un expediente nuevo y valida cada informe antes de escribirlo.
+## Persistencia, seguridad y privacidad
 
-El detalle de estados está en QUALITY_GATES.md. El contrato de importación está en CSV_IMPORT.md. Las pruebas automáticas no demuestran equivalencia física ni validan un vehículo.
+La aplicación no tiene backend, cuentas, telemetría ni sincronización entre dispositivos. Los CSV se procesan localmente en el navegador. Los expedientes e informes pueden permanecer en IndexedDB del perfil actual.
+
+Los bytes originales solo se archivan con consentimiento explícito. Se guardan separados del informe y se vuelve a verificar su SHA-256. Los respaldos JSON no incluyen los bytes de los CSV. IndexedDB no está cifrado ni es un mecanismo de control de acceso; cualquier persona con acceso al mismo perfil puede acceder a sus datos.
+
+La política de seguridad, límites de entrada y tratamiento de datos está documentada en [Seguridad e integridad de datos](SECURITY_AND_DATA_INTEGRITY.md) y [Expedientes locales](LOCAL_DOSSIERS.md).
+
+## Componentes externos y formatos pendientes
+
+La única biblioteca de visualización redistribuida actualmente es uPlot 1.6.32, de licencia MIT. Los detalles de versión, archivos y atribución se encuentran en [Componentes open source evaluados](OPEN_SOURCE_COMPONENTS.md) y `vendor/uplot/NOTICE.md`.
+
+MoTeC `.ld/.ldx` sigue siendo un candidato para un adaptador futuro. Los proyectos Rust i3rs y motec-i2 pueden orientar una herramienta local de solo lectura o una segunda implementación de validación, pero todavía no forman parte de la aplicación. Antes de integrarlos hacen falta archivos de prueba con permiso de uso, verificación cruzada de canales/unidades y una salida intermedia versionada. No se debe habilitar escritura sobre archivos originales.
+
+Los cálculos de dinamómetro virtual también deben permanecer como estimaciones separadas de las mediciones físicas de banco.
+
+## Ejecución y pruebas
+
+La aplicación usa HTML, CSS y módulos ECMAScript nativos. No requiere instalar paquetes para abrir la demo; los recursos de uPlot están incluidos localmente. Python puede servir los archivos estáticos, pero no participa del producto.
+
+Las pruebas y herramientas de desarrollo requieren Node.js 22 o posterior:
+
+- `npm ci`: instala herramientas fijadas para desarrollo y pruebas.
+- `npm audit --audit-level=high`: audita dependencias instaladas.
+- `npx playwright install chromium`: prepara el navegador de pruebas.
+- `npm test`: chequeo de sintaxis, pruebas unitarias y recorrido con Chromium.
+- `npm run validate:report -- archivo.json`: valida un informe portable.
+- `npm run assess:protocol -- archivo.json`: evalúa condiciones y repetibilidad.
+
+Las pruebas verifican el comportamiento del software cubierto; no certifican sensores, motores, dinamómetros ni equivalencia física. Consultá [Protocolos de ensayo](TEST_PROTOCOLS.md), [Puertas de calidad](QUALITY_GATES.md) y [Límites de la demo](LIMITATIONS.md).
