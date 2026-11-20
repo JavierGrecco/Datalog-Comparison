@@ -926,8 +926,9 @@ async function handleFileSelection() {
     setStatus("Seleccioná un archivo CSV para comenzar.");
     return;
   }
-  if (!file.name.toLocaleLowerCase("en-US").endsWith(".csv")) {
-    setStatus("El archivo debe tener extensión .csv.", "error");
+  const lowerName = file.name.toLocaleLowerCase("en-US");
+  if (!lowerName.endsWith(".csv") && !lowerName.endsWith(".msl")) {
+    setStatus("El archivo debe tener extensión .csv o .msl de texto.", "error");
     return;
   }
   if (file.size > MAX_CSV_CHARACTERS) {

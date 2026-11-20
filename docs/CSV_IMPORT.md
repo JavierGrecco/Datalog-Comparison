@@ -4,15 +4,16 @@
 
 La demo permite inspeccionar CSV localmente y asignar dos importaciones explícitamente como referencia y candidata en un expediente separado de los escenarios sintéticos. Calcula SHA-256 sobre los bytes originales para reconocer archivos idénticos y evitar que uno ocupe ambos roles. Los registros y el expediente permanecen en memoria del navegador, no se envían a servicios externos y se descartan al recargar la página o vaciar el expediente. La comparación resume distribuciones independientes y no sincroniza marcas de tiempo ni puntos RPM.
 
-Hay tres rutas de importación:
+Hay cuatro rutas de importación:
 
 1. CSV genérico: parser neutral con asignación manual de columnas y unidades.
 2. Haltech NSP CSV: perfil experimental para dos layouts identificados por %DataLog%: encabezados tipados Canal(Tipo:Unidad) y bloques Channel / ID / Type / DisplayMaxMin.
 3. Dynojet PowerCore / WinPEP CSV: perfil guiado para una exportación configurable. No se presupone un esquema fijo de columnas.
+4. TunerStudio / MegaSquirt CSV y MSL de texto: perfil experimental para preámbulos MS1/MS2/MS3, tabulación o coma y fila opcional de unidades. Los binarios .mlg y .ms3 no se importan.
 
 ## Flujo
 
-1. Seleccionar automático, genérico, Haltech NSP o Dynojet PowerCore/WinPEP.
+1. Seleccionar automático, genérico, Haltech NSP, Dynojet PowerCore/WinPEP o TunerStudio/MegaSquirt.
 2. En la ruta genérica, declarar el origen del registro.
 3. Confirmar el separador de columnas y decimal cuando la ruta requiere mapeo.
 4. Asignar las columnas a los canales compatibles.
