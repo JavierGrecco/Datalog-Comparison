@@ -18,6 +18,35 @@ Se localizó el hilo público de High Performance Academy [“Example Logged Dat
 
 MoTeC también informa que M1 Tune es gratuito y trae un *sample package* para examinar. La página oficial describe ese paquete como material de M1 Tune; no lo confundimos con un archivo de telemetría `.ld` ya validado. El flujo oficial de recuperación M1 convierte la imagen de logging a un archivo listo para i2, según la [documentación de MoTeC](https://help.motec.com.au/m1/tune/1.5/Topics/Retrieve_Logged_Data_1.5.html).
 
+## Alternativas oficiales y puente de importación
+
+La documentación de MoTeC confirma tres caminos distintos que no deben confundirse:
+
+### Recuperación y exportación desde M1 Tune / i2
+
+- M1 Tune recupera los sistemas de logging desde la ECU y convierte la imagen recuperada en un archivo de log listo para abrir en i2. El flujo está documentado por [MoTeC: Retrieve Logged Data](https://help.motec.com.au/m1/tune/1.5/Topics/Retrieve_Logged_Data_1.5.html).
+- M1 Tune 1.5 también permite exportar telemetría del gráfico temporal a un archivo `.ld`. MoTeC indica que esa exportación puede alcanzar hasta 50 Hz y depende de las opciones de logging habilitadas en la ECU. No asumir que toda exportación equivale al archivo original completo o conserva todos los canales/tasas del registro recuperado.
+- i2 puede exportar datos de canales a CSV, archivos MoTeC o MATLAB. Como puente inicial, se puede abrir el log en i2 y exportar un CSV para usar el importador existente. Esta vía es manual y debe etiquetarse como **CSV exportado desde i2**, no como lectura nativa de `.ld`. Antes de usarla para análisis cuantitativo hay que contrastar encabezados, unidades, faltantes, timestamps y cualquier re-muestreo que i2 haya aplicado.
+- M1 Tune 1.5 puede importar datos de i2 Pro para revisión offline. MoTeC advierte que en ese recorrido no hay comprobación de errores de los datos importados y que el mapeo de canales se realiza por coincidencia de nombre. No debemos adoptar esa coincidencia como validación física en nuestro resolver.
+
+Fuentes oficiales: [MoTeC M1 Logged Data Import/Export](https://help.motec.com.au/m1/tune/1.5/Topics/Logged_Data_Importing_Exporting_1.5.html) y [MoTeC i2](https://www.motec.com.au/products/I2).
+
+### API oficial de MoTeC i2
+
+MoTeC ofrece la licencia Feature Licence **#22021 i2 API**. Su documentación indica que habilita una interfaz programática accesible desde lenguajes compatibles con COM y que permite cargar archivos `.ld`, leer canales, rangos, laps, beacons y detalles, además de crear/guardar logs.
+
+Es una alternativa oficial para una integración de escritorio en Windows con i2 instalado y licencia habilitada. No es un parser web autocontenido: suma dependencia de software comercial, activación, COM y entorno Windows. Por seguridad, una integración futura podría exponer solo operaciones de lectura y deshabilitar cualquier función de creación o guardado. Antes de evaluarla hay que confirmar con MoTeC el alcance y las condiciones de esa licencia para el uso previsto.
+
+Fuente oficial: [MoTeC i2 — sección i2 API](https://www.motec.com.au/products/I2#licences).
+
+### Comparación de opciones
+
+| Camino | Ventaja | Límite principal | Uso recomendado |
+| --- | --- | --- | --- |
+| i3rs local/WASM | Parser independiente, sin requerir i2 en ejecución; conserva canales nativos multi-rate según su modelo | Requiere validación con logs reales autorizados, pruebas de seguridad y revisión de licencia de dependencias | Candidato para integrar lectura nativa en la demo |
+| Exportar CSV desde i2 | Permite probar el flujo existente sin implementar un parser binario | Es una exportación derivada; puede perder contexto o alterar la base temporal | Puente manual de validación mientras se investiga el formato |
+| API oficial i2 | Acceso soportado por MoTeC a canales y metadatos del .ld | Licencia adicional, i2 Pro/COM y entorno Windows | Posible conector de escritorio/servicio local, no dependencia del frontend web |
+
 ## Por qué i3rs es el candidato prioritario
 
 El core expone:
