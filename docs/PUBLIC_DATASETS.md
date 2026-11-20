@@ -66,3 +66,14 @@ Para incorporar una muestra externa a `tests/fixtures/`:
 6. Mantener privados los datos con licencia no identificada o datos personales no necesarios.
 
 Las fuentes y sus estados también se mantienen en `data/sources.json` para que la política pueda revisarse sin depender de una tabla escrita manualmente.
+
+
+## Casos experimentales incorporados al diseño de pruebas
+
+### ECU estacionaria — Wahyudi, Putri & Ibrahim (2026)
+
+La publicación describe un motor SI 1.6 L con Motec M130 y dinamómetro de motor Schenck Dynas3 LI 250, 288 condiciones de operación, tres adquisiciones por punto, estabilización mínima de cinco minutos y refrigerante a 80 ± 2 °C. El fixture `examples/test-protocol-ecu-steady-state.synthetic.json` reproduce la estructura del protocolo con valores explícitamente sintéticos; no copia muestras ni resultados medidos del artículo. Se usa para verificar los campos obligatorios y el cálculo de CV.
+
+### Dinamómetro — fuente CC BY 4.0 pendiente de inspección
+
+[Mendeley Data, Parmar et al. (2024)](https://data.mendeley.com/datasets/cb2wjcd2st/1) publica datos descritos como adquisición cruda de dinamómetro de motor SI monocilíndrico bajo cuatro cargas. Se incorporó al catálogo de fuentes autorizadas como candidata de validación. Los archivos no se incorporan todavía: hay que revisar columnas, unidades, licencias del archivo, condiciones y si existen repeticiones suficientes antes de construir un fixture fiel. La ficha pública no basta para afirmar que contiene barridos RPM o muestras temporales.
