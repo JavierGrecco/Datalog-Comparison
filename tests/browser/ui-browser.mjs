@@ -79,7 +79,11 @@ async function openDemo(t, viewport) {
   const consoleErrors = [];
   const externalRequests = [];
   const httpErrors = [];
+  const failedRequests = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("requestfailed", request => {
+    failedRequests.push(request.url() + " · " + (request.failure()?.errorText ?? "request failed"));
+  });
   page.on("console", message => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -92,7 +96,15 @@ async function openDemo(t, viewport) {
     }
   });
   await page.goto(baseUrl + "/app/index.html", { waitUntil: "domcontentloaded" });
-  await page.locator("#casePicker [data-demo-case]").first().waitFor({ state: "visible" });
+  try {
+    await page.locator("#casePicker [data-demo-case]").first().waitFor({ state: "visible", timeout: 10000 });
+  } catch (error) {
+    throw new Error(
+      "La aplicación no llegó a inicializar el selector de escenarios. " +
+      JSON.stringify({ pageErrors, consoleErrors, httpErrors, failedRequests }) +
+      " · " + error.message,
+    );
+  }
   return { page, pageErrors, consoleErrors, externalRequests, httpErrors };
 }
 
