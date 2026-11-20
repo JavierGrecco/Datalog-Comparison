@@ -164,6 +164,14 @@ No se habilitará el adaptador hasta completar todos estos puntos:
 9. **CSP y aislamiento:** WASM y worker locales, sin CDN, telemetría ni solicitudes externas; revisar la política CSP vigente.
 10. **CI:** build reproducible de WASM, audit de dependencias y pruebas de contrato en cada commit.
 
+## Generadores de archivos y por qué no reemplazan una muestra M1
+
+Se revisó [TrackTelemetryConverter](https://github.com/BoYanZh/TrackTelemetryConverter), que puede escribir archivos `.ld/.ldx` a partir de fuentes como CSV, AIM, VBOX, RaceChrono e iRacing. El repositorio declara licencia **GPL-3.0-only** e incluye un parser/escritor binario también bajo GPL-3.0.
+
+Su código de exportación construye metadatos de canal a partir de las series procesadas y calcula la frecuencia como un entero redondeado de la frecuencia media del canal. Es una posible herramienta externa para generar ejemplos de formato, pero no aporta una captura auténtica de una ECU M1. Su flujo de normalización/remuestreo tampoco sustituye una prueba que exija preservar las frecuencias nativas del registro original.
+
+**Decisión:** no añadirlo como dependencia del proyecto ni copiar su código. La licencia GPL-3.0 y su alcance de copyleft requieren una decisión explícita de distribución, y un archivo generado se debe rotular como sintético/convertido, nunca como adquisición M1 real. Puede considerarse fuera del repositorio para ensayos de interoperabilidad, siempre que se documente el origen sintético y se verifique qué estructuras binarias genera.
+
 ## Comparación con motec-i2
 
 [motec-i2](https://github.com/afonso360/motec-i2) es una segunda implementación Rust con licencia MIT que puede ayudar a contrastar parsing de `.ld`. Su README deja `.ldx` sin implementar y el repositorio muestra un ritmo de mantenimiento inferior al de i3rs. Se lo considera referencia de validación puntual, no como parser principal ni como escritor integrado.
