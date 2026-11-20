@@ -282,6 +282,14 @@ function buildProtocolFromForm() {
   }));
   const options = { minimumReplicates: 3 };
   if (expectedMetrics.length) options.expectedMetrics = expectedMetrics;
+  const rawTolerances = $("#protocolSetupTolerances").value.trim();
+  if (rawTolerances) {
+    const setupTolerances = JSON.parse(rawTolerances);
+    if (!setupTolerances || typeof setupTolerances !== "object" || Array.isArray(setupTolerances)) {
+      throw new TypeError("Las tolerancias deben ser un objeto JSON con campos numéricos conocidos.");
+    }
+    options.setupTolerances = setupTolerances;
+  }
   const cv = $("#protocolCvLimit").value.trim();
   if (cv !== "") {
     const maximumCvPct = Number(cv);

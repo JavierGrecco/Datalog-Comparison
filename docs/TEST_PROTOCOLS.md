@@ -46,7 +46,7 @@ También se consideran declaradas las claves presentes con valores `null`, `unde
 
 Por defecto, las condiciones numéricas se comparan exactamente, como hasta ahora. Se puede declarar `options.setupTolerances` con una tolerancia absoluta para campos numéricos conocidos, por ejemplo `{"ambient_pressure_kpa": 0.2, "coolant_temp_c": 1}`. La unidad es la propia del campo (`kPa`, `°C`, `%`, etc.); no se interpreta como porcentaje relativo.
 
-La tolerancia solo se aplica a la evaluación de igualdad de configuración entre repeticiones. No cambia los valores originales, no promedia condiciones ni altera las métricas. Una tolerancia debe justificarse según sensor, método, resolución y objetivo del ensayo. No hay valores predefinidos universales; una tolerancia no configurada sigue siendo cero. Los campos de texto y selección no admiten tolerancias.
+La tolerancia solo se aplica a la evaluación de igualdad de configuración entre repeticiones. No cambia los valores originales, no promedia condiciones ni altera las métricas. Una tolerancia debe justificarse según sensor, método, resolución y objetivo del ensayo. No hay valores predefinidos universales; una tolerancia no configurada sigue siendo cero. Los campos de texto y selección no admiten tolerancias. El constructor guiado permite ingresarlas como JSON en el campo de tolerancias; el evaluador valida los nombres y rechaza campos de texto, valores negativos y números no finitos.
 
 El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
 

@@ -307,10 +307,15 @@
               <input id="protocolExpectedMetrics" type="text" maxlength="1000" placeholder="Ej.: power_kw, torque_nm, lambda">
               <small>Declaralas aunque falten en todas las repeticiones. Así el evaluador puede detectar una señal ausente en todo el grupo.</small>
             </label>
-            <label class="csv-control" "protocolMetricsInput">
+            <label class="csv-control" for="protocolMetricsInput">
             <span>Métricas por repetición (JSON)</span>
             <textarea id="protocolMetricsInput" rows="4" spellcheck="false">{"power_kw":[100,101,99]}</textarea>
             <small>Usá un arreglo numérico por métrica, con un valor por repetición y en el mismo orden. Ej.: {"power_kw":[100,101,99],"torque_nm":[250,251,249]}. No mezcles unidades ni bases de medición.</small>
+          </label>
+          <label class="csv-control" for="protocolSetupTolerances">
+            <span>Tolerancias de condiciones (JSON, opcional)</span>
+            <textarea id="protocolSetupTolerances" rows="2" spellcheck="false" placeholder='{"ambient_pressure_kpa":0.2,"coolant_temp_c":1}'></textarea>
+            <small>Solo tolerancias absolutas en unidades del campo. No se aplican por defecto ni modifican las mediciones originales.</small>
           </label>
           <div class="csv-import-actions">
             <button type="button" class="primary-button" id="protocolBuildButton">Armar y evaluar expediente</button>
