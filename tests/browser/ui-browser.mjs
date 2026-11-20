@@ -522,6 +522,10 @@ test("la inspección ECU puede generar señales temporales derivadas sin alterar
   await page.waitForFunction(() => document.querySelector("#csvDerivedStatus")?.textContent.includes("Procesamiento temporal completado"));
   assert.match(await page.locator("#csvDerivedResults").innerText(), /muestras derivadas/);
   assert.match(await page.locator("#csvDerivedResults").innerText(), /Hz/);
+  assert.equal(await page.locator("#csvDerivedResults .uplot").count(), 2,
+    "las señales ECU deben dibujarse por canal y segmento temporal");
+  assert.equal(await page.locator("#csvDerivedResults [role=img]").count(), 2,
+    "las gráficas de señales temporales deben tener descripción accesible");
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /501 muestras/,
     "el registro original conserva su recuento de muestras");
   assert.equal(await page.locator("#charts svg").count(), 2,

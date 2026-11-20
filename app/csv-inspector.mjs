@@ -572,6 +572,7 @@ function renderDerivedProcessing(run, quality) {
 }
 
 function renderTimeDerivedResult(result) {
+  disposeTelemetryCharts();
   const host = $("#csvDerivedResults");
   host.replaceChildren();
   host.append(makeElement("p", "csv-preview-meta",
@@ -587,6 +588,31 @@ function renderTimeDerivedResult(result) {
       makeElement("p", "", signal.outputSampleCount + " muestras derivadas · " +
         signal.segments.length + " segmentos · " + signal.method),
     );
+    for (const [segmentIndex, segment] of signal.segments.entries()) {
+      const samples = Array.isArray(segment?.samples) ? segment.samples : [];
+      if (samples.length < 2) continue;
+      const chartHost = makeElement("div", "csv-derived-chart");
+      const graph = renderTelemetryChart(chartHost, {
+        title: label + " · segmento " + (segmentIndex + 1),
+        xLabel: "Tiempo (s)",
+        yLabel: signal.unit,
+        xValues: samples.map(sample => sample.time_s),
+        series: [{
+          label,
+          values: samples.map(sample => sample.value),
+          stroke: "#8fb3ff",
+          width: 2,
+        }],
+      });
+      card.append(
+        makeElement("h5", "", "Segmento " + (segmentIndex + 1)),
+        chartHost,
+      );
+      if (graph) {
+        card.append(makeElement("p", "csv-derived-note",
+          samples.length + " puntos derivados. El segmento se representa por separado para no unir huecos ni tramos sin datos."));
+      }
+    }
     const points = signal.segments.flatMap(segment => segment.samples);
     if (points.length) {
       const selected = selectPreviewSamples(points, { limit: DEFAULT_PREVIEW_SAMPLE_LIMIT });
