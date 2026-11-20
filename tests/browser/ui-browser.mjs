@@ -586,6 +586,11 @@ test("el dinamómetro muestra curvas independientes por barrido y banda RPM", as
   );
   assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
   await page.locator("#dossierSaveDerivedButton").click();
+  await page.waitForFunction(() => {
+    const status = document.querySelector("#dossierStatus");
+    return status?.classList.contains("csv-status-success") || status?.classList.contains("csv-status-error");
+  });
+  assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
   await page.waitForFunction(() =>
     document.querySelector("#dossierArtifactList")?.textContent.includes("dyno_rpm_sweep_curve"),
   );
@@ -696,6 +701,11 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
     "los dos CSV deben estar disponibles para archivado consentido");
   await page.locator("#dossierArchiveOriginals").check();
   await page.locator("#dossierSaveReportButton").click();
+  await page.waitForFunction(() => {
+    const status = document.querySelector("#dossierStatus");
+    return status?.classList.contains("csv-status-success") || status?.classList.contains("csv-status-error");
+  });
+  assert.match(await page.locator("#dossierStatus").innerText(), /Informe guardado en el expediente/i);
   await page.waitForFunction(() =>
     document.querySelector("#dossierStatus")?.textContent.includes("archivaron 2 CSV originales"),
   );
