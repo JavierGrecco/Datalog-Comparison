@@ -903,6 +903,14 @@ test("los expedientes locales permiten crear un expediente y ejecutar una audito
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
+  assert.equal(await page.locator("#dossierSaveDerivedButton").isEnabled(), true);
+  assert.match(await page.locator("#dossierPendingDerivedStatus").innerText(), /test_protocol_assessment/i);
+  await page.locator("#dossierSaveDerivedButton").click();
+  await page.waitForFunction(() => document.querySelector("#dossierArtifactList")?.textContent.includes("test_protocol_assessment"));
+  assert.match(await page.locator("#dossierStatus").innerText(), /Artefacto derivado guardado/i);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
   assert.deepEqual(externalRequests, []);
 });
 
@@ -937,6 +945,11 @@ test("la evaluación de protocolos se integra en la interfaz y mantiene la evide
 test("el constructor guiado crea repeticiones ECU estacionarias sin elevar datos reportados a mediciones", async t => {
   const { page, pageErrors, consoleErrors, httpErrors, externalRequests } =
     await openDemo(t, { width: 390, height: 844 });
+  await page.locator("#dossierName").fill("Protocolo ECU · integración local");
+  await page.locator("#dossierVehicleLabel").fill("Vehículo sintético QA");
+  await page.locator("#dossierCreateButton").click();
+  await page.waitForFunction(() => document.querySelector("#dossierActiveSelect")?.options.length === 1);
+
   await page.locator("#protocolDomain").selectOption("ecu");
   await page.locator("#protocolMode").selectOption("steady_state");
   await page.locator("#protocolRpm").fill("3000");

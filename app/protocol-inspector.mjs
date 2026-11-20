@@ -275,6 +275,25 @@ export function initializeProtocolInspector() {
       }
       const result = assessTestProtocol(input.runs, input.options ?? {});
       renderResult(result);
+      window.dispatchEvent(new CustomEvent("datalog:derived-ready", { detail: { artifact: {
+        kind: "test_protocol_assessment",
+        algorithm: "assessTestProtocol",
+        algorithmVersion: "1.0.0",
+        source: {
+          evidenceClass: typeof input.evidenceClass === "string" ? input.evidenceClass : "user_supplied",
+          protocolSchema: typeof input.schema === "string" ? input.schema : "unversioned",
+        },
+        metadata: {
+          domain: result.domain ?? null,
+          mode: result.mode ?? null,
+          status: result.status,
+          runCount: input.runs.length,
+          operatingPointId: result.operatingPointId ?? null,
+        },
+        payload: { input, assessment: result },
+      } } }));
+      $("#protocolBuilderStatus").textContent = "Evaluación lista. Podés guardarla manualmente en un expediente local desde la sección de expedientes.";
+
       status.textContent = "Evaluación local terminada. El resultado no certifica una norma ni autentica las fuentes declaradas.";
     } catch (error) {
       status.textContent = "No se pudo evaluar el expediente: " +
