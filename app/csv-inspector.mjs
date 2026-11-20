@@ -298,6 +298,7 @@ function clearComparisonWorkspace() {
 }
 
 function clearPreview() {
+  disposeTelemetryCharts();
   state.run = null;
   state.quality = null;
   state.derivedResult = null;

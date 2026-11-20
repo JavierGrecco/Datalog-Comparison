@@ -326,6 +326,16 @@ test("la variante Haltech Channel/ID/Type se importa localmente y muestra sus ca
   assert.match(await page.locator("#csvWarnings").innerText(), /Wideband O2 Overall.*lambda/i);
   assert.equal(await page.locator("#csvMappingSection").isVisible(), false);
   assert.equal(await page.locator("#charts svg").count(), 2);
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "replacement-run.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Engine RPM,Wheel Torque (Nm)\\n1000,100\\n1100,105", "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  assert.equal(await page.locator("#csvDerivedResults .uplot").count(), 0,
+    "al cambiar la fuente deben retirarse las gráficas anteriores y sus observadores");
+
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
