@@ -58,7 +58,7 @@ export function validateJsonSchemaInstance(instance, schema) {
       if (rule.maxLength !== undefined && value.length > rule.maxLength) errors.push(path + " is too long");
       if (rule.pattern && !(new RegExp(rule.pattern)).test(value)) errors.push(path + " does not match its pattern");
       if (rule.format === "date-time" &&
-          (!Number.isFinite(Date.parse(value)) || !/^\\d{4}-\\d{2}-\\d{2}T.+(?:Z|[+-]\\d{2}:\\d{2})$/.test(value))) {
+          (!Number.isFinite(Date.parse(value)) || !/^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/.test(value))) {
         errors.push(path + " is not a date-time");
       }
     }
