@@ -26,6 +26,12 @@ export const OPERATING_CONDITION_FIELDS = Object.freeze([
   { key: "tire_pressure_kpa", label: "Presión de neumáticos", type: "number", unit: "kPa", optional: true, min: 0, hint: "Anotá eje/neumático y si fue en frío o caliente. Relevante sobre todo en banco de rodillos." },
   { key: "dyno_ramp_rate_rpm_s", label: "Rampa del banco", type: "number", unit: "RPM/s", optional: true, min: 0, hint: "Ramp rate del ensayo, si el equipo lo declara; no es una velocidad del vehículo." },
   { key: "dyno_smoothing_setting", label: "Suavizado del gráfico del banco", type: "text", unit: "", optional: true, hint: "Anotá el nivel/algoritmo exacto. No compares niveles desconocidos como si fueran equivalentes." },
+  { key: "dyno_model", label: "Modelo del dinamómetro", type: "text", unit: "", optional: true, hint: "Fabricante, modelo y configuración del banco." },
+  { key: "dyno_correction_standard", label: "Norma de corrección de potencia", type: "text", unit: "", optional: true, hint: "Ej.: SAE J1349 (edición), ISO 1585 u otro método declarado. No se aplica una corrección automáticamente." },
+  { key: "dyno_fan_setup", label: "Ventilación y refrigeración", type: "text", unit: "", optional: true, hint: "Posición, tipo y configuración del ventilador; documentá si se mantuvo entre tiradas." },
+  { key: "instrument_calibration", label: "Calibración de instrumentos", type: "text", unit: "", optional: true, hint: "Identificación, fecha o estado de calibración de sensores y equipos de medición." },
+  { key: "tire_condition", label: "Estado de neumáticos", type: "text", unit: "", optional: true, hint: "Tipo, estado, temperatura/condición y cambios entre tiradas." },
+  { key: "dyno_strapping", label: "Sujeción del vehículo", type: "text", unit: "", optional: true, hint: "Configuración y puntos de amarre; conservar la misma configuración entre ensayos." },
   { key: "dyno_load_mode", label: "Modo de carga del dinamómetro", type: "text", unit: "", optional: true, hint: "Ej.: inercial, freno/eddy-current o carga de carretera. Usá la denominación del equipo; no se infiere de la curva." }
 ]);
 

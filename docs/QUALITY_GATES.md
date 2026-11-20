@@ -53,3 +53,10 @@ La evaluación distingue tres situaciones a nivel de canal:
 - **Cobertura insuficiente:** la señal existe en ambos, pero uno o ambos registros quedan debajo del umbral configurado.
 
 Estas exclusiones no ocultan otros canales que sí superan sus propias comprobaciones. La ausencia unilateral genera revisión y un próximo paso explícito; no se interpreta como cero ni como medición equivalente.
+
+
+## Protocolos específicos y repetibilidad
+
+El motor `src/test-protocol.mjs` diferencia ECU estacionaria, ECU transitoria y dinamómetro (inercial, cargado o estacionario). Cada perfil solicita evidencia propia y rechaza mezclar dominios o protocolos. Los valores deben conservar fuente y estado; `verified` significa verificado por quien carga, no autenticado por el software.
+
+La repetibilidad se resume por métrica mediante desviación estándar muestral, coeficiente de variación (CV %) y rango relativo. Por defecto se requieren tres repeticiones, inspirado en protocolos experimentales publicados que adquieren triplicados por condición; no es un mínimo universal de SAE/ISO. El límite de CV queda sin configurar por defecto: se puede describir la dispersión, pero no aprobarla hasta que el taller defina un criterio específico para su banco, sensor, magnitud y objetivo. Un CV bajo no descarta sesgo sistemático ni reemplaza incertidumbre metrológica.
