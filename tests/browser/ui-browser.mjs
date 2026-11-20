@@ -630,7 +630,25 @@ test("compara dos CSV importados por distribuciones y explica señales unilatera
   assert.match(exclusions, /no existe una base compartida/i);
   assert.match(await page.locator("#csvComparisonResultSummary").innerText(), /referencia temporal común verificada/i);
   assert.equal(await page.locator("#charts svg").count(), 2);
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  const layout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    overflowingElements: [...document.querySelectorAll("body *")]
+      .map(element => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          id: element.id || "",
+          className: typeof element.className === "string" ? element.className : "",
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        };
+      })
+      .filter(item => item.width > 0 && item.right > window.innerWidth + 1)
+      .slice(0, 8),
+  }));
+  assert.ok(layout.documentWidth <= layout.viewportWidth,
+    "desbordamiento horizontal: " + JSON.stringify(layout));
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
