@@ -221,6 +221,33 @@
           <p class="csv-isolation-note"><strong>Límite:</strong> el resultado es descriptivo, no demuestra equivalencia física ni causalidad. Los registros y resultados permanecen en memoria local y se descartan al recargar la página o vaciar el expediente.</p>
         </section>
       </section>
+
+      <section id="savedReportWorkspace" class="saved-report-workspace" aria-labelledby="savedReportTitle">
+        <div class="csv-subheading">
+          <h3 id="savedReportTitle">Abrir una comparación guardada</h3>
+          <p>Seleccioná un informe JSON exportado anteriormente. Se valida su contrato y se reconstruye el resumen guardado sin volver a importar los CSV ni modificar el expediente actual.</p>
+        </div>
+        <form id="savedReportForm" class="saved-report-form">
+          <label class="csv-control" for="savedReportFile">
+            <span>Informe JSON</span>
+            <input id="savedReportFile" type="file" accept=".json,application/json" required>
+            <small>Procesamiento local · UTF-8 · máximo 10 MiB · versión compatible</small>
+          </label>
+          <div class="csv-comparison-actions">
+            <button type="submit" class="primary-button" id="savedReportOpenButton" disabled>Validar y abrir informe</button>
+            <button type="button" class="secondary-button" id="savedReportCloseButton" disabled>Cerrar informe</button>
+          </div>
+          <p id="savedReportStatus" class="csv-status" role="status" aria-live="polite">No hay ningún informe abierto.</p>
+        </form>
+        <section id="savedReportResult" class="saved-report-result" aria-label="Resumen del informe guardado" hidden>
+          <div id="savedReportOverview"></div>
+          <div id="savedReportRuns" class="saved-report-runs"></div>
+          <div id="savedReportChannels" class="saved-report-block"></div>
+          <div id="savedReportExclusions" class="saved-report-block"></div>
+          <div id="savedReportGates" class="saved-report-block"></div>
+          <div id="savedReportMessages"></div>
+        </section>
+      </section>
     </section>
 
     <section class="results-grid">
