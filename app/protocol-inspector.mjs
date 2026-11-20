@@ -222,7 +222,7 @@ function buildProtocolFromForm() {
     operatingConditions: JSON.parse(JSON.stringify(conditions)),
     metrics: Object.fromEntries(metricKeys.map(key => [key, metricsInput[key][index]])),
   }));
-  const options = { minimumReplicates: Math.min(3, count) };
+  const options = { minimumReplicates: 3 };
   const cv = $("#protocolCvLimit").value.trim();
   if (cv !== "") {
     const maximumCvPct = Number(cv);
@@ -237,6 +237,13 @@ export function initializeProtocolInspector() {
   if (!form || form.dataset.initialized === "true") return;
   form.dataset.initialized = "true";
   renderProtocolModeOptions();
+  const clearPendingArtifact = () => {
+    window.dispatchEvent(new Event("datalog:derived-cleared"));
+    $("#protocolBuilderStatus").textContent = "Los cambios invalidan la evaluación pendiente. Volvé a evaluar antes de guardarla.";
+  };
+  $("#protocolBuilder").addEventListener("input", clearPendingArtifact);
+  $("#protocolBuilder").addEventListener("change", clearPendingArtifact);
+  $("#protocolJsonInput").addEventListener("input", clearPendingArtifact);
   $("#protocolDomain").addEventListener("change", renderProtocolModeOptions);
   $("#protocolMode").addEventListener("change", () => { renderProtocolConditionFields(); updateProtocolPointFields(); });
   $("#protocolBuildButton").addEventListener("click", () => {
@@ -257,6 +264,7 @@ export function initializeProtocolInspector() {
     const status = $("#protocolInputStatus");
     const raw = $("#protocolJsonInput").value;
     status.textContent = "";
+    window.dispatchEvent(new Event("datalog:derived-cleared"));
     $("#protocolResult").replaceChildren();
     $("#protocolResult").hidden = true;
     if (!raw.trim()) {
@@ -303,6 +311,7 @@ export function initializeProtocolInspector() {
 
   $("#protocolClearButton").addEventListener("click", () => {
     $("#protocolJsonInput").value = "";
+    window.dispatchEvent(new Event("datalog:derived-cleared"));
     $("#protocolInputStatus").textContent = "Expediente de evaluación vacío.";
     $("#protocolResult").replaceChildren();
     $("#protocolResult").hidden = true;
