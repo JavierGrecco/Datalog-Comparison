@@ -128,9 +128,10 @@ function renderProtocolConditionFields() {
       note: card.querySelector("[data-condition-note]")?.value ?? "",
     });
   }
+  const requiredFields = protocolRequiredFields();
   host.replaceChildren();
   const definitions = new Map(OPERATING_CONDITION_FIELDS.map(item => [item.key, item]));
-  for (const key of protocolRequiredFields()) {
+  for (const key of requiredFields) {
     const definition = definitions.get(key);
     const saved = previous.get(key);
     const card = element("fieldset", "protocol-condition-card");
