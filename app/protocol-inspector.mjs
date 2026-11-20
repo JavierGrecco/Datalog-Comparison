@@ -179,8 +179,9 @@ function buildProtocolFromForm() {
   }
   let operatingPoint = {};
   if (domain === "ecu" && mode === "steady_state") {
-    const rpm = Number($("#protocolRpm").value), loadPct = Number($("#protocolLoad").value);
-    if (!Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
+    const rpmRaw = $("#protocolRpm").value.trim(), loadRaw = $("#protocolLoad").value.trim();
+    const rpm = Number(rpmRaw), loadPct = Number(loadRaw);
+    if (!rpmRaw || !loadRaw || !Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
       throw new TypeError("El punto ECU estacionario necesita RPM y carga entre 0 y 100 %.");
     }
     operatingPoint = { rpm, loadPct };
@@ -191,8 +192,9 @@ function buildProtocolFromForm() {
     }
     operatingPoint = { rpmStart, rpmEnd };
   } else if (domain === "dyno" && mode === "steady_state") {
-    const rpm = Number($("#protocolRpm").value), loadPct = Number($("#protocolLoad").value);
-    if (!Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
+    const rpmRaw = $("#protocolRpm").value.trim(), loadRaw = $("#protocolLoad").value.trim();
+    const rpm = Number(rpmRaw), loadPct = Number(loadRaw);
+    if (!rpmRaw || !loadRaw || !Number.isFinite(rpm) || rpm <= 0 || !Number.isFinite(loadPct) || loadPct < 0 || loadPct > 100) {
       throw new TypeError("El punto de dinamómetro estacionario necesita RPM y carga entre 0 y 100 %.");
     }
     operatingPoint = { rpm, loadPct };
@@ -318,6 +320,7 @@ export function initializeProtocolInspector() {
   });
 
   $("#protocolLoadExampleButton").addEventListener("click", async () => {
+    window.dispatchEvent(new Event("datalog:derived-cleared"));
     const status = $("#protocolInputStatus");
     try {
       const response = await fetch("../examples/test-protocol-ecu-steady-state.synthetic.json", {
