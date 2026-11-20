@@ -97,6 +97,20 @@
       ]
     },
     {
+      "id": "hpa-motec-example-logged-data",
+      "title": "High Performance Academy — MoTeC example logged data",
+      "url": "https://www.hpacademy.com/es/foro/tutorial-del-software-motec-m1-1/show/example-logged-data-and-software-tools-download/",
+      "downloadUrl": "https://www.hpacademy.com/assets/Course-Content/Data-Fundamentals-/c6d3af1dbb/03-MOTEC-EXAMPLE-LOGGED-DATA.zip",
+      "creator": "High Performance Academy; forum post by Tim White",
+      "evidenceClass": "unverified",
+      "license": null,
+      "localPracticePermission": "invited-by-source-post",
+      "redistribution": "not-cleared",
+      "fileSchemaStatus": "not-yet-downloaded",
+      "deviceIdentity": "MoTeC logging data offered in a MoTeC M1 tutorial thread; exact ECU/model and archive contents have not been independently verified.",
+      "repositoryPolicy": "Private local practice/QA only. Do not commit the archive, extracted files, derived copies or CI artifacts, or redistribute them, without written permission or a file-specific licence covering those uses."
+    },
+    {
       "id": "speeduino-serial-sim",
       "title": "Speeduino Serial Simulator",
       "url": "https://github.com/askrejans/speeduino-serial-sim",
