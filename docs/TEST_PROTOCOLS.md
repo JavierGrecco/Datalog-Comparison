@@ -1,0 +1,45 @@
+# Protocolos de ensayo y repetibilidad
+
+## Propósito y límites
+
+Este módulo convierte condiciones de ensayo y repeticiones en controles reproducibles. No es un software de certificación SAE/ISO, no sustituye el manual del banco y no calcula incertidumbre metrológica completa. Los estados `measured` y `verified` conservan lo declarado por la fuente o por quien carga el ensayo; la aplicación no autentica el sensor ni el documento.
+
+## Perfiles separados
+
+### ECU / logger
+
+- `steady_state`: exige identificación de calibración y combustible, temperaturas de admisión y refrigerante con fuente, un punto objetivo explícito de RPM y carga/acelerador y tiempo de estabilización declarado.
+- `transient`: exige vehículo/motor, calibración, combustible y temperatura ambiente con fuente. La evaluación temporal y sincronización de señales permanece en las puertas de calidad existentes.
+- Dos logs ECU no son repetibles solo porque sus máximos coinciden. Deben representar el mismo protocolo y punto operativo.
+
+### Dinamómetro
+
+Los modos aceptados son `inertia_sweep`, `loaded_sweep` y `steady_state`. El perfil exige contexto de vehículo, combustible, marcha, método, modelo del banco, modo de carga, rampa, suavizado, estándar de corrección, ventilación, calibración de instrumentos, neumáticos, presión, estado y sujeción, más condiciones ambientales. Los barridos deben declarar RPM inicial/final; el punto estacionario debe declarar RPM y carga.
+
+No se convierten ni mezclan bases de motor, rueda, cubo o rodillo. Una curva de banco de motor tampoco es intercambiable con una medición de banco de rodillos.
+
+## Repetibilidad
+
+La V1 calcula por métrica media, desviación estándar muestral, coeficiente de variación (CV = 100 × s / |media|) y rango relativo (100 × (máximo − mínimo) / |media|).
+
+Se requieren tres repeticiones por defecto. Es una decisión de política inicial inspirada en un caso experimental publicado, no una obligación universal. El límite `maximumCvPct` debe configurarlo el taller según métrica, instrumento, banco y método. Si no se configura, el resultado es `threshold_not_configured`: se informa la dispersión, no se aprueba.
+
+El CV no detecta sesgo sistemático, deriva del sensor ni error de calibración. Tampoco equivale a incertidumbre expandida. No comparar valores de diferentes puntos operativos como si fueran réplicas.
+
+## Caso público usado para diseñar pruebas
+
+Wahyudi, Putri e Ibrahim (2026), DOI [10.38038/vocatech.v8i2.359](https://doi.org/10.38038/vocatech.v8i2.359), describen un motor SI 1.6 L con Motec M130, dinamómetro de motor Schenck Dynas3 LI 250, 288 condiciones estacionarias, tres adquisiciones por condición y estabilización mínima de cinco minutos. Informan refrigerante a 80 ± 2 °C y combustible RON 92. La comparación integrada se limita a 3000 RPM y carga plena para mantener un punto común entre métricas.
+
+El fixture `examples/test-protocol-ecu-steady-state.synthetic.json` reproduce únicamente la estructura del protocolo. Sus valores son sintéticos y sirven para comprobar el contrato y el cálculo del CV. No contiene datos extraídos del artículo.
+
+## Caso de dinamómetro público pendiente de inspección
+
+Parmar et al. (2024), [Mendeley Data](https://data.mendeley.com/datasets/cb2wjcd2st/1), DOI 10.17632/cb2wjcd2st.1, CC BY 4.0, describe archivos de adquisición cruda de un dinamómetro de motor SI monocilíndrico a cuatro cargas. Se registra en `data/sources.json` como fuente candidata. No se incorpora todavía ningún archivo: primero se debe descargar, revisar formato, unidades, separar datos medidos y teóricos, confirmar ejes y calcular su hash. La página descriptiva no permite afirmar que sean barridos RPM o series temporales.
+
+## Uso
+
+```bash
+npm run assess:protocol -- examples/test-protocol-ecu-steady-state.synthetic.json
+```
+
+El comando también admite stdin con `-`. Entrada máxima: 2 MiB. Código de salida 0 = controles configurados completados; 1 = revisión/bloqueo; 2 = error de entrada o uso. La salida JSON incluye hallazgos, campos requeridos y estadísticas por métrica.

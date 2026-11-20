@@ -60,3 +60,6 @@ Estas exclusiones no ocultan otros canales que sí superan sus propias comprobac
 El motor `src/test-protocol.mjs` diferencia ECU estacionaria, ECU transitoria y dinamómetro (inercial, cargado o estacionario). Cada perfil solicita evidencia propia y rechaza mezclar dominios o protocolos. Los valores deben conservar fuente y estado; `verified` significa verificado por quien carga, no autenticado por el software.
 
 La repetibilidad se resume por métrica mediante desviación estándar muestral, coeficiente de variación (CV %) y rango relativo. Por defecto se requieren tres repeticiones, inspirado en protocolos experimentales publicados que adquieren triplicados por condición; no es un mínimo universal de SAE/ISO. El límite de CV queda sin configurar por defecto: se puede describir la dispersión, pero no aprobarla hasta que el taller defina un criterio específico para su banco, sensor, magnitud y objetivo. Un CV bajo no descarta sesgo sistemático ni reemplaza incertidumbre metrológica.
+
+
+La herramienta reproducible está disponible como `npm run assess:protocol -- archivo.json` (o `-` para stdin). Código de salida 0: controles configurados completados; 1: revisión o bloqueo; 2: error de entrada/uso. Un límite CV omitido nunca se interpreta como aprobación.
