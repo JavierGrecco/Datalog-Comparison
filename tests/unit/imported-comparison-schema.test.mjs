@@ -63,6 +63,10 @@ test("el informe generado y el ejemplo público cumplen el JSON Schema publicado
   assert.equal(schema.$id, "urn:datalog-comparison:imported-run-comparison:1");
   assert.equal(schema.properties.schema.const, IMPORTED_COMPARISON_REPORT_SCHEMA);
   assert.deepEqual(validateJsonSchemaInstance(example, schema), []);
+  const zonedExample = structuredClone(example);
+  zonedExample.exportedAt = "2026-11-20T12:30:00-03:00";
+  assert.deepEqual(validateJsonSchemaInstance(zonedExample, schema), [],
+    "un timestamp RFC 3339 con offset horario debe ser válido");
 
   const referenceRun = makeRun("reference", {
     values: [1800, 2000, 2200], hash: "a".repeat(64),

@@ -109,7 +109,7 @@ async function main() {
     } catch (error) {
       emit(options.jsonOutput, {
         valid: false, input: options.inputPath, schema: schema.$id ?? null,
-        errors: ["El informe no es JSON válido: " + error.message],
+        errors: ["El informe no es JSON válido; revisá su sintaxis JSON."],
       }, "Informe inválido: el archivo no contiene JSON válido.");
       process.exitCode = 1;
       return;

@@ -36,8 +36,8 @@ function isDateTime(value) {
   const hour = Number(match[4]);
   const minute = Number(match[5]);
   const second = Number(match[6]);
-  const offsetHour = match[9] === undefined ? 0 : Number(match[9]);
-  const offsetMinute = match[10] === undefined ? 0 : Number(match[10]);
+  const offsetHour = match[10] === undefined ? 0 : Number(match[10]);
+  const offsetMinute = match[11] === undefined ? 0 : Number(match[11]);
   const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const monthDays = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
@@ -179,8 +179,10 @@ export function validateImportedComparisonReport(report, schema, { maxErrors = 1
       if (!approximatelyEqual(statistics.coveragePct, expectedCoverage)) {
         add(path + "." + role + ".coveragePct: no coincide con validCount/sampleCount");
       }
-      if (statistics.min > statistics.median || statistics.median > statistics.max ||
-          statistics.mean < statistics.min - 1e-9 || statistics.mean > statistics.max + 1e-9) {
+      if ((statistics.min > statistics.median && !approximatelyEqual(statistics.min, statistics.median)) ||
+          (statistics.median > statistics.max && !approximatelyEqual(statistics.median, statistics.max)) ||
+          (statistics.mean < statistics.min && !approximatelyEqual(statistics.mean, statistics.min)) ||
+          (statistics.mean > statistics.max && !approximatelyEqual(statistics.mean, statistics.max))) {
         add(path + "." + role + ": min, media, mediana y max no mantienen un orden estadístico válido");
       }
       if (statistics.coveragePct + 1e-9 < report.minimumCoveragePct) {
