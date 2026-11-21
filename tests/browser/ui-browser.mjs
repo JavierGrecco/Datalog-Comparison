@@ -390,7 +390,7 @@ test("detecta e importa un archivo MSL con MARK desde el selector local", async 
   assert.equal(await page.locator("#csvSourceDomain").isDisabled(), true);
   assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed Time (sec)");
   assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine RPM (rpm)");
-  assert.match(await page.locator("#csvImportStatus").innerText(), /Perfil TunerStudio\/MSL seleccionado/i);
+  assert.match(await page.locator("#csvImportStatus").innerText(), /Perfil TunerStudio\/MegaSquirt de texto seleccionado/i);
 
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
@@ -428,7 +428,7 @@ test("detecta e importa el CSV MegaSquirt con cuatro líneas de metadatos", asyn
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /5 muestras/);
-  assert.match(await page.locator("#csvQualityTable").innerText(), /MAP/);
+  assert.match(await page.locator("#csvQualityTable").innerText(), /Presión absoluta de colector/);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);
