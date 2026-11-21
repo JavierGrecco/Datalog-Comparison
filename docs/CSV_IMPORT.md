@@ -86,6 +86,9 @@ Los campos vacíos o no numéricos no se rellenan con el último valor. Se prese
 
 Los encabezados frecuentes se normalizan conservadoramente (`RPM`, `TPS`, `Lambda 1`, `MAT`, `CLT`, `Spark Advance`, `VSS1`). `MAP` y `Boost` siguen requiriendo confirmación de referencia y rol; no se asignan por descarte. Las unidades se toman de la fila fuente, no se adivinan por la magnitud. Los archivos binarios `.mlg` y los registros nativos `.ms3` no están soportados.
 
+El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es sintético y propio. Prueba preámbulo opcional, fila de unidades, columnas `Time`/ `SecL`, eventos `MARK`, líneas originales y conversión de unidades. No es una captura ECU ni una prueba de compatibilidad oficial con todas las versiones.
+
+
 ### Export CSV clásico de MegaSquirt / TunerStudio
 
 La variante clásica comienza con `Tune Datalog export of`, conserva metadatos como `Tune file`, `Total Frames` y `Duration`, y presenta una tabla que comienza con `Frame,Duration`. El adaptador detecta esa firma de forma automática y preserva las líneas de metadatos y la fila de encabezados originales.
@@ -93,14 +96,13 @@ La variante clásica comienza con `Tune Datalog export of`, conserva metadatos c
 - `Duration` se interpreta como segundos y se ofrece como eje `Elapsed Time (s)`.
 - `RPM` se ofrece como `Engine RPM (rpm)`.
 - `Frame` queda como columna auxiliar sin incorporarse al modelo normalizado.
+- Los canales booleanos textuales como `MIL` (`ON`/`OFF`) quedan sin asignar; no se convierten automáticamente a 0/1.
 - Las unidades entre paréntesis, por ejemplo `MAP(mBar)` o `TPS(%)`, se conservan y se contrastan con el registro de unidades.
 - La cantidad declarada en `Total Frames` se compara con las filas reales. Una diferencia produce advertencia; no se rellenan ni descartan filas.
 - Si el primer valor de `Duration` parece corresponder a tiempo de ECU anterior al inicio del log, el adaptador no lo corrige. El eje original se conserva y la calidad temporal puede señalar el retroceso.
 
 El fixture `tests/fixtures/tunerstudio-megasquirt-export-synthetic.csv` es sintético y propio. No contiene capturas ni valores de terceros.
 
-
-El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es sintético y propio. Prueba preámbulo opcional, fila de unidades, columnas `Time`/ `SecL`, eventos `MARK`, líneas originales y conversión de unidades. No es una captura ECU ni una prueba de compatibilidad oficial con todas las versiones.
 
 ## Perfil Dynojet PowerCore / WinPEP (guiado)
 
@@ -140,7 +142,9 @@ El registro `datalog-units/3` admite conversiones explícitas por dimensión y u
 | Acelerador | %, percent | % |
 | Avance de encendido | grados, radianes | grados |
 
-`mBar` se admite como variante exacta de encabezados de algunos exports MegaSquirt y se normaliza como `mbar` (factor 0,1 a kPa); no se habilita una conversión genérica sin distinguir mayúsculas.\n\nLas unidades no listadas o dimensionalmente incompatibles se rechazan para el canal elegido. Pa y pA, mW y MW, Nm y nm se distinguen explícitamente. La unidad original, conversión y encabezado se conservan en importMetadata; los CSV genéricos/Dynojet mantienen también la celda textual de origen junto a cada muestra. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
+`mBar` se admite como variante exacta de encabezados de algunos exports MegaSquirt y se normaliza como `mbar` (factor 0,1 a kPa); no se habilita una conversión genérica sin distinguir mayúsculas.
+
+Las unidades no listadas o dimensionalmente incompatibles se rechazan para el canal elegido. Pa y pA, mW y MW, Nm y nm se distinguen explícitamente. La unidad original, conversión y encabezado se conservan en importMetadata; los CSV genéricos/Dynojet mantienen también la celda textual de origen junto a cada muestra. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
 
 Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y muestra intervalo mediano, frecuencia observada por canal y jitter robusto cuando hay eje temporal. Son métricas calculadas sobre muestras adyacentes válidas; no prueban la frecuencia configurada ni la existencia de muestras perdidas. Sin eje temporal no se afirma frecuencia, duración ni sincronización.
 
