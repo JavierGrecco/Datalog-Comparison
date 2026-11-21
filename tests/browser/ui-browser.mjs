@@ -402,6 +402,39 @@ test("detecta e importa un archivo MSL con MARK desde el selector local", async 
   assert.deepEqual(externalRequests, []);
 });
 
+
+test("detecta e importa el CSV MegaSquirt con cuatro líneas de metadatos", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+    await openDemo(t, { width: 1280, height: 900 });
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "tunerstudio-megasquirt-export-synthetic.csv",
+    mimeType: "text/csv",
+    buffer: await readFile(resolve(PROTOTYPE_ROOT,
+      "tests/fixtures/tunerstudio-megasquirt-export-synthetic.csv")),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+
+  assert.equal(await page.locator("#csvFormatProfile").inputValue(), "auto");
+  assert.equal(await page.locator("#csvSourceDomain").inputValue(), "ecu");
+  assert.equal(await page.locator("#csvSourceDomain").isDisabled(), true);
+  assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed Time (s)");
+  assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine RPM (rpm)");
+  assert.match(await page.locator("#csvImportStatus").innerText(), /Perfil TunerStudio\/MegaSquirt de texto seleccionado/i);
+
+  await page.locator('[data-channel-key="throttle_pct"]').selectOption("TPS(%)");
+  await page.locator('[data-channel-key="map_abs_kpa"]').selectOption("MAP(mBar)");
+  await page.locator('[data-unit-key="map_abs_kpa"]').fill("mBar");
+  await page.locator("#csvInspectButton").click();
+  await page.locator("#csvPreview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#csvPreviewSummary").innerText(), /5 muestras/);
+  assert.match(await page.locator("#csvQualityTable").innerText(), /MAP/);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
+});
+
 test("el perfil Dynojet exige base de medición antes de inspeccionar torque/potencia", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });

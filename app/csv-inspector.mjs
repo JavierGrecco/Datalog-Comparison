@@ -9,7 +9,7 @@ import {
 import { suggestColumnMappings } from "../src/channel-resolver.mjs";
 import { importHaltechNspCsv, detectHaltechNspCsv } from "../src/adapters/haltech-nsp.mjs";
 import { importDynojetPowerCoreCsv } from "../src/adapters/dynojet-powercore.mjs";
-import { detectTunerStudioMsl, importTunerStudioMsl, parseTunerStudioMsl } from "../src/adapters/tunerstudio-msl.mjs";
+import { detectTunerStudioText, importTunerStudioMsl, parseTunerStudioMsl } from "../src/adapters/tunerstudio-msl.mjs";
 import { assessRunDataQuality } from "../src/data-quality.mjs";
 import { compareRunDistributions } from "../src/distribution-comparison.mjs";
 import { buildImportedComparisonReport } from "../src/imported-comparison-report.mjs";
@@ -847,7 +847,7 @@ function showGenericMapping(parsed, profile) {
   const profileText = profile === "dynojet"
     ? "Perfil PowerCore/WinPEP seleccionado: asigná canales y declarará la base de medición."
     : profile === "tunerstudio"
-      ? "Perfil TunerStudio/MSL seleccionado: se reconocieron el preámbulo, el delimitador y la posible fila de unidades; revisá MAP y Boost manualmente."
+      ? "Perfil TunerStudio/MegaSquirt de texto seleccionado: se reconocieron el formato y sus metadatos; revisá MAP y Boost manualmente."
       : "Asigná tiempo y RPM antes de inspeccionarlo.";
   setStatus("Archivo leído localmente (" + sourceEncodingLabel(state.textEncoding) + "): " +
     parsed.headers.length + " columnas y " + parsed.rows.length + " filas de datos. " +
@@ -864,7 +864,7 @@ function parseLoadedText() {
 
   const selectedProfile = $("#csvFormatProfile").value;
   const profile = selectedProfile === "auto"
-    ? (detectHaltechNspCsv(state.text) ? "haltech" : detectTunerStudioMsl(state.text) ? "tunerstudio" : "generic")
+    ? (detectHaltechNspCsv(state.text) ? "haltech" : detectTunerStudioText(state.text) ? "tunerstudio" : "generic")
     : selectedProfile;
 
   try {

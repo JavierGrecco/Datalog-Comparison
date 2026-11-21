@@ -118,6 +118,85 @@ test("admite CSV con coma sin fila de unidades solo en perfil manual y no invent
   assert.equal(manuallyDeclared.units.rpm, "RPM");
 });
 
+
+test("detecta export CSV clásico MegaSquirt y conserva metadatos y unidades del encabezado", async () => {
+  const text = await readFile(
+    new URL("../fixtures/tunerstudio-megasquirt-export-synthetic.csv", import.meta.url),
+    "utf8",
+  );
+  assert.equal(detectTunerStudioText(text), true);
+  const parsed = parseTunerStudioMsl(text);
+  assert.equal(parsed.delimiter, ",");
+  assert.equal(parsed.tunerStudioMetadata.layout, "comma-delimited-megasquirt-export");
+  assert.equal(parsed.tunerStudioMetadata.exportMetadata.tuneFile, "synthetic-2.0L-NA.msq");
+  assert.equal(parsed.tunerStudioMetadata.exportMetadata.totalFrames, 5);
+  assert.equal(parsed.tunerStudioMetadata.exportMetadata.durationText, "00:00:02.000");
+  assert.equal(parsed.tunerStudioMetadata.sourceHeaderLine, 5);
+  assert.equal(parsed.sourceLineNumbers[0], 6);
+  assert.equal(parsed.rows.length, 5);
+  assert.ok(parsed.headers.includes("Elapsed Time (s)"));
+  assert.ok(parsed.headers.includes("Engine RPM (rpm)"));
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits["MAP(mBar)"], "mBar");
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits["TPS(%)"], "%");
+});
+
+test("importa Duration como eje, convierte MAP mBar y mantiene Frame sin asignar", async () => {
+  const text = await readFile(
+    new URL("../fixtures/tunerstudio-megasquirt-export-synthetic.csv", import.meta.url),
+    "utf8",
+  );
+  const parsed = parseTunerStudioMsl(text);
+  const run = importTunerStudioMsl(parsed, {
+    id: "megasquirt-csv-synthetic",
+    name: "tunerstudio-megasquirt-export-synthetic.csv",
+    sourceDomain: "ecu",
+    channelMapping: {
+      time_s: "Elapsed Time (s)",
+      rpm: "Engine RPM (rpm)",
+      throttle_pct: "TPS(%)",
+      map_abs_kpa: "MAP(mBar)",
+      ignition_advance_deg: "Spark Advance(deg)",
+    },
+    units: {
+      time_s: "s", rpm: "rpm", throttle_pct: "%", map_abs_kpa: "mBar",
+      ignition_advance_deg: "deg",
+    },
+    importedAt: "2026-11-20T00:00:00.000Z",
+  });
+  assert.equal(run.importMetadata.importFormat, "megasquirt-tunerstudio-csv/1");
+  assert.equal(run.samples[2].time_s, 1);
+  assert.equal(run.samples[2].channels.rpm, 1800);
+  assert.equal(run.samples[2].channels.throttle_pct, 80);
+  assert.equal(run.samples[2].channels.map_abs_kpa, 50);
+  assert.equal(run.samples[2].sourceValues.map_abs_kpa, "500");
+  assert.ok(run.importMetadata.unmappedHeaders.includes("Frame"));
+  assert.ok(run.importMetadata.unmappedHeaders.includes("MIL"));
+});
+
+test("advierte diferencias de Total Frames y conserva un primer timestamp anómalo", () => {
+  const text = [
+    "Tune Datalog export of synthetic test",
+    "Tune file: test.msq",
+    "Total Frames: 9",
+    "Duration :00:00:01.000",
+    "Frame,Duration,RPM",
+    "0,281.816,1800",
+    "1,0.020,1850",
+    "2,0.520,1900",
+  ].join("\n");
+  const parsed = parseTunerStudioMsl(text);
+  assert.equal(parsed.tunerStudioMetadata.exportMetadata.totalFrames, 9);
+  assert.equal(parsed.tunerStudioMetadata.declaredFrameMismatch, true);
+  assert.ok(parsed.warnings.some(item => /declara 9 frames/i.test(item)));
+  const run = importTunerStudioMsl(parsed, {
+    sourceDomain: "ecu",
+    channelMapping: { time_s: "Elapsed Time (s)", rpm: "Engine RPM (rpm)" },
+    units: { time_s: "s", rpm: "rpm" },
+  });
+  assert.equal(run.samples[0].time_s, 281.816);
+  assert.equal(run.samples[1].time_s, 0.02);
+});
+
 test("rechaza archivos demasiado grandes, fuentes mezcladas y tablas sin filas suficientes", () => {
   assert.throws(() => parseTunerStudioMsl("x".repeat(10_000_001)), /límite de texto/i);
   const parsed = parseTunerStudioMsl("Time,RPM\n0,850\n0.1,900\n");

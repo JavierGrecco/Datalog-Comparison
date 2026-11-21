@@ -78,13 +78,27 @@ La especificación consultada declara que parte de su detalle procede de anális
 
 ## Perfil TunerStudio / MegaSquirt MSL y CSV de texto (experimental)
 
-El adaptador `src/adapters/tunerstudio-msl.mjs` contempla el MSL tabulado histórico y tablas CSV simples cuando se selecciona el perfil manualmente. Para el MSL, la detección automática exige una primera columna `Time`, una fila siguiente cuya primera celda declare una unidad temporal (`sec`, `s`, `ms`, etc.) y al menos una muestra numérica. Se admiten hasta ocho líneas de preámbulo, por ejemplo una identificación de firmware y una fecha de captura.
+El adaptador `src/adapters/tunerstudio-msl.mjs` contempla el MSL tabulado histórico, el export CSV clásico de MegaSquirt/TunerStudio con cuatro líneas de metadatos y tablas CSV simples cuando se selecciona el perfil manualmente. Para el MSL, la detección automática exige una primera columna `Time`, una fila siguiente cuya primera celda declare una unidad temporal (`sec`, `s`, `ms`, etc.) y al menos una muestra numérica. Se admiten hasta ocho líneas de preámbulo, por ejemplo una identificación de firmware y una fecha de captura.
 
 **El eje temporal es `Time`.** `SecL` se conserva como una columna independiente; no se usa como sustituto del eje. El adaptador reconoce filas `MARK`, las excluye de las muestras numéricas y conserva su texto y número de línea en los metadatos. Las líneas físicas originales de cada muestra también se conservan aunque se omitan eventos.
 
 Los campos vacíos o no numéricos no se rellenan con el último valor. Se preservan como faltantes para no ocultar una desconexión, pérdida de sensor o dato no disponible. Tampoco se corrigen automáticamente saltos hacia atrás del reloj ni concatenaciones de sesiones: quedan disponibles para el diagnóstico temporal y requieren revisión.
 
 Los encabezados frecuentes se normalizan conservadoramente (`RPM`, `TPS`, `Lambda 1`, `MAT`, `CLT`, `Spark Advance`, `VSS1`). `MAP` y `Boost` siguen requiriendo confirmación de referencia y rol; no se asignan por descarte. Las unidades se toman de la fila fuente, no se adivinan por la magnitud. Los archivos binarios `.mlg` y los registros nativos `.ms3` no están soportados.
+
+### Export CSV clásico de MegaSquirt / TunerStudio
+
+La variante clásica comienza con `Tune Datalog export of`, conserva metadatos como `Tune file`, `Total Frames` y `Duration`, y presenta una tabla que comienza con `Frame,Duration`. El adaptador detecta esa firma de forma automática y preserva las líneas de metadatos y la fila de encabezados originales.
+
+- `Duration` se interpreta como segundos y se ofrece como eje `Elapsed Time (s)`.
+- `RPM` se ofrece como `Engine RPM (rpm)`.
+- `Frame` queda como columna auxiliar sin incorporarse al modelo normalizado.
+- Las unidades entre paréntesis, por ejemplo `MAP(mBar)` o `TPS(%)`, se conservan y se contrastan con el registro de unidades.
+- La cantidad declarada en `Total Frames` se compara con las filas reales. Una diferencia produce advertencia; no se rellenan ni descartan filas.
+- Si el primer valor de `Duration` parece corresponder a tiempo de ECU anterior al inicio del log, el adaptador no lo corrige. El eje original se conserva y la calidad temporal puede señalar el retroceso.
+
+El fixture `tests/fixtures/tunerstudio-megasquirt-export-synthetic.csv` es sintético y propio. No contiene capturas ni valores de terceros.
+
 
 El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es sintético y propio. Prueba preámbulo opcional, fila de unidades, columnas `Time`/ `SecL`, eventos `MARK`, líneas originales y conversión de unidades. No es una captura ECU ni una prueba de compatibilidad oficial con todas las versiones.
 

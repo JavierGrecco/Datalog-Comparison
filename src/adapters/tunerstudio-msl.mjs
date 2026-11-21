@@ -63,6 +63,58 @@ function isMarkLine(line) {
   return /^MARK(?:\t|[ :]|$)/i.test(String(line ?? "").trimStart());
 }
 
+
+function isMegaSquirtExportPreamble(line) {
+  return /^Tune Datalog export of\b/i.test(String(line ?? "").replace(/^\uFEFF/, "").trim());
+}
+
+function isMegaSquirtExportHeader(line) {
+  return /^\s*"?Frame"?\s*,\s*"?Duration"?\s*(?:,|$)/i.test(String(line ?? ""));
+}
+
+function findMegaSquirtExport(lines) {
+  const first = firstNonEmptyIndex(lines);
+  if (first < 0 || !isMegaSquirtExportPreamble(lines[first])) return null;
+  const lastCandidate = Math.min(lines.length - 1, first + MAX_PREAMBLE_LINES + 1);
+  for (let index = first + 1; index <= lastCandidate; index += 1) {
+    if (isMegaSquirtExportHeader(lines[index])) {
+      return { headerIndex: index, preambleStartIndex: first };
+    }
+  }
+  return null;
+}
+
+function parseMegaSquirtExportMetadata(preambleLines) {
+  const values = Object.fromEntries(preambleLines.map(item => {
+    const match = /^\s*([^:]+?)\s*:\s*(.*?)\s*$/.exec(item.text);
+    return match ? [match[1].trim().toLocaleLowerCase("en-US"), match[2].trim()] : [null, null];
+  }).filter(([key]) => key));
+  const frameText = values["total frames"] ?? null;
+  const totalFrames = frameText !== null && /^\d+$/.test(frameText) &&
+    Number.isSafeInteger(Number(frameText)) ? Number(frameText) : null;
+  return {
+    exportLabel: preambleLines[0]?.text ?? null,
+    tuneFile: values["tune file"] ?? null,
+    totalFrames,
+    totalFramesText: frameText,
+    durationText: values.duration ?? null,
+  };
+}
+
+function normalizeMegaSquirtExportHeader(header) {
+  const original = String(header ?? "").trim();
+  const normalized = original.toLocaleLowerCase("en-US");
+  if (normalized === "duration") return "Elapsed Time (s)";
+  if (normalized === "rpm") return "Engine RPM (rpm)";
+  return original;
+}
+
+function sourceUnitFromHeader(header) {
+  const match = String(header ?? "").trim().match(/[[(]\s*([^\])]+?)\s*[\])]\s*$/);
+  if (!match) return null;
+  return resolveUnitToken(match[1]).status === "matched" ? match[1].trim() : null;
+}
+
 function hasCommaHeaderSignature(text) {
   try {
     const firstLines = String(text).replace(/^\uFEFF/, "")
@@ -94,6 +146,16 @@ export function detectTunerStudioMsl(text) {
     return Number.isFinite(Number(first)) && first !== "";
   }
   return false;
+}
+
+/**
+ * Auto-detect only identified text variants. Generic CSV still requires
+ * manual profile selection.
+ */
+export function detectTunerStudioText(text) {
+  if (typeof text !== "string" || text.length > MAX_CSV_CHARACTERS) return false;
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+  return Boolean(findMegaSquirtExport(lines)) || detectTunerStudioMsl(text);
 }
 
 function normalizeChannelLabel(header) {
@@ -155,11 +217,16 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   const firstLineIndex = firstNonEmptyIndex(sourceLines);
   if (firstLineIndex < 0) fail("CSV_EMPTY_FILE", "El archivo TunerStudio está vacío.");
 
+  const megaSquirtExport = findMegaSquirtExport(sourceLines);
   const structure = findMslHeader(sourceLines);
   let layout;
   let startLineIndex;
   let selectedDelimiter;
-  if (structure) {
+  if (megaSquirtExport) {
+    layout = "comma-delimited-megasquirt-export";
+    startLineIndex = megaSquirtExport.headerIndex;
+    selectedDelimiter = ",";
+  } else if (structure) {
     layout = "tab-delimited-msl";
     startLineIndex = structure.headerIndex;
     selectedDelimiter = "\t";
@@ -169,13 +236,14 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
     selectedDelimiter = delimiter;
     if (!hasCommaHeaderSignature(sourceLines.slice(firstLineIndex).join("\n"))) {
       fail("TUNERSTUDIO_SIGNATURE_NOT_FOUND",
-        "No se encontró un MSL tabulado con fila de unidades ni un CSV de texto con encabezados Time y RPM.");
+        "No se encontró MSL tabulado, export CSV MegaSquirt con metadatos ni CSV de texto con encabezados Time y RPM.");
     }
     if (selectedDelimiter === "auto") selectedDelimiter = ",";
   }
 
-  const preambleLines = sourceLines.slice(0, startLineIndex)
-    .map((line, index) => ({ text: line.trimEnd(), line: index + 1 }))
+  const preambleStart = megaSquirtExport?.preambleStartIndex ?? 0;
+  const preambleLines = sourceLines.slice(preambleStart, startLineIndex)
+    .map((line, index) => ({ text: line.trimEnd(), line: preambleStart + index + 1 }))
     .filter(item => item.text.trim() !== "");
 
   const retainedLines = [];
@@ -201,6 +269,9 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   const dataOffset = unitsRowPresent ? 1 : 0;
 
   const enrichedHeaders = originalHeaders.map((header, index) => {
+    if (layout === "comma-delimited-megasquirt-export") {
+      return normalizeMegaSquirtExportHeader(header);
+    }
     if (hasExplicitUnit(header)) return header;
     const semanticName = normalizeChannelLabel(header);
     return sourceUnits[index] ? semanticName + " (" + sourceUnits[index] + ")" : semanticName;
@@ -221,11 +292,22 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   }
 
   const unitsByColumn = Object.fromEntries(originalHeaders.map((header, index) => [
-    header, sourceUnits[index] || null,
+    header,
+    sourceUnits[index] || sourceUnitFromHeader(header) ||
+      (layout === "comma-delimited-megasquirt-export" && header.trim().toLocaleLowerCase("en-US") === "duration"
+        ? "s" : layout === "comma-delimited-megasquirt-export" && header.trim().toLocaleLowerCase("en-US") === "rpm"
+          ? "rpm" : null),
   ]));
+  const exportMetadata = layout === "comma-delimited-megasquirt-export"
+    ? parseMegaSquirtExportMetadata(preambleLines)
+    : null;
+  const declaredFrameMismatch = exportMetadata?.totalFrames !== null &&
+    exportMetadata?.totalFrames !== undefined && exportMetadata.totalFrames !== rows.length;
   const tunerStudioMetadata = {
     preambleLines,
     layout,
+    exportMetadata,
+    declaredFrameMismatch,
     unitsRowPresent,
     unitsRow: unitsRowPresent ? [...firstDataRow] : null,
     sourceHeaders: originalHeaders,
@@ -242,6 +324,12 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
     ...(markerLines.length ? [markerLines.length === 1
       ? "Se conservó 1 evento MARK en los metadatos; no se agregó como muestra numérica."
       : "Se conservaron " + markerLines.length + " eventos MARK en los metadatos; no se agregaron como muestras numéricas."] : []),
+    ...(declaredFrameMismatch ? ["El encabezado declara " + exportMetadata.totalFrames +
+      " frames, pero el archivo contiene " + rows.length + " filas de datos; revisá truncamiento o exportación parcial."] : []),
+    ...(layout === "comma-delimited-megasquirt-export" ? [
+      "MegaSquirt: Duration se interpreta como tiempo en segundos según el formato de exportación; los valores originales no se reajustan.",
+      "No se corrige automáticamente un primer tiempo anómalo ni un retroceso del reloj. Revisá la secuencia temporal antes de analizar.",
+    ] : []),
     "Los campos vacíos y no numéricos no se rellenan con el último valor; se conservan como faltantes para no ocultar pérdidas de señal.",
     "No se corrigen retrocesos ni reinicios del reloj. Revisá el eje temporal y sus discontinuidades antes de comparar.",
   ];
@@ -286,7 +374,10 @@ export function importTunerStudioMsl(parsed, {
     importedAt,
     sourceEncoding,
     parserId: TUNERSTUDIO_ADAPTER_ID,
-    importFormat: "tunerstudio-msl-text/1",
+    importFormat: parsed.tunerStudioMetadata.layout === "comma-delimited-megasquirt-export"
+      ? "megasquirt-tunerstudio-csv/1"
+      : parsed.tunerStudioMetadata.layout === "tab-delimited-msl"
+        ? "tunerstudio-msl-text/1" : "tunerstudio-generic-csv/1",
     sourceHeaderRow: parsed.tunerStudioMetadata.sourceHeaderLine,
     adapterMetadata: {
       vendor: "EFI Analytics / MegaSquirt community format",
@@ -295,10 +386,10 @@ export function importTunerStudioMsl(parsed, {
     },
   });
   run.warnings.push(
-    "Perfil de texto TunerStudio/MSL: se conservaron el encabezado, las unidades, el preámbulo y los eventos disponibles; revisá cada asignación y conversión.",
+    "Perfil de texto TunerStudio/MegaSquirt: se conservaron encabezados, unidades, metadatos y eventos disponibles; revisá cada asignación y conversión.",
     "MAP, Boost, Knock Retard y canales de corrección no se interpretan automáticamente si falta contexto suficiente.",
     "Los campos faltantes no se rellenan. Este perfil no lee binarios .mlg ni registros nativos .ms3 de tarjeta SD.",
   );
-  run.note = "Log de texto TunerStudio/MSL inspeccionado localmente. La aplicación conserva encabezados y unidades originales; confirmá semántica y procedencia en el software de origen.";
+  run.note = "Log de texto TunerStudio/MegaSquirt inspeccionado localmente. La aplicación conserva encabezados, unidades y metadatos originales; confirmá semántica y procedencia en el software de origen.";
   return run;
 }
