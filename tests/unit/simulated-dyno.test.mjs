@@ -111,5 +111,5 @@ test("el serializador y el CLI conservan parámetros y rechazan opciones inváli
   assert.equal(parseDynoSimulatorCliArgs(["--help"]).help, true);
   assert.throws(() => generateSimulatedDyno(parseDynoSimulatorCliArgs(["--rpm-step", "0"]).options), /rpmStep/);
   assert.throws(() => generateSimulatedDyno(parseDynoSimulatorCliArgs(["--mode", "binary"]).options), /mode/);
-  assert.throws(() => generateSimulatedDyno({ scenario: "repeat-pulls", mode: "graph-export" }), /requires mode time-export/i);
+  assert.throws(() => generateSimulatedDyno({ scenario: "repeat-pulls", mode: "graph-export" }), /requiere mode time-export/i);
 });
