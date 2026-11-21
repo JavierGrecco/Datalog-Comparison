@@ -23,7 +23,7 @@ La resolución aplica evidencia en este orden:
 1. **Perfil de fabricante y metadatos tipados.** Si un adaptador conoce un identificador de canal, tipo, unidad y fuente dentro de un layout concreto, esa regla específica prevalece. La regla queda identificada por el adaptador y su versión.
 2. **Nombre normalizado.** Se normalizan Unicode, acentos, espacios, separadores y mayúsculas del nombre. Se conserva el encabezado original. La normalización del nombre no se reutiliza para interpretar símbolos de unidad.
 3. **Alias exacto y calificadores.** Se buscan alias completos registrados; no se usa coincidencia por substring. Los términos target, desired, requested, measured, actual, absolute, wheel, roller, hub o engine pueden cambiar el significado.
-4. **Unidad explícita.** Se reconoce una unidad al final del encabezado o entre paréntesis/corchetes, y se valida su dimensión contra el canal candidato. Las unidades se resuelven con el registro versionado datalog-units/2.
+4. **Unidad explícita.** Se reconoce una unidad al final del encabezado o entre paréntesis/corchetes, y se valida su dimensión contra el canal candidato. Las unidades se resuelven con el registro versionado datalog-units/3.
 5. **Corrección difusa acotada.** Se permite una distancia Damerau-Levenshtein limitada para nombres de longitud suficiente y misma cantidad de tokens. Se utiliza para sugerir una revisión, nunca para asignar automáticamente.
 6. **Perfil numérico orientativo.** Se calculan estadísticas robustas de hasta 2.000 observaciones espaciadas. Los percentiles y rangos plausibles pueden mostrar candidatos para revisión. No hay umbral numérico que convierta una columna desconocida en una señal identificada.
 
@@ -67,7 +67,7 @@ Las bases físicas de torque y potencia —motor, rueda, cubo y rodillo— son p
 
 ## Unidades y sensibilidad a mayúsculas
 
-Los símbolos de unidades son tokens técnicos, no palabras comunes. El registro datalog-units/2 compara símbolos explícitos respetando el caso cuando este cambia el significado, y acepta variantes declaradas de forma individual. No aplica una conversión global a minúsculas ni elimina prefijos.
+Los símbolos de unidades son tokens técnicos, no palabras comunes. El registro datalog-units/3 compara símbolos explícitos respetando el caso cuando este cambia el significado, y acepta variantes declaradas de forma individual. No aplica una conversión global a minúsculas ni elimina prefijos.
 
 Ejemplos:
 
@@ -132,7 +132,7 @@ La decimación disponible en `src/series-display.mjs` es distinta: reduce única
 ## Versionado y evolución
 
 - Parser genérico actual: datalog-csv/1.
-- Normalización de unidades: datalog-units/2.
+- Normalización de unidades: datalog-units/3.
 - Resolución determinista de canales: datalog-channel-resolver/1.
 - Los perfiles de cada fabricante mantienen reglas propias y fixtures sintéticos cuando no hay muestras publicables con derechos claros.
 - Cada alias nuevo requiere casos positivos, negativos y una explicación del significado físico.

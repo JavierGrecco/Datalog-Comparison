@@ -423,7 +423,7 @@ test("normaliza unidades explícitas a las unidades canónicas y conserva la pro
   assert.ok(Math.abs(run.samples[0].channels.speed_kmh - 96.56064) < 1e-8);
   assert.ok(Math.abs(run.samples[0].channels.iat_c - 20) < 1e-9);
   assert.ok(Math.abs(run.samples[0].channels.map_abs_kpa - 100) < 0.001);
-  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/2");
+  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/3");
   assert.equal(run.importMetadata.sourceUnits.iat_c, "°F");
   assert.equal(run.importMetadata.unitConversions.iat_c.from, "°F");
 });
