@@ -63,3 +63,11 @@ La repetibilidad se resume por métrica mediante desviación estándar muestral,
 
 
 La herramienta reproducible está disponible como `npm run assess:protocol -- archivo.json` (o `-` para stdin). Código de salida 0: controles configurados completados; 1: revisión o bloqueo; 2: error de entrada/uso. Un límite CV omitido nunca se interpreta como aprobación.
+
+## Pruebas generativas del importador CSV
+
+El archivo `tests/unit/csv-import-properties.test.mjs` ejecuta 256 casos reproducibles a partir de una semilla fija (`0xdada2026`). Cada caso crea entre 1 y 24 filas con cuatro columnas y genera celdas que pueden contener comas, comillas escapadas, saltos de línea, tabulaciones, caracteres Unicode y valores vacíos.
+
+El test serializa esos registros como CSV con terminadores CRLF y vuelve a leerlos con el detector automático de delimitador. Comprueba que se conserven los encabezados, el contenido de cada celda, el separador detectado, el número de filas, la ausencia de advertencias y el orden de las líneas físicas de origen.
+
+La semilla fija hace que un fallo sea reproducible en cada ejecución de CI. Esta prueba amplía la cobertura de entradas adversariales; no sustituye una revisión de seguridad, ni demuestra compatibilidad con todos los dialectos CSV o formatos de adquisición.
