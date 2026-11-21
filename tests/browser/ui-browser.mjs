@@ -363,20 +363,22 @@ test("la variante Haltech NSP se detecta por marcador y se inspecciona sin mapeo
   assert.deepEqual(externalRequests, []);
 });
 
-test("importa un archivo TunerStudio MSL desde el selector local y conserva Time/Secl", async t => {
+test("detecta e importa un archivo MSL con MARK desde el selector local", async t => {
   const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
     await openDemo(t, { width: 1280, height: 900 });
 
   const msl = [
-    '"MS3 Format 0568.11E: browser synthetic fixture"',
-    ['"Time"', '"Secl"', '"RPM"', '"TPS"'].join("\\t"),
-    ['""', '"s"', '"rpm"', '"%"'].join("\\t"),
-    ["0", "0", "1800", "5"].join("\\t"),
-    ["0.1", "0.1", "2000", "6"].join("\\t"),
-    ["0.2", "0.2", "2200", "8"].join("\\t"),
-  ].join("\\n");
+    '"Speeduino firmware 2025.01"',
+    '"Capture Date: 2026-11-20"',
+    ['"Time"', '"SecL"', '"RPM"', '"TPS"'].join("\t"),
+    ['"sec"', '"s"', '"rpm"', '"%"'].join("\t"),
+    ["0", "0", "1800", "5"].join("\t"),
+    "MARK\tWOT starts",
+    ["0.1", "0.1", "2000", "6"].join("\t"),
+    ["0.2", "0.2", "2200", "8"].join("\t"),
+  ].join("\n");
 
-  await page.locator("#csvFormatProfile").selectOption("tunerstudio");
+  await page.locator("#csvFormatProfile").selectOption("auto");
   await page.locator("#csvFile").setInputFiles({
     name: "browser-fixture.msl",
     mimeType: "text/plain",
@@ -386,14 +388,14 @@ test("importa un archivo TunerStudio MSL desde el selector local y conserva Time
 
   assert.equal(await page.locator("#csvSourceDomain").inputValue(), "ecu");
   assert.equal(await page.locator("#csvSourceDomain").isDisabled(), true);
-  assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed Time (s)");
+  assert.equal(await page.locator('[data-channel-key="time_s"]').inputValue(), "Elapsed Time (sec)");
   assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine RPM (rpm)");
   assert.match(await page.locator("#csvImportStatus").innerText(), /Perfil TunerStudio\/MSL seleccionado/i);
 
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
-  assert.match(await page.locator("#csvWarnings").innerText(), /Perfil de texto TunerStudio\/MSL/i);
+  assert.match(await page.locator("#csvWarnings").innerText(), /eventos MARK/i);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);

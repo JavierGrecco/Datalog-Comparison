@@ -20,6 +20,8 @@ Esta demo tiene una implementación acotada propia. Las referencias siguientes s
 ## TunerStudio / MegaSquirt (texto MSL/CSV)
 
 - [Log2Dyno — README y formatos de log](https://github.com/nshobe/Log2Dyno): referencia comunitaria con licencia MIT que enumera preámbulos MS1/MS2/MS3, CSV/TSV, filas de unidades y formatos binarios separados. Se inspeccionaron sus fixtures para comprender la estructura, pero no se copiaron sus muestras ni su código.
+- [UltraLog — parser MSL y pruebas de estructura](https://github.com/ClassicMiniDIY/UltraLog/blob/main/src/parsers/msl.rs): referencia comunitaria sobre la cabecera `Time`, fila de unidad temporal, preámbulos y eventos `MARK`. Se consultó para corregir el modelo de estructura; no se copiaron código, muestras ni datos.
+- [UltraLog — pruebas MSL](https://github.com/ClassicMiniDIY/UltraLog/blob/main/tests/parsers/msl_tests.rs): referencia de casos de detección y separación frente a otros formatos tabulados. Las pruebas de este repositorio se escribieron independientemente.
 - [Speeduino — referencia de datalog](https://github.com/speeduino/speeduino/blob/master/reference/speeduino.ini): referencia del proyecto para los nombres de canales configurables como Time, RPM, MAP, TPS, AFR, IAT/CLT y estados de adquisición. El código upstream está bajo GPL-2.0; este proyecto usa únicamente nombres y conceptos de canal descritos públicamente, sin copiar código.
 
 ## Dynojet PowerCore / WinPEP

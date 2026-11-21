@@ -76,15 +76,17 @@ Los canales sin semántica implementada quedan enumerados como no soportados y n
 
 La especificación consultada declara que parte de su detalle procede de análisis e ingeniería inversa de archivos exportados. Es una referencia comunitaria de interoperabilidad, no documentación oficial ni garantía de compatibilidad. Antes de interpretar un archivo, contrastar sus valores con la exportación original y el software NSP.
 
-## Perfil TunerStudio / MegaSquirt CSV y MSL (experimental)
+## Perfil TunerStudio / MegaSquirt MSL y CSV de texto (experimental)
 
-El adaptador `src/adapters/tunerstudio-msl.mjs` admite exportaciones de texto con preámbulo `MS1 Format`, `MS2 Format` o `MS3 Format`, además de CSV tabulados o separados por coma con encabezados reconocibles. El preámbulo puede estar ausente cuando se fuerza el perfil desde la interfaz. Los archivos binarios `.mlg` y `.ms3` no se leen: deben exportarse previamente desde el software de origen a texto.
+El adaptador `src/adapters/tunerstudio-msl.mjs` contempla el MSL tabulado histórico y tablas CSV simples cuando se selecciona el perfil manualmente. Para el MSL, la detección automática exige una primera columna `Time`, una fila siguiente cuya primera celda declare una unidad temporal (`sec`, `s`, `ms`, etc.) y al menos una muestra numérica. Se admiten hasta ocho líneas de preámbulo, por ejemplo una identificación de firmware y una fecha de captura.
 
-La fila de unidades es opcional. Cuando existe, se valida por coincidencia de unidades reconocidas y se retira de las muestras antes del mapeo. Los encabezados habituales se normalizan de forma conservadora (`SecL`/ `Time`, `RPM`, `TPS`, `Lambda 1`, `MAT`, `CLT`, `Spark Advance`, `VSS1`). El adaptador conserva los encabezados y la fila original de unidades en los metadatos de importación.
+**El eje temporal es `Time`.** `SecL` se conserva como una columna independiente; no se usa como sustituto del eje. El adaptador reconoce filas `MARK`, las excluye de las muestras numéricas y conserva su texto y número de línea en los metadatos. Las líneas físicas originales de cada muestra también se conservan aunque se omitan eventos.
 
-**MAP y Boost no se asignan por descarte.** La etiqueta MAP no demuestra por sí sola si el valor es absoluto o relativo; Boost puede ser actual o consigna. Esas señales requieren confirmación manual de nombre, unidad y referencia. Los canales de corrección, knock, marcha y otros valores específicos que no tengan un contrato explícito permanecen sin asignar.
+Los campos vacíos o no numéricos no se rellenan con el último valor. Se preservan como faltantes para no ocultar una desconexión, pérdida de sensor o dato no disponible. Tampoco se corrigen automáticamente saltos hacia atrás del reloj ni concatenaciones de sesiones: quedan disponibles para el diagnóstico temporal y requieren revisión.
 
-El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es un archivo nuevo y sintético creado para probar el preámbulo, las comillas, tabulaciones, unidades y secuencia de muestras. No es una captura real ni garantiza compatibilidad con todas las versiones de TunerStudio/MegaLogViewer. El adaptador no convierte valores por su magnitud ni interpreta unidades desconocidas.
+Los encabezados frecuentes se normalizan conservadoramente (`RPM`, `TPS`, `Lambda 1`, `MAT`, `CLT`, `Spark Advance`, `VSS1`). `MAP` y `Boost` siguen requiriendo confirmación de referencia y rol; no se asignan por descarte. Las unidades se toman de la fila fuente, no se adivinan por la magnitud. Los archivos binarios `.mlg` y los registros nativos `.ms3` no están soportados.
+
+El fixture `tests/fixtures/tunerstudio-ms3-synthetic.msl` es sintético y propio. Prueba preámbulo opcional, fila de unidades, columnas `Time`/ `SecL`, eventos `MARK`, líneas originales y conversión de unidades. No es una captura ECU ni una prueba de compatibilidad oficial con todas las versiones.
 
 ## Perfil Dynojet PowerCore / WinPEP (guiado)
 

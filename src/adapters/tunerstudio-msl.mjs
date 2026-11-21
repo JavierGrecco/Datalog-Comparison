@@ -1,10 +1,10 @@
 /**
- * Adaptador experimental para exportaciones de texto TunerStudio / MegaSquirt.
+ * Adaptador experimental para logs de texto TunerStudio / MegaSquirt.
  *
- * Lee CSV separado por coma o archivos MSL tabulados, con preámbulo opcional
- * y fila opcional de unidades. No interpreta archivos binarios .mlg ni .ms3.
- * MAP y Boost permanecen ambiguos cuando el archivo no declara su referencia
- * o su rol; requieren asignación humana.
+ * La variante MSL se reconoce por su estructura tabulada:
+ * Time<TAB>canales, seguida de una fila con la unidad temporal y muestras.
+ * Se admiten líneas de preámbulo y eventos MARK. No se fuerza monotonía,
+ * no se rellenan faltantes y no se leen binarios .mlg/.ms3.
  */
 import {
   CSV_IMPORT_SCHEMA,
@@ -17,46 +17,90 @@ import { resolveUnitToken } from "../unit-registry.mjs";
 
 export const TUNERSTUDIO_ADAPTER_ID = "tunerstudio-msl-text-guided/1";
 
+const TIME_UNITS = new Set([
+  "sec", "secs", "s", "seconds", "ms", "msec", "msecs", "milliseconds",
+]);
+const MAX_PREAMBLE_LINES = 8;
+
 function fail(code, message, details = {}) {
   throw new CsvImportError(code, message, details);
 }
 
-function unquoteLine(value) {
+function unquote(value) {
   return String(value ?? "").trim().replace(/^"(.*)"$/, "$1").trim();
 }
 
-function isPreamble(line) {
-  return /^MS[123]\s+Format\b/i.test(unquoteLine(line));
+function firstNonEmptyIndex(lines) {
+  return lines.findIndex(line => line.trim() !== "");
 }
 
-export function detectTunerStudioMsl(text) {
-  if (typeof text !== "string") return false;
-  if (text.length > MAX_CSV_CHARACTERS) return false;
-  const first = text.replace(/^\uFEFF/, "").split(/\r?\n/).find(line => line.trim());
-  return Boolean(first && isPreamble(first));
+function timeUnitFromLine(line) {
+  const first = String(line ?? "").split("\t", 1)[0];
+  const unit = unquote(first).toLocaleLowerCase("en-US");
+  return TIME_UNITS.has(unit) ? unit : null;
 }
 
-function isUnitsRow(values, expectedLength) {
-  if (!Array.isArray(values) || values.length !== expectedLength) return false;
-  let recognized = 0;
-  let nonEmpty = 0;
-  for (const cell of values) {
-    const value = String(cell ?? "").trim();
-    if (!value) continue;
-    nonEmpty += 1;
-    if (resolveUnitToken(value).status === "matched") recognized += 1;
+function isMslHeaderLine(line) {
+  const columns = String(line ?? "").split("\t");
+  return columns.length >= 2 && unquote(columns[0]).toLocaleLowerCase("en-US") === "time";
+}
+
+function findMslHeader(lines) {
+  const lastCandidate = Math.min(lines.length - 2, MAX_PREAMBLE_LINES);
+  for (let index = 0; index <= lastCandidate; index += 1) {
+    if (!isMslHeaderLine(lines[index])) continue;
+    const timeUnit = timeUnitFromLine(lines[index + 1]);
+    return {
+      headerIndex: index,
+      unitsIndex: timeUnit ? index + 1 : null,
+      timeUnit,
+    };
   }
-  // A units row is accepted only when nearly all non-empty cells are known
-  // units and at least two independent columns carry unit information.
-  return nonEmpty >= 2 && recognized >= 2 && recognized / nonEmpty >= 0.75;
+  return null;
+}
+
+function isMarkLine(line) {
+  return /^MARK(?:\t|[ :]|$)/i.test(String(line ?? "").trimStart());
+}
+
+function hasCommaHeaderSignature(text) {
+  try {
+    const firstLines = String(text).replace(/^\uFEFF/, "")
+      .split(/\r?\n/).filter(line => line.trim()).slice(0, 2).join("\n");
+    const parsed = parseCsvText(firstLines, { delimiter: ",", maxRows: 3, maxCells: 512 });
+    const headers = parsed.headers.map(value => value.trim().toLocaleLowerCase("en-US"));
+    return headers.some(value => ["time", "time (s)", "elapsed time", "elapsed [s]"].includes(value)) &&
+      headers.some(value => value === "rpm" || value === "engine rpm");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Auto-detection is deliberately narrow: a tab-delimited Time header,
+ * time-unit row, and a numeric first field in a later sample. Generic
+ * comma-delimited files require the profile to be selected explicitly.
+ */
+export function detectTunerStudioMsl(text) {
+  if (typeof text !== "string" || text.length > MAX_CSV_CHARACTERS) return false;
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+  const structure = findMslHeader(lines);
+  if (!structure?.timeUnit) return false;
+
+  for (let index = structure.unitsIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index].trimEnd();
+    if (!line.trim() || isMarkLine(line)) continue;
+    const first = unquote(line.split("\t", 1)[0]);
+    return Number.isFinite(Number(first)) && first !== "";
+  }
+  return false;
 }
 
 function normalizeChannelLabel(header) {
   const normalized = String(header ?? "").normalize("NFKC").trim()
     .toLocaleLowerCase("en-US").replace(/[._-]+/g, " ").replace(/\s+/g, " ");
   const aliases = new Map([
-    ["sec", "Elapsed Time"],
-    ["secl", "Elapsed Time"],
+    ["time", "Elapsed Time"],
     ["elapsed time", "Elapsed Time"],
     ["rpm", "Engine RPM"],
     ["engine speed", "Engine RPM"],
@@ -74,6 +118,8 @@ function normalizeChannelLabel(header) {
     ["afr1", "Wideband AFR"],
     ["afr 1", "Wideband AFR"],
   ]);
+  // SecL is intentionally not mapped to time: Time is the MSL axis and
+  // SecL remains an independent source channel.
   return aliases.get(normalized) ?? String(header ?? "").trim();
 }
 
@@ -81,9 +127,21 @@ function hasExplicitUnit(header) {
   return /[([{]\s*[^)\]}]+\s*[)\]}]\s*$/.test(String(header ?? "").trim());
 }
 
+function isUnitsRow(values) {
+  return Array.isArray(values) && TIME_UNITS.has(
+    String(values[0] ?? "").trim().toLocaleLowerCase("en-US"),
+  );
+}
+
+function mapOriginalLine(filteredLines, parsedLine) {
+  const entry = filteredLines[parsedLine - 1];
+  return entry?.lineNumber ?? null;
+}
+
 /**
- * Parses a TunerStudio/MSL text export and returns the generic table contract.
- * Source headers, units row and preamble remain attached as adapter metadata.
+ * Reads a TunerStudio MSL (tab-delimited) log, or a comma-delimited text table
+ * when the user explicitly selects this profile. Returns the neutral CSV table
+ * contract and preserves the original structure in adapter metadata.
  */
 export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   if (typeof text !== "string") {
@@ -94,84 +152,114 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   }
 
   const sourceLines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
-  const firstLineIndex = sourceLines.findIndex(line => line.trim());
+  const firstLineIndex = firstNonEmptyIndex(sourceLines);
   if (firstLineIndex < 0) fail("CSV_EMPTY_FILE", "El archivo TunerStudio está vacío.");
 
-  const preamble = isPreamble(sourceLines[firstLineIndex])
-    ? unquoteLine(sourceLines[firstLineIndex])
-    : null;
-  if (!preamble && !detectHeaderSignature(text)) {
-    fail("TUNERSTUDIO_SIGNATURE_NOT_FOUND",
-      "No se encontró un preámbulo MS1/MS2/MS3 ni una cabecera reconocible de texto TunerStudio.");
+  const structure = findMslHeader(sourceLines);
+  let layout;
+  let startLineIndex;
+  let selectedDelimiter;
+  if (structure) {
+    layout = "tab-delimited-msl";
+    startLineIndex = structure.headerIndex;
+    selectedDelimiter = "\t";
+  } else {
+    layout = "comma-delimited-text";
+    startLineIndex = firstLineIndex;
+    selectedDelimiter = delimiter;
+    if (!hasCommaHeaderSignature(sourceLines.slice(firstLineIndex).join("\n"))) {
+      fail("TUNERSTUDIO_SIGNATURE_NOT_FOUND",
+        "No se encontró un MSL tabulado con fila de unidades ni un CSV de texto con encabezados Time y RPM.");
+    }
+    if (selectedDelimiter === "auto") selectedDelimiter = ",";
   }
 
-  const bodyLines = sourceLines.slice(preamble ? firstLineIndex + 1 : firstLineIndex);
-  const body = bodyLines.join("\n");
-  const parsed = parseCsvText(body, { delimiter });
+  const preambleLines = sourceLines.slice(0, startLineIndex)
+    .map((line, index) => ({ text: line.trimEnd(), line: index + 1 }))
+    .filter(item => item.text.trim() !== "");
+
+  const retainedLines = [];
+  const markerLines = [];
+  for (let index = startLineIndex; index < sourceLines.length; index += 1) {
+    const line = sourceLines[index];
+    if (index > startLineIndex && isMarkLine(line)) {
+      markerLines.push({ line: index + 1, text: line.trim() });
+      continue;
+    }
+    retainedLines.push({ text: line, lineNumber: index + 1 });
+  }
+
+  const parsed = parseCsvText(retainedLines.map(item => item.text).join("\n"), {
+    delimiter: selectedDelimiter,
+  });
   const originalHeaders = [...parsed.headers];
   const firstDataRow = parsed.rows[0];
-  const unitsRowPresent = isUnitsRow(firstDataRow, originalHeaders.length);
+  const unitsRowPresent = isUnitsRow(firstDataRow);
   const sourceUnits = unitsRowPresent
     ? firstDataRow.map(value => String(value ?? "").trim())
     : originalHeaders.map(() => "");
   const dataOffset = unitsRowPresent ? 1 : 0;
+
   const enrichedHeaders = originalHeaders.map((header, index) => {
     if (hasExplicitUnit(header)) return header;
     const semanticName = normalizeChannelLabel(header);
     return sourceUnits[index] ? semanticName + " (" + sourceUnits[index] + ")" : semanticName;
   });
 
-  const headerLine = parsed.headerLine + (preamble ? firstLineIndex + 1 : firstLineIndex);
-  const sourceLineNumbers = parsed.sourceLineNumbers.slice(dataOffset)
-    .map(line => line + (preamble ? firstLineIndex + 1 : firstLineIndex));
+  const headerLine = mapOriginalLine(retainedLines, parsed.headerLine);
+  const sourceLineNumbers = parsed.sourceLineNumbers
+    .slice(dataOffset)
+    .map(line => mapOriginalLine(retainedLines, line));
   const rows = parsed.rows.slice(dataOffset);
   if (rows.length < 2) {
-    fail("CSV_NOT_ENOUGH_SAMPLES", "El log TunerStudio necesita al menos dos muestras, además del encabezado y la fila de unidades opcional.");
+    fail("CSV_NOT_ENOUGH_SAMPLES",
+      "El log TunerStudio necesita al menos dos muestras después del encabezado y la fila opcional de unidades.");
+  }
+  if (sourceLineNumbers.some(line => !Number.isSafeInteger(line))) {
+    fail("TUNERSTUDIO_SOURCE_LINE_MAPPING_INVALID",
+      "No se pudieron conservar las líneas físicas del archivo de origen.");
   }
 
   const unitsByColumn = Object.fromEntries(originalHeaders.map((header, index) => [
     header, sourceUnits[index] || null,
   ]));
   const tunerStudioMetadata = {
-    preamble,
-    layout: parsed.delimiter === "\t" ? "tab-delimited-msl" : "comma-delimited-csv",
+    preambleLines,
+    layout,
     unitsRowPresent,
     unitsRow: unitsRowPresent ? [...firstDataRow] : null,
     sourceHeaders: originalHeaders,
     sourceUnits: unitsByColumn,
     sourceHeaderLine: headerLine,
     dataStartLine: sourceLineNumbers[0],
+    markerLines,
+    markerCount: markerLines.length,
   };
+
+  const warnings = [
+    ...parsed.warnings,
+    ...(unitsRowPresent ? [] : ["El log no incluye una fila de unidades temporales reconocible; declaralas manualmente antes de importar."]),
+    ...(markerLines.length ? [markerLines.length + " evento(s) MARK se conservaron en metadatos y se excluyeron de las muestras numéricas."] : []),
+    "Los campos vacíos y no numéricos no se rellenan con el último valor; se conservan como faltantes para no ocultar pérdidas de señal.",
+    "No se corrigen retrocesos ni reinicios del reloj. Revisá el eje temporal y sus discontinuidades antes de comparar.",
+  ];
 
   return {
     ...parsed,
     schema: CSV_IMPORT_SCHEMA,
+    delimiter: selectedDelimiter,
     headers: enrichedHeaders,
     rows,
     headerLine,
     sourceLineNumbers,
+    sourceRowCount: sourceLines.length,
     skippedEmptyRows: parsed.skippedEmptyRows,
-    warnings: [
-      ...parsed.warnings,
-      ...(unitsRowPresent ? [] : ["El log no incluye una fila de unidades reconocible; declaralas manualmente antes de importar."]),
-    ],
+    warnings,
     tunerStudioMetadata,
   };
 }
 
-function detectHeaderSignature(text) {
-  try {
-    const firstLine = String(text).replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim()).slice(0, 2).join("\n");
-    const parsed = parseCsvText(firstLine, { delimiter: "auto", maxRows: 3, maxCells: 512 });
-    const headers = parsed.headers.map(value => value.trim().toLocaleLowerCase("en-US"));
-    return headers.some(value => ["time", "sec", "secl", "time (s)"].includes(value)) &&
-      headers.some(value => value === "rpm" || value === "engine rpm");
-  } catch {
-    return false;
-  }
-}
-
-/** Normaliza una tabla previamente parseada sin ocultar el origen TunerStudio. */
+/** Normalizes a parsed MSL/text table while retaining source layout metadata. */
 export function importTunerStudioMsl(parsed, {
   id, name, channelMapping, units, decimalSeparator = ".",
   importedAt = new Date().toISOString(), sourceEncoding = null,
@@ -205,10 +293,10 @@ export function importTunerStudioMsl(parsed, {
     },
   });
   run.warnings.push(
-    "Perfil de texto TunerStudio/MSL: se normalizó el preámbulo y la fila de unidades cuando estaban presentes; revisá cada asignación y conversión.",
+    "Perfil de texto TunerStudio/MSL: se conservaron el encabezado, las unidades, el preámbulo y los eventos disponibles; revisá cada asignación y conversión.",
     "MAP, Boost, Knock Retard y canales de corrección no se interpretan automáticamente si falta contexto suficiente.",
-    "Este adaptador no lee binarios .mlg ni registros nativos .ms3 de tarjeta SD.",
+    "Los campos faltantes no se rellenan. Este perfil no lee binarios .mlg ni registros nativos .ms3 de tarjeta SD.",
   );
-  run.note = "Exportación de texto TunerStudio/MSL inspeccionada localmente. La aplicación conserva encabezados y unidades originales; confirmá semántica y procedencia en el software de origen.";
+  run.note = "Log de texto TunerStudio/MSL inspeccionado localmente. La aplicación conserva encabezados y unidades originales; confirmá semántica y procedencia en el software de origen.";
   return run;
 }

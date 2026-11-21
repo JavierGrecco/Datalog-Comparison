@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { mapCsvToRun } from "../../src/csv-import.mjs";
 import {
   TUNERSTUDIO_ADAPTER_ID,
   detectTunerStudioMsl,
@@ -15,28 +14,35 @@ const fixture = await readFile(
   "utf8",
 );
 
-test("detecta el preámbulo MS3 y conserva el formato tabulado con fila de unidades", () => {
+test("detecta MSL tabulado con preámbulo opcional, unidad temporal y MARK", () => {
   assert.equal(detectTunerStudioMsl(fixture), true);
   const parsed = parseTunerStudioMsl(fixture);
   assert.equal(parsed.delimiter, "\t");
   assert.equal(parsed.tunerStudioMetadata.layout, "tab-delimited-msl");
+  assert.equal(parsed.tunerStudioMetadata.preambleLines.length, 2);
   assert.equal(parsed.tunerStudioMetadata.unitsRowPresent, true);
+  assert.equal(parsed.tunerStudioMetadata.markerCount, 1);
+  assert.equal(parsed.tunerStudioMetadata.markerLines[0].line, 6);
   assert.equal(parsed.rows.length, 14);
+  assert.equal(parsed.sourceLineNumbers[0], 5);
+  assert.equal(parsed.sourceLineNumbers[1], 7);
   assert.ok(parsed.headers.includes("Engine RPM (rpm)"));
-  assert.ok(parsed.headers.includes("Elapsed Time (s)"));
+  assert.ok(parsed.headers.includes("Elapsed Time (sec)"));
+  assert.ok(parsed.headers.includes("SecL (s)"));
   assert.ok(parsed.headers.includes("MAP (kPa)"));
   assert.equal(parsed.tunerStudioMetadata.sourceHeaders[2], "RPM");
-  assert.equal(parsed.tunerStudioMetadata.sourceUnits.RPM, "rpm");
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, "sec");
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.SecL, "s");
 });
 
-test("mapea canales conocidos y convierte temperatura y velocidad según la fila de unidades", () => {
+test("mapea Time como eje, mantiene SecL como canal y convierte las unidades declaradas", () => {
   const parsed = parseTunerStudioMsl(fixture);
   const run = importTunerStudioMsl(parsed, {
     id: "msl-synthetic",
     name: "tunerstudio-ms3-synthetic.msl",
     sourceDomain: "ecu",
     channelMapping: {
-      time_s: "Elapsed Time (s)",
+      time_s: "Elapsed Time (sec)",
       rpm: "Engine RPM (rpm)",
       throttle_pct: "Throttle Position (%)",
       lambda: "Wideband Lambda (lambda)",
@@ -46,7 +52,7 @@ test("mapea canales conocidos y convierte temperatura y velocidad según la fila
       ignition_advance_deg: "Spark Advance (deg)",
     },
     units: {
-      time_s: "s",
+      time_s: "sec",
       rpm: "rpm",
       throttle_pct: "%",
       lambda: "lambda",
@@ -61,6 +67,7 @@ test("mapea canales conocidos y convierte temperatura y velocidad según la fila
   assert.equal(run.importMetadata.parserId, TUNERSTUDIO_ADAPTER_ID);
   assert.equal(run.importMetadata.importFormat, "tunerstudio-msl-text/1");
   assert.equal(run.samples[0].time_s, 0);
+  assert.equal(run.samples[5].time_s, 0.25);
   assert.equal(run.samples[5].channels.rpm, 2250);
   assert.equal(run.samples[5].channels.throttle_pct, 96);
   assert.ok(Math.abs(run.samples[5].channels.iat_c - 26.111111) < 1e-5);
@@ -70,21 +77,41 @@ test("mapea canales conocidos y convierte temperatura y velocidad según la fila
   assert.ok(run.warnings.some(item => /MAP, Boost, Knock Retard/i.test(item)));
 });
 
-test("admite CSV TunerStudio con coma y sin fila de unidades, pero no inventa unidades", () => {
+test("detecta también un MSL sin preámbulo y rechaza formatos tabulados sin fila de unidades", () => {
+  const text = [
+    "Time\tSecL\tRPM\tMAP",
+    "sec\ts\tRPM\tkPa",
+    "0.0\t202.0\t965\t33.0",
+    "0.5\t202.0\t970\t34.0",
+  ].join("\n");
+  assert.equal(detectTunerStudioMsl(text), true);
+  const parsed = parseTunerStudioMsl(text);
+  assert.equal(parsed.tunerStudioMetadata.preambleLines.length, 0);
+  assert.equal(parsed.rows.length, 2);
+  assert.equal(parsed.headers[0], "Elapsed Time (sec)");
+  assert.equal(parsed.headers[1], "SecL (s)");
+
+  const noUnits = "Time\tRPM\tMAP\n0.0\t965\t33.0\n0.5\t970\t34.0\n";
+  assert.equal(detectTunerStudioMsl(noUnits), false);
+  const forced = parseTunerStudioMsl(noUnits);
+  assert.equal(forced.tunerStudioMetadata.unitsRowPresent, false);
+  assert.ok(forced.warnings.some(item => /unidades temporales/i.test(item)));
+});
+
+test("admite CSV con coma sin fila de unidades solo en perfil manual y no inventa unidades", () => {
   const text = "Time,RPM,TPS\n0,850,2\n0.1,900,3\n";
+  assert.equal(detectTunerStudioMsl(text), false);
   const parsed = parseTunerStudioMsl(text);
   assert.equal(parsed.delimiter, ",");
   assert.equal(parsed.tunerStudioMetadata.unitsRowPresent, false);
-  assert.deepEqual(parsed.headers, ["Time", "Engine RPM", "Throttle Position"]);
-  assert.ok(parsed.warnings.some(item => /no incluye una fila de unidades/i.test(item)));
-  assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, null,
-    "el parser no debe inventar la unidad de Time");
-  assert.equal(parsed.tunerStudioMetadata.sourceUnits.RPM, null,
-    "el parser no debe inventar la unidad de RPM");
+  assert.deepEqual(parsed.headers, ["Elapsed Time", "Engine RPM", "Throttle Position"]);
+  assert.ok(parsed.warnings.some(item => /unidades temporales/i.test(item)));
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, null);
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.RPM, null);
 
   const manuallyDeclared = importTunerStudioMsl(parsed, {
     sourceDomain: "ecu",
-    channelMapping: { time_s: "Time", rpm: "Engine RPM" },
+    channelMapping: { time_s: "Elapsed Time", rpm: "Engine RPM" },
     units: { time_s: "s", rpm: "rpm" },
   });
   assert.equal(manuallyDeclared.units.time_s, "s");
