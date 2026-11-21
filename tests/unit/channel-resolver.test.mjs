@@ -18,6 +18,12 @@ test("los símbolos UCUM conservan el significado de mayúsculas y prefijos", ()
   assert.equal(resolveUnitToken("pA").dimension, "electric_current");
   assert.equal(resolveUnitToken("pa").status, "unknown");
   assert.equal(resolveUnitForChannel("boost_actual", "pA").status, "dimension_mismatch");
+  const milliBar = resolveUnitForChannel("map_abs_kpa", "mBar");
+  assert.equal(milliBar.status, "matched");
+  assert.equal(milliBar.dimension, "pressure");
+  assert.equal(milliBar.canonicalUnit, "kPa");
+  assert.equal(milliBar.factor, 0.1);
+  assert.equal(resolveUnitToken("Mbar").status, "unknown");
 
   const milliWatt = resolveUnitForChannel("power_kw", "mW");
   const megaWatt = resolveUnitForChannel("power_kw", "MW");
@@ -42,7 +48,7 @@ test("convierte tiempo en milisegundos y distancia en metros sin alterar las uni
     "Elapsed Time (ms),Engine RPM,Distance (m)\n0,1800,1200\n100,1900,1350\n",
   );
   const run = mapCsvToRun(parsed, {
-    id: "unit-normalization-v2",
+    id: "unit-normalization-v3",
     name: "Fixture sintético de unidades",
     sourceDomain: "ecu",
     channelMapping: {
@@ -58,7 +64,7 @@ test("convierte tiempo en milisegundos y distancia en metros sin alterar las uni
   assert.equal(run.samples[1].channels.distance_km, 1.35);
   assert.equal(run.units.time_s, "s");
   assert.equal(run.units.distance_km, "km");
-  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/2");
+  assert.equal(run.importMetadata.unitNormalizationVersion, "datalog-units/3");
   assert.equal(run.importMetadata.sourceUnits.time_s, "ms");
   assert.equal(run.importMetadata.sourceUnits.distance_km, "m");
   assert.equal(run.samples[1].sourceValues.time_s, "100");

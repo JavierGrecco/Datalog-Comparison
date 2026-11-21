@@ -108,7 +108,7 @@ La documentación del fabricante confirma que WinPEP 8 Data Center puede trabaja
 
 No se encontró un contrato público de columnas fijo que justifique un parser automático universal. Por eso esta ruta utiliza el parser genérico y el resolver común para proponer alias, unidades y posibles variantes; la asignación final sigue siendo explícita. Registra un identificador de perfil propio y no lee archivos nativos de WinPEP ni Power Vision.
 
-Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. La asignación por nombre se contrasta con calificadores físicos explícitos como Wheel, Roller, Hub o Engine. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/2`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. El comparador excluye torque y potencia cuando uno de los ensayos es ECU/logger y el otro dinamómetro, cuando la base difiere (rueda, rodillo, cubo o motor) o cuando una base sigue desconocida. La opción desconocida permanece como advertencia.
+Si se asigna torque o potencia, la base de medición se debe declarar como rueda, rodillo, cubo, motor o desconocida. La asignación por nombre se contrasta con calificadores físicos explícitos como Wheel, Roller, Hub o Engine. Las unidades reconocidas se convierten a las unidades canónicas del modelo mediante reglas versionadas (`datalog-units/3`). La unidad original, el factor, el offset y la unidad de salida se conservan en los metadatos. Las bases físicas no se convierten. El comparador excluye torque y potencia cuando uno de los ensayos es ECU/logger y el otro dinamómetro, cuando la base difiere (rueda, rodillo, cubo o motor) o cuando una base sigue desconocida. La opción desconocida permanece como advertencia.
 
 ## Canales canónicos disponibles
 
@@ -127,7 +127,7 @@ Una clave canónica no certifica que sensores, ubicación de medición o método
 
 ## Normalización de unidades
 
-El registro `datalog-units/2` admite conversiones explícitas por dimensión y unidad canónica. Los símbolos se comparan de forma sensible al caso cuando la norma o el prefijo lo requiere; no se aplica lowercase global:
+El registro `datalog-units/3` admite conversiones explícitas por dimensión y unidad canónica. Los símbolos se comparan de forma sensible al caso cuando la norma o el prefijo lo requiere; no se aplica lowercase global:
 
 | Canal | Unidades de origen admitidas | Unidad canónica |
 | --- | --- | --- |
@@ -140,7 +140,7 @@ El registro `datalog-units/2` admite conversiones explícitas por dimensión y u
 | Acelerador | %, percent | % |
 | Avance de encendido | grados, radianes | grados |
 
-Las unidades no listadas o dimensionalmente incompatibles se rechazan para el canal elegido. Pa y pA, mW y MW, Nm y nm se distinguen explícitamente. La unidad original, conversión y encabezado se conservan en importMetadata; los CSV genéricos/Dynojet mantienen también la celda textual de origen junto a cada muestra. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
+`mBar` se admite como variante exacta de encabezados de algunos exports MegaSquirt y se normaliza como `mbar` (factor 0,1 a kPa); no se habilita una conversión genérica sin distinguir mayúsculas.Las unidades no listadas o dimensionalmente incompatibles se rechazan para el canal elegido. Pa y pA, mW y MW, Nm y nm se distinguen explícitamente. La unidad original, conversión y encabezado se conservan en importMetadata; los CSV genéricos/Dynojet mantienen también la celda textual de origen junto a cada muestra. La normalización no convierte la base física de torque/potencia (rueda, rodillo, cubo o motor), ni convierte AFR a lambda.
 
 Dynojet Data Center permite configurar por separado el paso de exportación por RPM y el intervalo temporal. El importador conserva el orden y muestra intervalo mediano, frecuencia observada por canal y jitter robusto cuando hay eje temporal. Son métricas calculadas sobre muestras adyacentes válidas; no prueban la frecuencia configurada ni la existencia de muestras perdidas. Sin eje temporal no se afirma frecuencia, duración ni sincronización.
 

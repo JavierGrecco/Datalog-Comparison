@@ -5,7 +5,7 @@
  * completos y las variantes documentadas se comparan sin distinguir caso.
  * No se eliminan prefijos ni se aplica lower-case global a los símbolos.
  */
-export const UNIT_REGISTRY_VERSION = "datalog-units/2";
+export const UNIT_REGISTRY_VERSION = "datalog-units/3";
 
 const entries = [];
 function register(dimension, canonicalUnit, factor, offset, symbols = [], words = []) {
@@ -58,7 +58,7 @@ register("power", "kW", 0.73549875, 0, ["PS", "ps", "CV", "cv"], ["metric horsep
 register("pressure", "kPa", 1, 0, ["kPa", "kpa", "KPa", "KPA"], ["kilopascal", "kilopascals"]);
 register("pressure", "kPa", 0.001, 0, ["Pa"], ["pascal", "pascals"]);
 register("pressure", "kPa", 100, 0, ["bar", "BAR"], ["bars"]);
-register("pressure", "kPa", 0.1, 0, ["mbar", "MBAR"], ["millibar", "millibars"]);
+register("pressure", "kPa", 0.1, 0, ["mbar", "MBAR", "mBar"], ["millibar", "millibars"]);
 register("pressure", "kPa", 6.894757293168, 0, ["psi", "PSI", "Psi"], ["pounds per square inch"]);
 
 // Se conserva una dimensión eléctrica para detectar, no aceptar, pA en canales de presión.
