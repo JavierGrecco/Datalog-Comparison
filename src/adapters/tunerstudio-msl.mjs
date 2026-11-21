@@ -320,7 +320,7 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
 
   const warnings = [
     ...parsed.warnings,
-    ...(unitsRowPresent ? [] : ["El log no incluye una fila de unidades temporales reconocible; declaralas manualmente antes de importar."]),
+    ...(unitsRowPresent || layout === "comma-delimited-megasquirt-export" ? [] : ["El log no incluye una fila de unidades temporales reconocible; declaralas manualmente antes de importar."]),
     ...(markerLines.length ? [markerLines.length === 1
       ? "Se conservó 1 evento MARK en los metadatos; no se agregó como muestra numérica."
       : "Se conservaron " + markerLines.length + " eventos MARK en los metadatos; no se agregaron como muestras numéricas."] : []),

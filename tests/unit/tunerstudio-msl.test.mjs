@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   TUNERSTUDIO_ADAPTER_ID,
   detectTunerStudioMsl,
+  detectTunerStudioText,
   importTunerStudioMsl,
   parseTunerStudioMsl,
 } from "../../src/adapters/tunerstudio-msl.mjs";
