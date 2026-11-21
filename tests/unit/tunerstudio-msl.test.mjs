@@ -28,7 +28,7 @@ test("detecta MSL tabulado con preámbulo opcional, unidad temporal y MARK", () 
   assert.equal(parsed.sourceLineNumbers[1], 7);
   assert.ok(parsed.headers.includes("Engine RPM (rpm)"));
   assert.ok(parsed.headers.includes("Elapsed Time (sec)"));
-  assert.ok(parsed.headers.includes("SecL (s)"));
+  assert.ok(parsed.headers.includes("Secl (s)"));
   assert.ok(parsed.headers.includes("MAP (kPa)"));
   assert.equal(parsed.tunerStudioMetadata.sourceHeaders[2], "RPM");
   assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, "sec");
