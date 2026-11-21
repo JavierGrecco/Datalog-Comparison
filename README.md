@@ -33,7 +33,7 @@ La aplicación contiene cuatro escenarios sintéticos generados en memoria:
 | **ECU frente a dinamómetro** | Dos fuentes de evidencia distintas. La política bloquea la comparación numérica conjunta y oculta las curvas superpuestas. |
 | **Bases de banco distintas** | Dos resultados de dinamómetro con la misma unidad, uno de rueda y otro referido a motor. Torque y potencia quedan excluidos aunque el origen sea el mismo. |
 
-Además, se pueden **inspeccionar CSV locales** mediante tres rutas: CSV genérico, dos layouts experimentales Haltech NSP identificados por %DataLog% (encabezado tipado y bloques Channel/ID/Type), y un perfil guiado para exportaciones CSV Dynojet PowerCore/WinPEP. Dos importaciones pueden asignarse explícitamente como referencia y candidata en un expediente local. El resumen compara distribuciones de canales compatibles sin alinear relojes ni emparejar muestras; los escenarios sintéticos permanecen separados. El expediente permite exportar un informe JSON versionado con estadísticas, exclusiones, controles de revisión, unidades y procedencia resumida, sin filas, muestras ni contenido del CSV. Se calcula SHA-256 en el navegador para detectar si se seleccionó dos veces el mismo archivo; la huella no autentica su origen. Se examinó una exportación pública Haltech para validar la estructura de metadatos; el archivo no se incluye ni se redistribuye.
+Además, se pueden **inspeccionar archivos CSV y MSL locales** mediante cuatro rutas: CSV genérico, dos layouts experimentales Haltech NSP identificados por %DataLog% (encabezado tipado y bloques Channel/ID/Type), un perfil guiado para Dynojet PowerCore/WinPEP y un perfil TunerStudio/MegaSquirt para MSL tabulado y export CSV clásico con metadatos. Dos importaciones pueden asignarse explícitamente como referencia y candidata en un expediente local. El resumen compara distribuciones de canales compatibles sin alinear relojes ni emparejar muestras; los escenarios sintéticos permanecen separados. El expediente permite exportar un informe JSON versionado con estadísticas, exclusiones, controles de revisión, unidades y procedencia resumida, sin filas, muestras ni contenido del CSV. Se calcula SHA-256 en el navegador para detectar si se seleccionó dos veces el mismo archivo; la huella no autentica su origen. Se examinó una exportación pública Haltech para validar la estructura de metadatos; el archivo no se incluye ni se redistribuye.
 
 En los escenarios sintéticos compatibles de un mismo dominio se pueden inspeccionar gráficos descriptivos de **torque y potencia frente a RPM**. El caso de bases de banco distintas muestra cómo se excluyen esos canales cuando la magnitud física no coincide. Ambos comparten el eje horizontal y mantienen escalas verticales independientes. La aplicación también permite exportar un resumen de la evaluación sintética en JSON.
 
@@ -61,7 +61,9 @@ Un resultado descriptivo no certifica que dos ensayos sean equivalentes. La inte
 
 **Haltech NSP:** se reconocen dos layouts con marcador %DataLog%: encabezados tipados y bloques de metadatos Channel/ID/Type. El segundo se contrastó con una exportación pública de 114 canales; se aplican nombres exactos y reglas de escala acotadas. Las reglas son comunitarias y no están certificadas por el fabricante.
 
-**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un CSV crudo público ni un esquema de columnas fijo publicado. El resolver propone coincidencias genéricas que deben confirmarse; también se declara la base física de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
+**Dynojet PowerCore/WinPEP:** el perfil guiado utiliza el parser neutral porque las exportaciones son configurables y no se encontró un esquema CSV universal. El resolver propone coincidencias genéricas que deben confirmarse; también se declara la base física de torque/potencia. No lee archivos nativos de WinPEP o Power Vision.
+
+**TunerStudio / MegaSquirt:** se reconocen MSL tabulados con preámbulo opcional, fila de unidad temporal, columnas `Time` y `SecL` separadas y eventos `MARK`, además del export CSV clásico `Tune Datalog export of` con `Frame,Duration` y metadatos. `Duration` se conserva en segundos; las anomalías del reloj no se corrigen silenciosamente. Los binarios `.mlg` y `.ms3` no están soportados.
 
 **CSV genérico:** cuenta con un resolver determinista local, sin IA externa, que propone alias, variantes de nombres, unidades y pistas numéricas. Solo las coincidencias exactas, únicas y dimensionalmente compatibles se preseleccionan para revisión; los errores de tipeo, ambigüedades y pistas por rango requieren confirmación. Las unidades admitidas se normalizan a unidades canónicas con reglas versionadas y se conserva la procedencia. Las columnas desconocidas y datos faltantes no se fuerzan dentro del modelo. La comparación importada es local y descriptiva: resume cada archivo por separado y excluye canales sin unidad o base física compatible, no compartidos o con cobertura insuficiente.
 
@@ -121,7 +123,8 @@ Estas pruebas verifican el comportamiento del software cubierto por ellas; no va
 La demo ahora incluye un catálogo versionado de fuentes y herramientas para crear registros de prueba reproducibles. No se copian datasets grandes ni logs comunitarios sin licencia al repositorio.
 
 - [Catálogo de datasets y política de licencias](docs/PUBLIC_DATASETS.md): fuentes CC BY 4.0, atribución, procedencia, restricciones y clasificación entre datos medidos, simulados y derivados.
-- [Simulación y ECU virtual](docs/SIMULATOR.md): generador local con semilla fija y guía para conectar el simulador externo Speeduino a TunerStudio.
+- El catálogo incluye un pequeño extracto OpenBLDCData CC BY 4.0 para probar adquisición y calidad temporal; no se usa para curvas de motor térmico o dinamómetro de vehículo.
+- [Simulación y ECU virtual](docs/SIMULATOR.md): generadores reproducibles para ECU y dinamómetro, fixtures Graph Export/Time Export y guía para conectar el simulador externo Speeduino a TunerStudio.
 - [Catálogo estructurado](data/sources.json): registro legible por máquina de URLs, licencias y estado de reutilización.
 
 Generá un CSV ECU uniforme para inspeccionar localmente:
@@ -150,9 +153,11 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 ├── scripts/
 │   ├── fetch-obd-sample.mjs
 │   ├── generate-simulated-telemetry.mjs
+│   ├── generate-simulated-dyno.mjs
 │   └── validate-comparison-report.mjs
 ├── src/
 │   ├── simulated-telemetry.mjs
+│   ├── simulated-dyno.mjs
 │   ├── csv-import.mjs
 │   ├── channel-resolver.mjs
 │   ├── unit-registry.mjs
@@ -170,7 +175,7 @@ La licencia de un dataset externo no concede una licencia sobre el código de es
 │   ├── signal-processing.mjs
 │   └── run-manifest.mjs
 ├── tests/
-│   ├── fixtures/         # CSV sintéticos
+│   ├── fixtures/         # CSV sintéticos y extracto BLDC CC BY 4.0 atribuido
 │   ├── unit/             # Pruebas de dominio y parser
 │   │   └── simulated-telemetry.test.mjs
 │   └── browser/          # Recorrido automatizado con Chromium
@@ -226,6 +231,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
 - Haltech NSP reconoce dos layouts experimentales de CSV con marcador %DataLog% (encabezado tipado y bloques Channel/ID/Type); no representa compatibilidad universal.
 - Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo. No se encontró una exportación CSV cruda pública para validarlo de extremo a extremo.
+- TunerStudio/MegaSquirt admite texto MSL y export CSV clásico; no lee binarios `.mlg` ni `.ms3`.
 - La comparación entre dos archivos importados no es sincronizada ni punto a punto: no alinea relojes, no interpola y no calcula diferencias entre muestras emparejadas.
 - No demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud. La normalización de unidades admitidas queda registrada.
 - ECU/logger y dinamómetro son fuentes diferentes; no se deben mezclar por defecto.
