@@ -33,6 +33,23 @@ Parmar, Nishit; Jamariya, Jasmin; Manjaly, Reuben; Desai, Krish. *Performance ch
 
 Es la fuente más prometedora para incorporar evidencia real de banco. Sin embargo, antes de convertirla en fixture hay que descargar y revisar sus archivos: la ficha pública no demuestra que sean barridos RPM continuos, series temporales o que las columnas tengan el formato que espera `buildRpmSweepCurves`. Mantener separados valores medidos y teóricos. No atribuirle un muestreo o un eje que todavía no se hayan verificado.
 
+
+### Dinamómetro de chasis: Argonne D³
+
+[Downloadable Dynamometer Database (D³)](https://www.anl.gov/taps/downloadable-dynamometer-database) · [Ejemplo de vehículo: Infiniti QX50 2019](https://www.anl.gov/taps/d3-2019-infiniti-qx50).
+
+Argonne describe D³ como datos públicos de ensayos de vehículos realizados en laboratorio por el Advanced Mobility Technology Laboratory (AMTL). La ficha del Infiniti QX50 identifica un motor 2.0 L VC-Turbo de cuatro cilindros. Los informes históricos de Argonne/DOE describen señales de ciclo de conducción y dinamómetro a 10 Hz para determinados datasets, incluyendo velocidad, esfuerzo de tracción, régimen de motor, temperaturas y señales eléctricas. **La frecuencia y las señales se deben verificar en cada archivo; no se generalizan de un vehículo a otro.**
+
+D³ es un candidato medido de **dinamómetro de chasis**, no una fuente equivalente a un barrido de potencia/torque de motor en banco. El esfuerzo de tracción del rodillo no debe asignarse directamente al canal `torque_nm`, ni el régimen del motor debe interpretarse como un barrido WOT sin revisar el ciclo y el contexto.
+
+**Acceso y derechos:** la página vigente indica que los datos solo pueden usarse con la atribución que publica Argonne o una referencia bibliográfica estándar. El portal histórico también publicó una advertencia de consentimiento para usos en publicaciones o con fines de lucro. Como esos términos no establecen de forma inequívoca la redistribución de extractos, fixtures o artefactos CI, el catálogo no asigna una licencia y mantiene el uso público en este repositorio como pendiente de confirmación. Contacto oficial: `d3info@anl.gov`.
+
+Atribución publicada por Argonne:
+
+> This data is from the Downloadable Dynamometer Database and was generated at the Advanced Mobility Technology Laboratory (AMTL) at Argonne National Laboratory under the funding and guidance of the U.S. Department of Energy (DOE)
+
+Los archivos de vehículo se enlazan mediante una carpeta Box embebida. Todavía no se ha inspeccionado el inventario ni descargado un archivo concreto; por eso D³ no se usa como fixture ni se afirma una estructura CSV específica.
+
 ## Fuentes públicas que no deben redistribuirse por ahora
 
 | Fuente | Utilidad técnica | Estado de derechos y uso en este repositorio |

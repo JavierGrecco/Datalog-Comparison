@@ -38,3 +38,16 @@ test("los logs MoTeC de HPA quedan limitados a práctica local hasta verificar l
   assert.match(source.deviceIdentity, /exact ECU\/model.*not been independently verified/i);
   assert.match(source.repositoryPolicy, /Do not commit/i);
 });
+
+test("Argonne D3 remains a measured chassis dataset with unresolved redistribution terms", () => {
+  const source = catalog.sources.find(item => item.id === "argonne-d3-vehicle-chassis");
+  assert.ok(source, "Argonne D3 debe quedar registrado");
+  assert.equal(source.evidenceClass, "measured");
+  assert.equal(source.license, null, "no se debe inventar una licencia");
+  assert.equal(source.attributionRequired, true);
+  assert.equal(source.redistribution, "not-cleared-until-terms-confirmed");
+  assert.match(source.attributionText, /Advanced Mobility Technology Laboratory/);
+  assert.match(source.repositoryPolicy, /d3info@anl.gov/);
+  assert.match(source.fileSchemaStatus, /not-yet-inspected/);
+  assert.match(source.cautions.join(" "), /not necessarily a wide-open-throttle engine RPM sweep/i);
+});

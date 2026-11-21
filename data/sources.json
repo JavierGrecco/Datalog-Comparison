@@ -227,6 +227,41 @@
       ],
       "evidenceDetail": "Published experimental aggregates and protocol; no raw sample series are incorporated into this repository.",
       "redistributionStatus": "not-cleared"
+    },
+    {
+      "id": "argonne-d3-vehicle-chassis",
+      "title": "Argonne — Downloadable Dynamometer Database (D³)",
+      "url": "https://www.anl.gov/taps/downloadable-dynamometer-database",
+      "exampleVehicleUrl": "https://www.anl.gov/taps/d3-2019-infiniti-qx50",
+      "creator": "Argonne National Laboratory — Advanced Mobility Technology Laboratory (AMTL)",
+      "evidenceClass": "measured",
+      "license": null,
+      "attributionRequired": true,
+      "attributionText": "This data is from the Downloadable Dynamometer Database and was generated at the Advanced Mobility Technology Laboratory (AMTL) at Argonne National Laboratory under the funding and guidance of the U.S. Department of Energy (DOE)",
+      "redistribution": "not-cleared-until-terms-confirmed",
+      "fileSchemaStatus": "vehicle-page-links-to-embedded-box-folder; files-not-yet-inspected",
+      "datasetType": "vehicle-chassis-dynamometer-drive-cycle",
+      "capture": "Public vehicle-testing data from independent laboratory tests at Argonne AMTL. The current catalogue includes combustion, hybrid and electric vehicles; the 2019 Infiniti QX50 page identifies a 2.0 L VC-Turbo four-cylinder vehicle.",
+      "sampling": {
+        "reportedInHistoricalReferences": "10 Hz signals for selected vehicle time-series datasets",
+        "verification": "Confirm the sample frequency and available channels for each vehicle and test file before importing."
+      },
+      "likelySignalFamilies": [
+        "drive-cycle and vehicle speed",
+        "dynamometer tractive effort",
+        "engine speed",
+        "ambient/cabin/oil temperatures",
+        "fuel flow",
+        "battery voltage and current for electrified vehicles"
+      ],
+      "cautions": [
+        "This is chassis-dynamometer vehicle-cycle data, not necessarily a wide-open-throttle engine RPM sweep.",
+        "Tractive effort is not the same signal as engine torque in Nm; do not map it to torque_nm without a documented conversion and measurement location.",
+        "Do not assume every vehicle has the same channels or 10 Hz sampling; inspect each file and test metadata.",
+        "The current page requires the published attribution. Historical Argonne portal material also contains a publication/profit consent restriction; ask Argonne to confirm the applicable terms for the intended reuse."
+      ],
+      "repositoryPolicy": "Do not commit raw files, derived extracts, fixtures or CI artefacts until Argonne confirms the applicable reuse and redistribution terms in writing. Contact d3info@anl.gov. Preserve the exact attribution statement when any permitted use is made.",
+      "evidenceDetail": "Measured chassis-dynamometer vehicle testing described by Argonne; current catalogue and a vehicle page are public, but the embedded file list, file schema and reuse conditions for repository redistribution have not been independently verified."
     }
   ]
 }
