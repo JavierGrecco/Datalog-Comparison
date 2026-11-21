@@ -85,7 +85,7 @@ test("OpenBLDC excerpt preserves raw high-rate sensor data and its provenance", 
   assert.equal(parsed.rows[0][index.dt], "");
   assert.ok(parsed.rows.every(row => ["0", "1"].includes(row[index.pg_rpm])));
   assert.equal(parsed.headers.some(header => /torque|power/i.test(header)), false);
-  assert.equal(attribution.sourceCommit, sourceCommit);
+  assert.equal(attribution.sourceCommit, "1ce35456f83be8f36aec183ab19d6e6e46603023");
   assert.equal(attribution.sourceFileGitBlobSha, "90e0df35b17a3b37de9b1267908f8fa578d65fec");
   assert.equal(attribution.sourceLicense, "CC BY 4.0");
   assert.equal(attribution.extractedSourceLines.firstData, 2);
