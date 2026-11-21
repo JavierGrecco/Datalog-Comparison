@@ -39,7 +39,7 @@
       "dt"
     ],
     "firstTimestampUs": 0,
-    "lastTimestampUs": 61997,
+    "lastTimestampUs": 62997,
     "intervalUs": {
       "min": 997,
       "median": 1000,
@@ -47,7 +47,7 @@
     },
     "sequence": {
       "first": 24181,
-      "last": 24243,
+      "last": 24244,
       "allStepsOne": true
     },
     "firstDtCell": "empty; retained as missing, not replaced with zero"

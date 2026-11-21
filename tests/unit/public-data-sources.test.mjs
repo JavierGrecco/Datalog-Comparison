@@ -90,4 +90,8 @@ test("OpenBLDC excerpt preserves raw high-rate sensor data and its provenance", 
   assert.equal(attribution.sourceLicense, "CC BY 4.0");
   assert.equal(attribution.extractedSourceLines.firstData, 2);
   assert.equal(attribution.extractedSourceLines.lastData, 65);
+  assert.equal(attribution.sampleObservations.lastTimestampUs, 62997);
+  assert.deepEqual(attribution.sampleObservations.intervalUs, { min: 997, median: 1000, max: 1002 });
+  assert.equal(attribution.sampleObservations.sequence.last, 24244);
+  assert.equal(attribution.sampleObservations.sequence.allStepsOne, true);
 });
