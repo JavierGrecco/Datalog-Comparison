@@ -231,6 +231,7 @@ La implementación separa la presentación de las reglas de dominio. La matriz n
 - Los CSV importados son datos aportados por quien ejecuta la demo. Su origen y unidades son declaraciones, no datos autenticados.
 - Haltech NSP reconoce dos layouts experimentales de CSV con marcador %DataLog% (encabezado tipado y bloques Channel/ID/Type); no representa compatibilidad universal.
 - Dynojet PowerCore/WinPEP utiliza mapeo guiado y no lee archivos nativos ni presupone un esquema fijo. No se encontró una exportación CSV cruda pública para validarlo de extremo a extremo.
+- TunerStudio/MegaSquirt admite exportaciones de texto MSL tabuladas y CSV clásico con metadatos; es experimental y no lee binarios `.mlg` ni `.ms3`.
 - TunerStudio/MegaSquirt admite texto MSL y export CSV clásico; no lee binarios `.mlg` ni `.ms3`.
 - La comparación entre dos archivos importados no es sincronizada ni punto a punto: no alinea relojes, no interpola y no calcula diferencias entre muestras emparejadas.
 - No demuestra equivalencia física, sincroniza relojes ni prueba que dos señales representen la misma magnitud. La normalización de unidades admitidas queda registrada.
