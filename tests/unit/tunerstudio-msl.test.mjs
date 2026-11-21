@@ -32,7 +32,7 @@ test("detecta MSL tabulado con preámbulo opcional, unidad temporal y MARK", () 
   assert.ok(parsed.headers.includes("MAP (kPa)"));
   assert.equal(parsed.tunerStudioMetadata.sourceHeaders[2], "RPM");
   assert.equal(parsed.tunerStudioMetadata.sourceUnits.Time, "sec");
-  assert.equal(parsed.tunerStudioMetadata.sourceUnits.SecL, "s");
+  assert.equal(parsed.tunerStudioMetadata.sourceUnits.Secl, "s");
 });
 
 test("mapea Time como eje, mantiene SecL como canal y convierte las unidades declaradas", () => {
