@@ -194,7 +194,7 @@ test("el parser CSV en worker comunica errores de forma segura y permite reinten
   await page.locator("#csvFile").setInputFiles({
     name: "duplicate-headers.csv",
     mimeType: "text/csv",
-    buffer: Buffer.from("RPM,rpm\\n1000,900\\n", "utf8"),
+    buffer: Buffer.from("RPM,rpm\n1000,900\n", "utf8"),
   });
   await page.waitForFunction(() =>
     document.querySelector("#csvImportStatus")?.textContent.includes("CSV_DUPLICATE_HEADERS"));
@@ -204,7 +204,7 @@ test("el parser CSV en worker comunica errores de forma segura y permite reinten
   await page.locator("#csvFile").setInputFiles({
     name: "valid-retry.csv",
     mimeType: "text/csv",
-    buffer: Buffer.from("Elapsed Time (s),Engine RPM\\n0,1000\\n0.1,1100\\n", "utf8"),
+    buffer: Buffer.from("Elapsed Time (s),Engine RPM\n0,1000\n0.1,1100\n", "utf8"),
   });
   await page.locator("#csvMappingSection").waitFor({ state: "visible" });
   assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine RPM");
