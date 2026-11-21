@@ -395,7 +395,7 @@ test("detecta e importa un archivo MSL con MARK desde el selector local", async 
   await page.locator("#csvInspectButton").click();
   await page.locator("#csvPreview").waitFor({ state: "visible" });
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
-  assert.match(await page.locator("#csvWarnings").innerText(), /eventos MARK/i);
+  assert.match(await page.locator("#csvWarnings").innerText(), /eventos? MARK/i);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(httpErrors, []);

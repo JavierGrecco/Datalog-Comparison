@@ -239,7 +239,9 @@ export function parseTunerStudioMsl(text, { delimiter = "auto" } = {}) {
   const warnings = [
     ...parsed.warnings,
     ...(unitsRowPresent ? [] : ["El log no incluye una fila de unidades temporales reconocible; declaralas manualmente antes de importar."]),
-    ...(markerLines.length ? [markerLines.length + " evento(s) MARK se conservaron en metadatos y se excluyeron de las muestras numéricas."] : []),
+    ...(markerLines.length ? [markerLines.length === 1
+      ? "Se conservó 1 evento MARK en los metadatos; no se agregó como muestra numérica."
+      : "Se conservaron " + markerLines.length + " eventos MARK en los metadatos; no se agregaron como muestras numéricas."] : []),
     "Los campos vacíos y no numéricos no se rellenan con el último valor; se conservan como faltantes para no ocultar pérdidas de señal.",
     "No se corrigen retrocesos ni reinicios del reloj. Revisá el eje temporal y sus discontinuidades antes de comparar.",
   ];
