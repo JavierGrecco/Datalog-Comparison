@@ -16,7 +16,7 @@ Los escenarios se generan en memoria y se mantienen separados de los CSV que apo
 
 ### Importación CSV local
 
-Archivo seleccionado en el navegador → decodificación y parser → perfil/adaptador → mapeo de canales → normalización de unidades → controles de calidad → inspección y análisis derivado.
+Archivo seleccionado en el navegador → decodificación y huella → parser local en Web Worker para CSV genérico y TunerStudio → perfil/adaptador → mapeo de canales → normalización de unidades → controles de calidad → inspección y análisis derivado.
 
 La comparación importada resume cada registro por separado. No sincroniza relojes, no empareja muestras y no calcula diferencias punto a punto.
 
@@ -31,7 +31,7 @@ Los controles distinguen ECU/logger, banco de motor y banco de chasis. Para agru
 | Capa o módulo | Responsabilidad |
 | --- | --- |
 | `app/app.mjs` | Inicio de la aplicación, escenarios sintéticos y coordinación de vistas. |
-| `app/csv-inspector.mjs` | Selección de archivos, importadores, mapeo guiado, resumen y vistas de análisis derivado. |
+| `app/csv-inspector.mjs` | Selección de archivos, coordinación del worker, mapeo guiado, resumen y vistas de análisis derivado. |\n| `app/csv-import.worker.mjs` | Parser genérico y parser TunerStudio en un Web Worker del mismo origen; devuelve errores estructurados y resultados sin solicitudes de red. |
 | `app/telemetry-charts.mjs` | Presentación Canvas de series ya calculadas; valida ejes y administra el ciclo de vida de las gráficas. |
 | `app/protocol-inspector.mjs` | Captura y evaluación guiada de protocolos de ensayo. |
 | `app/dossier-inspector.mjs` | Expedientes locales, historial, artefactos derivados, consentimiento de archivado de CSV y respaldos. |
@@ -60,7 +60,7 @@ Los controles distinguen ECU/logger, banco de motor y banco de chasis. Para agru
 
 ## Límites entre capas
 
-- Los módulos de dominio no acceden al DOM, a IndexedDB ni a servicios de red.
+- Los módulos de dominio no acceden al DOM, a IndexedDB ni a servicios de red.\n- El Web Worker de importación solo recibe texto y opciones de parseo; no tiene acceso a archivos, almacenamiento ni endpoints externos.
 - Los parsers y adaptadores no convierten encabezados desconocidos en canales canónicos sin evidencia suficiente.
 - Una unidad identifica una dimensión, pero no siempre el rol. Se distinguen, por ejemplo, RPM de motor/rueda/rodillo, presión MAP/boost/combustible y torque/potencia por base física.
 - Las propuestas por similitud de nombre o rango numérico no se presentan como hechos: requieren confirmación.
@@ -85,7 +85,7 @@ uPlot se distribuye localmente en `vendor/uplot/`, con licencia y aviso de orige
 
 ## Persistencia, seguridad y privacidad
 
-La aplicación no tiene backend, cuentas, telemetría ni sincronización entre dispositivos. Los CSV se procesan localmente en el navegador. Los expedientes e informes pueden permanecer en IndexedDB del perfil actual.
+La aplicación no tiene backend, cuentas, telemetría ni sincronización entre dispositivos. Los CSV se procesan localmente en el navegador. El parseo genérico y TunerStudio se ejecuta en un Web Worker del mismo origen; la interfaz cancela el worker anterior cuando se selecciona otro archivo, cambia el perfil/separador o se limpia el formulario. Los expedientes e informes pueden permanecer en IndexedDB del perfil actual.
 
 Los bytes originales solo se archivan con consentimiento explícito. Se guardan separados del informe y se vuelve a verificar su SHA-256. Los respaldos JSON no incluyen los bytes de los CSV. IndexedDB no está cifrado ni es un mecanismo de control de acceso; cualquier persona con acceso al mismo perfil puede acceder a sus datos.
 

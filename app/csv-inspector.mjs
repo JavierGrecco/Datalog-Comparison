@@ -20,9 +20,90 @@ import { buildRpmBandChartData, disposeTelemetryCharts, renderTelemetryChart } f
 const $ = selector => document.querySelector(selector);
 const state = {
   file: null, fileSha256: null, text: null, textEncoding: null, parsed: null, run: null, quality: null, profile: "generic",
+  parseRequestId: 0,
   columnSuggestions: null, derivedResult: null,
   comparisonRuns: { reference: null, candidate: null }, comparisonResult: null,
 };
+
+let csvParseWorker = null;
+let csvParsePending = null;
+
+function cancelCsvParseWorker() {
+  const worker = csvParseWorker;
+  const pending = csvParsePending;
+  csvParseWorker = null;
+  csvParsePending = null;
+  worker?.terminate();
+  if (pending) {
+    const error = new Error("La lectura CSV fue reemplazada por una selección más reciente.");
+    error.name = "AbortError";
+    pending.reject(error);
+  }
+}
+
+function parseCsvInWorker(text, { profile, delimiter = "auto", requestId }) {
+  if (typeof Worker !== "function") {
+    // Navegadores sin Web Workers conservan la compatibilidad funcional.
+    return Promise.resolve(profile === "tunerstudio"
+      ? parseTunerStudioMsl(text)
+      : parseCsvText(text, { delimiter }));
+  }
+
+  cancelCsvParseWorker();
+  const worker = new Worker(new URL("./csv-import.worker.mjs", import.meta.url), {
+    type: "module",
+    name: "datalog-csv-parser",
+  });
+  csvParseWorker = worker;
+
+  return new Promise((resolve, reject) => {
+    csvParsePending = { worker, reject };
+
+    const finish = () => {
+      if (csvParseWorker !== worker) return false;
+      csvParseWorker = null;
+      csvParsePending = null;
+      worker.terminate();
+      return true;
+    };
+
+    worker.addEventListener("message", event => {
+      if (!finish()) return;
+      const message = event.data;
+      if (!message || message.requestId !== requestId) {
+        reject(new Error("El proceso de lectura devolvió una respuesta inesperada."));
+        return;
+      }
+      if (!message.ok) {
+        reject(new CsvImportError(
+          message.error?.code ?? "CSV_WORKER_FAILED",
+          message.error?.message ?? "No se pudo analizar el archivo CSV.",
+          message.error?.details ?? {},
+        ));
+        return;
+      }
+      resolve(message.result);
+    }, { once: true });
+
+    worker.addEventListener("error", event => {
+      event.preventDefault();
+      if (!finish()) return;
+      reject(new Error("Falló el proceso local de lectura CSV. Volvé a seleccionar el archivo."));
+    }, { once: true });
+
+    worker.addEventListener("messageerror", () => {
+      if (!finish()) return;
+      reject(new Error("No se pudo recibir el resultado del proceso local de lectura CSV."));
+    }, { once: true });
+
+    try {
+      worker.postMessage({ type: "parse", requestId, profile, text, delimiter });
+    } catch (error) {
+      if (finish()) reject(error);
+    }
+  });
+}
+
 
 function sourceEncodingLabel(encoding) {
   const labels = {
@@ -855,7 +936,9 @@ function showGenericMapping(parsed, profile) {
   parsed.warnings.length || !state.fileSha256 ? "warning" : "success");
 }
 
-function parseLoadedText() {
+async function parseLoadedText() {
+  const requestId = ++state.parseRequestId;
+  cancelCsvParseWorker();
   if (!state.text) return;
   clearPreview();
   state.parsed = null;
@@ -866,6 +949,10 @@ function parseLoadedText() {
   const profile = selectedProfile === "auto"
     ? (detectHaltechNspCsv(state.text) ? "haltech" : detectTunerStudioText(state.text) ? "tunerstudio" : "generic")
     : selectedProfile;
+  const requestIsCurrent = () =>
+    state.parseRequestId === requestId &&
+    Boolean(state.file) &&
+    $("#csvFile").files?.[0] === state.file;
 
   try {
     if (profile === "haltech") {
@@ -896,16 +983,26 @@ function parseLoadedText() {
       $("#csvSourceDomain").value = "dyno";
       setProfileControls({ dynojet: true });
     }
+
+    const parserProfile = profile === "tunerstudio" ? "tunerstudio" : "generic";
     if (profile === "tunerstudio") {
       $("#csvSourceDomain").value = "ecu";
       setProfileControls({ ecu: true });
-      const parsed = parseTunerStudioMsl(state.text);
-      showGenericMapping(parsed, profile);
-      return;
     }
-    const parsed = parseCsvText(state.text, { delimiter: selectedDelimiter() });
+
+    setStatus(
+      "Analizando el archivo en un proceso local separado. Los datos permanecen en este navegador.",
+      "neutral",
+    );
+    const parsed = await parseCsvInWorker(state.text, {
+      profile: parserProfile,
+      delimiter: parserProfile === "generic" ? selectedDelimiter() : "auto",
+      requestId,
+    });
+    if (!requestIsCurrent()) return;
     showGenericMapping(parsed, profile);
   } catch (error) {
+    if (error?.name === "AbortError" || !requestIsCurrent()) return;
     const detail = error instanceof CsvImportError || error instanceof CsvTextDecodingError
       ? " [" + error.code + "]" : "";
     setStatus((error?.message ?? "No se pudo leer el archivo.") + detail, "error");
@@ -913,6 +1010,8 @@ function parseLoadedText() {
 }
 
 async function handleFileSelection() {
+  state.parseRequestId += 1;
+  cancelCsvParseWorker();
   clearPreview();
   state.file = null;
   state.fileSha256 = null;
@@ -1018,6 +1117,8 @@ function handleImport(event) {
 }
 
 function reset() {
+  state.parseRequestId += 1;
+  cancelCsvParseWorker();
   state.file = null;
   state.fileSha256 = null;
   state.text = null;

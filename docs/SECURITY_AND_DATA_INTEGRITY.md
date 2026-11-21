@@ -8,7 +8,7 @@ La seguridad no depende de una sola función. Se apoya en varias medidas pequeñ
 
 ## Qué ocurre con los archivos importados
 
-- La inspección lee el CSV seleccionado en el navegador y mantiene el registro exploratorio en memoria mientras la página está abierta.
+- La inspección lee el CSV seleccionado en el navegador y mantiene el registro exploratorio en memoria mientras la página está abierta. El parser genérico y TunerStudio se ejecutan en un Web Worker del mismo origen para reducir el trabajo síncrono de la interfaz.
 - La aplicación no tiene backend, analítica ni sincronización. La política CSP restringe las conexiones salientes; los módulos del laboratorio se sirven desde el mismo origen.
 - Los expedientes, informes validados y artefactos derivados pueden persistirse en IndexedDB del perfil actual del navegador.
 - Los bytes de los CSV originales solo se copian a un almacén separado cuando la persona marca expresamente la opción de archivado. Antes de guardarlos, se vuelve a calcular SHA-256 y se compara con la huella del informe.
@@ -34,7 +34,7 @@ Estos límites reducen el riesgo de cargas accidentales demasiado grandes. No so
 
 Los encabezados, valores y mensajes provenientes del archivo se muestran como texto; no deben ejecutarse como HTML o JavaScript. La prueba de navegador incluye un encabezado sintético con una etiqueta HTML y un atributo de evento para comprobar que no se interpreta como contenido activo.
 
-La aplicación utiliza una política CSP restrictiva: scripts y estilos propios, sin conexiones salientes, objetos embebidos ni cambio de URL base. Cualquier relajación futura debe justificarse y probarse.
+La aplicación utiliza una política CSP restrictiva: scripts, estilos y workers propios, sin conexiones salientes, objetos embebidos ni cambio de URL base. Cualquier relajación futura debe justificarse y probarse. El worker no accede a IndexedDB, al sistema de archivos ni a servicios de red; se termina al completar la tarea o cuando una nueva selección invalida el resultado anterior.
 
 ### Reconocimiento conservador
 
@@ -69,7 +69,7 @@ La CI ejecuta chequeos de sintaxis, pruebas unitarias, pruebas de dominio y un r
 - rechazo de archivos CSV mal formados o fuera de los límites;
 - tratamiento de faltantes, unidades y encabezados ambiguos;
 - separación entre fuentes ECU/logger y dinamómetro;
-- ausencia de solicitudes externas durante el uso de la aplicación;
+- ausencia de solicitudes externas durante el uso de la aplicación;\n- ejecución del parser CSV en un Web Worker local, transporte estructurado de errores y recuperación tras un archivo inválido;
 - uso de contenido CSV como texto, no como HTML ejecutable;
 - generación y exportación de escenarios sintéticos.
 

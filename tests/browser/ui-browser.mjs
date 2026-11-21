@@ -79,6 +79,7 @@ async function openDemo(t, viewport) {
   const pageErrors = [];
   const consoleErrors = [];
   const externalRequests = [];
+  const localRequests = [];
   const httpErrors = [];
   const failedRequests = [];
   page.on("pageerror", error => pageErrors.push(error.message));
@@ -89,7 +90,11 @@ async function openDemo(t, viewport) {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("request", request => {
-    if (!request.url().startsWith(baseUrl + "/")) externalRequests.push(request.url());
+    if (request.url().startsWith(baseUrl + "/")) {
+      localRequests.push(new URL(request.url()).pathname);
+    } else {
+      externalRequests.push(request.url());
+    }
   });
   page.on("response", response => {
     if (response.url().startsWith(baseUrl + "/") && response.status() >= 400) {
@@ -106,7 +111,7 @@ async function openDemo(t, viewport) {
       " · " + error.message,
     );
   }
-  return { page, pageErrors, consoleErrors, externalRequests, httpErrors };
+  return { page, pageErrors, consoleErrors, externalRequests, localRequests, httpErrors };
 }
 
 test("la entrada raíz es una redirección estática sin JavaScript inline", async t => {
@@ -128,7 +133,7 @@ test("la entrada raíz es una redirección estática sin JavaScript inline", asy
 });
 
 test("la inspección CSV es local, requiere mapeo explícito y no altera los escenarios sintéticos", async t => {
-  const { page, pageErrors, consoleErrors, externalRequests, httpErrors } =
+  const { page, pageErrors, consoleErrors, externalRequests, localRequests, httpErrors } =
     await openDemo(t, { width: 390, height: 844 });
 
   const csv = [
@@ -161,6 +166,8 @@ test("la inspección CSV es local, requiere mapeo explícito y no altera los esc
   assert.match(await page.locator("#csvPreviewSummary").innerText(), /3 muestras/);
   assert.match(await page.locator("#csvQualityTable").innerText(), /Torque/);
   assert.match(await page.locator("#csvImportStatus").innerText(), /podés asignarlo como referencia o candidata para una comparación descriptiva/i);
+  assert.ok(localRequests.includes("/app/csv-import.worker.mjs"),
+    "el parser CSV debe cargarse como Web Worker local");
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     false,
@@ -177,6 +184,36 @@ test("la inspección CSV es local, requiere mapeo explícito y no altera los esc
   await page.locator("#csvClearButton").click();
   assert.equal(await page.locator("#csvPreview").isVisible(), false);
   assert.equal(await page.locator("#csvFile").inputValue(), "");
+});
+
+
+test("el parser CSV en worker comunica errores de forma segura y permite reintentar", async t => {
+  const { page, pageErrors, consoleErrors, externalRequests, localRequests, httpErrors } =
+    await openDemo(t, { width: 390, height: 844 });
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "duplicate-headers.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("RPM,rpm\\n1000,900\\n", "utf8"),
+  });
+  await page.waitForFunction(() =>
+    document.querySelector("#csvImportStatus")?.textContent.includes("CSV_DUPLICATE_HEADERS"));
+  assert.match(await page.locator("#csvImportStatus").innerText(), /CSV_DUPLICATE_HEADERS/);
+  assert.equal(await page.locator("#csvMappingSection").isVisible(), false);
+
+  await page.locator("#csvFile").setInputFiles({
+    name: "valid-retry.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Elapsed Time (s),Engine RPM\\n0,1000\\n0.1,1100\\n", "utf8"),
+  });
+  await page.locator("#csvMappingSection").waitFor({ state: "visible" });
+  assert.equal(await page.locator('[data-channel-key="rpm"]').inputValue(), "Engine RPM");
+  assert.ok(localRequests.filter(path => path === "/app/csv-import.worker.mjs").length >= 2,
+    "cada nueva lectura debe ejecutarse en un worker local");
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(httpErrors, []);
+  assert.deepEqual(externalRequests, []);
 });
 
 test("los encabezados CSV importados se muestran como texto y no inyectan HTML", async t => {
