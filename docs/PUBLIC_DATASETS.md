@@ -50,6 +50,19 @@ Atribución publicada por Argonne:
 
 Los archivos de vehículo se enlazan mediante una carpeta Box embebida. Todavía no se ha inspeccionado el inventario ni descargado un archivo concreto; por eso D³ no se usa como fixture ni se afirma una estructura CSV específica.
 
+
+### Banco de motor eléctrico: Open BLDCData (fixture de adquisición, no de potencia)
+
+[Open BLDC Motor Test-Bench Dataset](https://github.com/Atikas/OpenBLDCData) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · Autor: Robertas Ūselis.
+
+Se inspeccionó el archivo `data/analize_front_ball30_3000rpm_96mA_mait.csv` del commit `1ce35456f83be8f36aec183ab19d6e6e46603023`: 3.350.534 bytes y 36.414 muestras. Se documenta un motor BLDC STEPPEROLINE 57BYA54-24-01 de 24 V, freno de histéresis, dos acelerómetros ADXL355 y monitor INA226. El registro contiene ejes de aceleración de ambos rodamientos, lecturas eléctricas crudas, un pulso digital de tacómetro y metadatos de secuencia/tiempo.
+
+El proyecto incluye una **extracción de 64 filas sin cambios numéricos** en `tests/fixtures/openbldc-sensor-bench-cc-by-4.0.csv`, junto con `.source.json` de atribución, commit upstream, Git blob ID, líneas de origen y límites de interpretación. En ese fragmento, `t_us` avanza de forma monótona con pasos observados de aproximadamente 1 ms; la primera celda `dt` vacía se mantiene vacía y la secuencia `seq` conserva incrementos unitarios.
+
+**Uso limitado:** este registro es útil para probar lectura CSV de alta frecuencia, preservación de datos crudos, jitter temporal y señales digitales. No es un log de ECU, una medición de banco de combustión ni una curva de torque/potencia. `pg_rpm` es una señal de pulsos 0/1 (el README documenta seis pulsos por revolución); no se asigna directamente a RPM. Los valores de acelerómetro y INA226 son cuentas crudas y no se convierten sin calibración.
+
+Atribución: `Robertas Ūselis. Open BLDC Motor Test-Bench Dataset for Vibration and Current Analysis. 2026. https://github.com/Atikas/OpenBLDCData. License: CC BY 4.0.`. El extracto indica que se modificó el alcance del archivo al recortar 64 filas; los datos originales se conservan intactos.
+
 ## Fuentes públicas que no deben redistribuirse por ahora
 
 | Fuente | Utilidad técnica | Estado de derechos y uso en este repositorio |

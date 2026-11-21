@@ -262,6 +262,63 @@
       ],
       "repositoryPolicy": "Do not commit raw files, derived extracts, fixtures or CI artefacts until Argonne confirms the applicable reuse and redistribution terms in writing. Contact d3info@anl.gov. Preserve the exact attribution statement when any permitted use is made.",
       "evidenceDetail": "Measured chassis-dynamometer vehicle testing described by Argonne; current catalogue and a vehicle page are public, but the embedded file list, file schema and reuse conditions for repository redistribution have not been independently verified."
+    },
+    {
+      "id": "openbldc-sensor-testbench-2026",
+      "title": "Open BLDC Motor Test-Bench Dataset for Vibration and Current Analysis",
+      "url": "https://github.com/Atikas/OpenBLDCData",
+      "creator": "Robertas Ūselis",
+      "published": "2026",
+      "evidenceClass": "measured",
+      "license": {
+        "spdx": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "scope": "dataset and documentation"
+      },
+      "upstreamCommit": "1ce35456f83be8f36aec183ab19d6e6e46603023",
+      "sourceFiles": [
+        {
+          "path": "data/analize_front_ball30_3000rpm_96mA_mait.csv",
+          "bytes": 3350534,
+          "gitBlobSha": "90e0df35b17a3b37de9b1267908f8fa578d65fec",
+          "inspected": true,
+          "fixture": "tests/fixtures/openbldc-sensor-bench-cc-by-4.0.csv",
+          "extractedRows": 64,
+          "sourceLines": "2–65"
+        }
+      ],
+      "testBench": {
+        "motor": "STEPPEROLINE 57BYA54-24-01 BLDC",
+        "nominalVoltage": 24,
+        "ratedPowerW": 50,
+        "ratedTorqueNm": 0.16,
+        "ratedSpeedRpm": 3000,
+        "load": "AHB-05M hysteresis brake",
+        "acquisition": "RP2350, two ADXL355 accelerometers and INA226 current/voltage monitor"
+      },
+      "columns": [
+        "t_us",
+        "ax",
+        "ay",
+        "az",
+        "ax1",
+        "ay1",
+        "az1",
+        "shunt_raw",
+        "bus_raw",
+        "curr_raw",
+        "pg_rpm",
+        "seq",
+        "dt"
+      ],
+      "cautions": [
+        "This is a BLDC electric motor condition-monitoring test bench, not an internal-combustion engine or vehicle chassis dynamometer.",
+        "No direct engine torque or power channels are present in this CSV.",
+        "pg_rpm is a 0/1 pulse signal; six pulses per mechanical revolution are documented upstream. It is not an RPM value.",
+        "Accelerometer and INA226 channels are raw counts and require documented calibration before physical-unit interpretation."
+      ],
+      "repositoryPolicy": "Only the small, attributed 64-row excerpt is committed as a parser/time-integrity fixture. Do not interpret this data as a combustion-engine or vehicle dynamometer run; do not map pg_rpm to instantaneous RPM or raw sensor counts to calibrated physical units.",
+      "evidenceDetail": "Measured electric BLDC test-bench data; one 36,414-row source CSV was inspected and a 64-row unchanged excerpt was extracted under CC BY 4.0 solely for raw acquisition/timebase tests."
     }
   ]
 }

@@ -1,0 +1,61 @@
+{
+  "dataset": "Open BLDC Motor Test-Bench Dataset for Vibration and Current Analysis",
+  "datasetUrl": "https://github.com/Atikas/OpenBLDCData",
+  "sourceAuthor": "Robertas Ūselis",
+  "sourceLicense": "CC BY 4.0",
+  "sourceLicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Robertas Ūselis. Open BLDC Motor Test-Bench Dataset for Vibration and Current Analysis. 2026. https://github.com/Atikas/OpenBLDCData. License: CC BY 4.0.",
+  "sourceCommit": "1ce35456f83be8f36aec183ab19d6e6e46603023",
+  "sourceFile": "data/analize_front_ball30_3000rpm_96mA_mait.csv",
+  "sourceFileBytes": 3350534,
+  "sourceFileGitBlobSha": "90e0df35b17a3b37de9b1267908f8fa578d65fec",
+  "sourceFileRows": 36414,
+  "fixtureFile": "tests/fixtures/openbldc-sensor-bench-cc-by-4.0.csv",
+  "extractedSourceLines": {
+    "header": 1,
+    "firstData": 2,
+    "lastData": 65,
+    "dataRows": 64
+  },
+  "modifications": [
+    "Extracted the header and the first 64 data rows from the upstream CSV.",
+    "No numeric values, column names or row ordering were changed.",
+    "No unit conversion, interpolation, resampling or imputation was applied."
+  ],
+  "sampleObservations": {
+    "columns": [
+      "t_us",
+      "ax",
+      "ay",
+      "az",
+      "ax1",
+      "ay1",
+      "az1",
+      "shunt_raw",
+      "bus_raw",
+      "curr_raw",
+      "pg_rpm",
+      "seq",
+      "dt"
+    ],
+    "firstTimestampUs": 0,
+    "lastTimestampUs": 61997,
+    "intervalUs": {
+      "min": 997,
+      "median": 1000,
+      "max": 1002
+    },
+    "sequence": {
+      "first": 24181,
+      "last": 24243,
+      "allStepsOne": true
+    },
+    "firstDtCell": "empty; retained as missing, not replaced with zero"
+  },
+  "scopeWarnings": [
+    "This is a BLDC electric motor condition-monitoring test bench, not an internal-combustion engine or vehicle chassis dynamometer.",
+    "No direct engine torque or power channels are present in this CSV.",
+    "pg_rpm is a 0/1 pulse signal; six pulses per mechanical revolution are documented upstream. It is not an RPM value.",
+    "Accelerometer and INA226 channels are raw counts and require documented calibration before physical-unit interpretation."
+  ]
+}
